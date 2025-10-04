@@ -1,0 +1,21 @@
+# PrestaShop
+config/xml/*.xml
+translations/export/*.php
+
+# Composer
+vendor/
+composer.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

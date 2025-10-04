@@ -1,0 +1,74 @@
+/**
+ * Multi Carrier - Backend CSS
+ *
+ * @author    Romell Jaramillo
+ * @copyright 2025 Romell Jaramillo
+ * @license   MIT License
+ */
+
+.rj-multicarrier-admin {
+    margin: 20px 0;
+}
+
+.rj-multicarrier-admin .panel {
+    margin-bottom: 20px;
+}
+
+.rj-multicarrier-admin .panel-heading {
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 15px;
+}
+
+.rj-multicarrier-admin .panel-heading h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.rj-multicarrier-admin .carrier-list-table {
+    width: 100%;
+    margin-top: 20px;
+}
+
+.rj-multicarrier-admin .carrier-list-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    padding: 10px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.rj-multicarrier-admin .carrier-list-table td {
+    padding: 10px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.rj-multicarrier-admin .badge {
+    padding: 5px 10px;
+    border-radius: 3px;
+}
+
+.rj-multicarrier-admin .badge-success {
+    background: #28a745;
+    color: #fff;
+}
+
+.rj-multicarrier-admin .badge-danger {
+    background: #dc3545;
+    color: #fff;
+}
+
+#rj_multicarrier_content .card {
+    margin-top: 20px;
+}
+
+#rj_multicarrier_content .card-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+#rj_multicarrier_content .card-header-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}

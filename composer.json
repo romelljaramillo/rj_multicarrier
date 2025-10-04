@@ -1,0 +1,28 @@
+{
+    "name": "romelljaramillo/rj_multicarrier",
+    "description": "Multi carrier module for PrestaShop 8+",
+    "type": "prestashop-module",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Romell Jaramillo",
+            "email": "romell.jaramillo@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.2.5"
+    },
+    "config": {
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "optimize-autoloader": true
+    },
+    "autoload": {
+        "psr-4": {
+            "RjMulticarrier\\": "classes/"
+        },
+        "classmap": [
+            "rj_multicarrier.php"
+        ]
+    }
+}
