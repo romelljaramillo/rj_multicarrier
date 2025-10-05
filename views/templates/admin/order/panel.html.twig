@@ -1,0 +1,99 @@
+<div class="card">
+  <h3 class="card-header">{{ 'RJ Multi-carrier'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
+  <div class="card-body">
+    {% if shipment %}
+      <dl class="row">
+        <dt class="col-sm-4">{{ 'Número de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+        <dd class="col-sm-8">{{ shipment.shipmentNumber ?: '-' }}</dd>
+
+        <dt class="col-sm-4">{{ 'Transportista'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+        <dd class="col-sm-8">{{ shipment.carrierShortName ?: '-' }}</dd>
+
+        <dt class="col-sm-4">{{ 'Referencia pedido'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+        <dd class="col-sm-8">{{ shipment.orderReference ?: '-' }}</dd>
+      </dl>
+
+      {% if shipment.package %}
+        <h4 class="h6 mt-3">{{ 'Información bulto'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h4>
+        <ul class="list-unstyled mb-3">
+          <li><strong>{{ 'Cantidad'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.quantity }}</li>
+          <li><strong>{{ 'Peso total'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.weight }}</li>
+          {% if shipment.package.dimensions %}
+            <li><strong>{{ 'Dimensiones'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong>
+              {{ shipment.package.dimensions.length ?: '-' }} x
+              {{ shipment.package.dimensions.width ?: '-' }} x
+              {{ shipment.package.dimensions.height ?: '-' }}
+            </li>
+          {% endif %}
+          {% if shipment.package.cash_on_delivery %}
+            <li><strong>{{ 'Contra reembolso'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.cash_on_delivery }}</li>
+          {% endif %}
+          {% if shipment.package.message %}
+            <li><strong>{{ 'Mensaje'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.message }}</li>
+          {% endif %}
+          {% if shipment.package.hour_from or shipment.package.hour_until %}
+            <li>
+              <strong>{{ 'Horario'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong>
+              {{ shipment.package.hour_from ?: '--:--:--' }} → {{ shipment.package.hour_until ?: '--:--:--' }}
+            </li>
+          {% endif %}
+          {% if shipment.package.retorno is not null %}
+            {% set retornoLabels = {
+              0: 'Sin retorno'|trans({}, 'Modules.RjMulticarrier.Admin'),
+              1: 'Retorno obligatorio'|trans({}, 'Modules.RjMulticarrier.Admin'),
+              2: 'Retorno opcional'|trans({}, 'Modules.RjMulticarrier.Admin')
+            } %}
+            <li><strong>{{ 'Retorno'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ retornoLabels[shipment.package.retorno]|default(shipment.package.retorno) }}</li>
+          {% endif %}
+          {% if shipment.package.rcs is not null %}
+            <li><strong>{{ 'Retorno copia sellada'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.rcs ? 'Sí'|trans({}, 'Modules.RjMulticarrier.Admin') : 'No'|trans({}, 'Modules.RjMulticarrier.Admin') }}</li>
+          {% endif %}
+          {% if shipment.package.vsec %}
+            <li><strong>{{ 'Valor asegurado'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.vsec }}</li>
+          {% endif %}
+          {% if shipment.package.dorig %}
+            <li><strong>{{ 'Documento de origen'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.dorig }}</li>
+          {% endif %}
+        </ul>
+      {% endif %}
+
+      <h4 class="h6">{{ 'Etiquetas'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h4>
+      {% if shipment.labels is not empty %}
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>{{ 'ID'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+              <th>{{ 'Paquete'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+              <th>{{ 'Seguimiento'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+              <th>{{ 'Tipo'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+              <th>{{ 'Impreso'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for label in shipment.labels %}
+              <tr>
+                <td>{{ label.id }}</td>
+                <td>{{ label.package_id ?: '-' }}</td>
+                <td>{{ label.tracker_code ?: '-' }}</td>
+                <td>{{ label.label_type ?: '-' }}</td>
+                <td>
+                  {% if label.printed %}
+                    <span class="badge bg-success">{{ 'Sí'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
+                  {% else %}
+                    <span class="badge bg-secondary">{{ 'No'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="text-muted">{{ 'No se han generado etiquetas para este envío.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+      {% endif %}
+    {% else %}
+      <p class="text-muted mb-0">
+        {{ 'No se ha encontrado ningún envío asociado a este pedido.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+      </p>
+    {% endif %}
+  </div>
+</div>

@@ -1,0 +1,302 @@
+imports:
+  - { resource: services_overrides.yml }
+
+services:
+  _defaults:
+    public: false
+    autowire: true
+    autoconfigure: false
+
+  Roanja\Module\RjMulticarrier\:
+    resource: "../src/*"
+    exclude:
+      - "../src/Entity/"
+      - "../src/Domain/**/Command/"
+      - "../src/Domain/**/Query/"
+      - "../src/Domain/**/Handler/"
+      - "../src/Domain/**/View/"
+      - "../src/Kernel.php"
+
+  Roanja\Module\RjMulticarrier\Controller\:
+    resource: "../src/Controller"
+    public: true
+    tags: ["controller.service_arguments"]
+
+  Roanja\Module\RjMulticarrier\Domain\:
+    resource: "../src/Domain/*"
+    exclude:
+      - "../src/Domain/**/Command/*"
+      - "../src/Domain/**/Query/*"
+      - "../src/Domain/**/View/*"
+    public: true
+
+  Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\:
+    resource: "../src/Domain/Shipment/Handler"
+    public: true
+
+  Roanja\Module\RjMulticarrier\Domain\InfoPackage\Handler\:
+    resource: "../src/Domain/InfoPackage/Handler"
+    public: true
+
+  Roanja\Module\RjMulticarrier\Domain\Log\Handler\:
+    resource: "../src/Domain/Log/Handler"
+    public: true
+
+  Roanja\Module\RjMulticarrier\Repository\LogEntryRepository:
+    arguments:
+      $registry: '@doctrine'
+      $shopContext: '@prestashop.adapter.shop.context'
+
+  Roanja\Module\RjMulticarrier\Domain\InfoShop\Handler\:
+    resource: "../src/Domain/InfoShop/Handler"
+    public: true
+
+  Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\:
+    resource: "../src/Domain/TypeShipment/Handler"
+    public: true
+
+  Roanja\Module\RjMulticarrier\Service\Configuration\ConfigurationManager:
+    public: true
+    arguments:
+      $upsertInfoShopHandler: '@Roanja\Module\RjMulticarrier\Domain\InfoShop\Handler\UpsertInfoShopHandler'
+      $infoShopRepository: '@Roanja\Module\RjMulticarrier\Repository\InfoShopRepository'
+      $configuration: "@prestashop.adapter.legacy.configuration"
+      $countryDataProvider: "@prestashop.adapter.data_provider.country"
+
+  Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentQueryBuilder:
+    arguments:
+      $connection: "@doctrine.dbal.default_connection"
+      $dbPrefix: "%database_prefix%"
+
+  Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentGridDefinitionFactory:
+    public: true
+    arguments:
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+    calls:
+      - [setTranslator, ["@translator"]]
+
+  Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentDoctrineGridDataFactory:
+    class: PrestaShop\PrestaShop\Core\Grid\Data\Factory\DoctrineGridDataFactory
+    arguments:
+      $gridQueryBuilder: '@Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentQueryBuilder'
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+      $queryParser: "@prestashop.core.grid.query.doctrine_query_parser"
+      $gridId: "rj_multicarrier_type_shipment"
+
+  Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentGridDataFactory:
+    class: Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentGridDataFactoryDecorator
+    arguments:
+      $typeShipmentDoctrineGridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentDoctrineGridDataFactory'
+      $csrfTokenManager: "@security.csrf.token_manager"
+
+  Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentGridFactory:
+    arguments:
+      $gridDefinitionFactory: '@Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentGridDefinitionFactory'
+      $gridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentGridDataFactory'
+      $gridFilterFormFactory: "@prestashop.core.grid.filter.form_factory"
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+
+  Roanja\Module\RjMulticarrier\Grid\Log\LogQueryBuilder:
+    arguments:
+      $connection: "@doctrine.dbal.default_connection"
+      $dbPrefix: "%database_prefix%"
+      $shopContext: "@prestashop.adapter.shop.context"
+
+  Roanja\Module\RjMulticarrier\Grid\Log\LogGridDefinitionFactory:
+    public: true
+    arguments:
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+    calls:
+      - [setTranslator, ["@translator"]]
+
+  Roanja\Module\RjMulticarrier\Grid\Log\LogDoctrineGridDataFactory:
+    class: PrestaShop\PrestaShop\Core\Grid\Data\Factory\DoctrineGridDataFactory
+    arguments:
+      $gridQueryBuilder: '@Roanja\Module\RjMulticarrier\Grid\Log\LogQueryBuilder'
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+      $queryParser: "@prestashop.core.grid.query.doctrine_query_parser"
+      $gridId: "rj_multicarrier_log"
+
+  Roanja\Module\RjMulticarrier\Grid\Log\LogGridFactory:
+    arguments:
+      $gridDefinitionFactory: '@Roanja\Module\RjMulticarrier\Grid\Log\LogGridDefinitionFactory'
+      $gridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\Log\LogDoctrineGridDataFactory'
+      $gridFilterFormFactory: "@prestashop.core.grid.filter.form_factory"
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+    public: true
+
+  Roanja\Module\RjMulticarrier\Grid\Shipment\ShipmentQueryBuilder:
+    arguments:
+      $connection: "@doctrine.dbal.default_connection"
+      $dbPrefix: "%database_prefix%"
+
+  Roanja\Module\RjMulticarrier\Grid\Shipment\ShipmentGridDefinitionFactory:
+    public: true
+    arguments:
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+    calls:
+      - [setTranslator, ["@translator"]]
+
+  Roanja\Module\RjMulticarrier\Grid\Shipment\ShipmentDoctrineGridDataFactory:
+    class: PrestaShop\PrestaShop\Core\Grid\Data\Factory\DoctrineGridDataFactory
+    arguments:
+      $gridQueryBuilder: '@Roanja\Module\RjMulticarrier\Grid\Shipment\ShipmentQueryBuilder'
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+      $queryParser: "@prestashop.core.grid.query.doctrine_query_parser"
+      $gridId: "rj_multicarrier_shipment"
+
+  Roanja\Module\RjMulticarrier\Grid\Shipment\ShipmentGridFactory:
+    arguments:
+      $gridDefinitionFactory: '@Roanja\Module\RjMulticarrier\Grid\Shipment\ShipmentGridDefinitionFactory'
+      $gridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\Shipment\ShipmentDoctrineGridDataFactory'
+      $gridFilterFormFactory: "@prestashop.core.grid.filter.form_factory"
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+
+  Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageQueryBuilder:
+    arguments:
+      $connection: "@doctrine.dbal.default_connection"
+      $legacyContext: "@prestashop.adapter.legacy.context"
+      $dbPrefix: "%database_prefix%"
+
+  Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridDefinitionFactory:
+    public: true
+    arguments:
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+      $csrfTokenManager: "@security.csrf.token_manager"
+    calls:
+      - [setTranslator, ["@translator"]]
+
+  Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageDoctrineGridDataFactory:
+    class: PrestaShop\PrestaShop\Core\Grid\Data\Factory\DoctrineGridDataFactory
+    arguments:
+      $gridQueryBuilder: '@Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageQueryBuilder'
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+      $queryParser: "@prestashop.core.grid.query.doctrine_query_parser"
+      $gridId: "rj_multicarrier_info_package"
+
+  Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridDataFactory:
+    class: Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridDataFactoryDecorator
+    arguments:
+      $infoPackageDoctrineGridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageDoctrineGridDataFactory'
+      $csrfTokenManager: "@security.csrf.token_manager"
+
+  Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridFactory:
+    arguments:
+      $gridDefinitionFactory: '@Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridDefinitionFactory'
+      $gridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridDataFactory'
+      $gridFilterFormFactory: "@prestashop.core.grid.filter.form_factory"
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+
+  Roanja\Module\RjMulticarrier\Service\Shipment\ShipmentLabelPrinter:
+    arguments:
+      $shipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\ShipmentRepository'
+      $labelRepository: '@Roanja\Module\RjMulticarrier\Repository\LabelRepository'
+      $entityManager: "@doctrine.orm.entity_manager"
+
+  Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter:
+    tags:
+      - { name: "roanja.module.rj_multicarrier.carrier_adapter" }
+
+  Roanja\Module\RjMulticarrier\Carrier\Adapter\CexCarrierAdapter:
+    arguments:
+      $configuration: "@prestashop.adapter.legacy.configuration"
+      $countryDataProvider: "@prestashop.adapter.data_provider.country"
+      $legacyContext: "@prestashop.adapter.legacy.context"
+    tags:
+      - { name: "roanja.module.rj_multicarrier.carrier_adapter" }
+
+  Roanja\Module\RjMulticarrier\Carrier\Adapter\GoiCarrierAdapter:
+    arguments:
+      $configuration: "@prestashop.adapter.legacy.configuration"
+    tags:
+      - { name: "roanja.module.rj_multicarrier.carrier_adapter" }
+
+  Roanja\Module\RjMulticarrier\Carrier\Adapter\DhlCarrierAdapter:
+    arguments:
+      $configuration: "@prestashop.adapter.legacy.configuration"
+      $countryDataProvider: "@prestashop.adapter.data_provider.country"
+    tags:
+      - { name: "roanja.module.rj_multicarrier.carrier_adapter" }
+
+  Roanja\Module\RjMulticarrier\Carrier\Adapter\GlsCarrierAdapter:
+    arguments:
+      $configuration: "@prestashop.adapter.legacy.configuration"
+      $countryDataProvider: "@prestashop.adapter.data_provider.country"
+    tags:
+      - { name: "roanja.module.rj_multicarrier.carrier_adapter" }
+
+  Roanja\Module\RjMulticarrier\Carrier\Adapter\CarrierRegistry:
+    arguments:
+      $adapters:
+        - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter'
+        - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\CexCarrierAdapter'
+        - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\GoiCarrierAdapter'
+        - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\DhlCarrierAdapter'
+        - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\GlsCarrierAdapter'
+      $fallbackAdapter: '@Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter'
+    public: true
+
+  rj_multicarrier.grid.definition.factory.type_shipment:
+    alias: 'Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentGridDefinitionFactory'
+    public: true
+
+  rj_multicarrier.grid.definition.factory.log:
+    alias: 'Roanja\Module\RjMulticarrier\Grid\Log\LogGridDefinitionFactory'
+    public: true
+
+  rj_multicarrier.grid.factory.log:
+    alias: 'Roanja\Module\RjMulticarrier\Grid\Log\LogGridFactory'
+    public: true
+
+  rj_multicarrier.grid.definition.factory.shipment:
+    alias: 'Roanja\Module\RjMulticarrier\Grid\Shipment\ShipmentGridDefinitionFactory'
+    public: true
+
+  rj_multicarrier.grid.definition.factory.info_package:
+    alias: 'Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridDefinitionFactory'
+    public: true
+
+  roanja.module.rj_multicarrier.installer:
+    class: Roanja\Module\RjMulticarrier\Service\Installer\ModuleInstaller
+    arguments:
+      - "@doctrine.dbal.default_connection"
+      - '@roanja.module.rj_multicarrier.doctrine.mapping_configurator'
+    public: true
+
+  roanja.module.rj_multicarrier.presenter.order_view:
+    class: Roanja\Module\RjMulticarrier\Service\Presenter\OrderViewPresenter
+    arguments:
+      - "@twig"
+      - '@Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\GetShipmentByOrderIdHandler'
+    public: true
+
+  roanja.module.rj_multicarrier.widget.presenter:
+    class: Roanja\Module\RjMulticarrier\Service\Presenter\WidgetPresenter
+    arguments:
+      - "@twig"
+    public: true
+
+  PrestaShop\PrestaShop\Core\Grid\Presenter\GridPresenterInterface:
+    alias: "prestashop.core.grid.presenter.grid_presenter"
+  PrestaShop\PrestaShop\Core\Grid\Filter\Form\GridFilterFormFactoryInterface:
+    alias: "prestashop.core.grid.filter.form_factory"
+
+  Roanja\Module\RjMulticarrier\Domain\Log\Handler\BulkDeleteLogEntriesHandler:
+    arguments:
+      - '@Roanja\Module\RjMulticarrier\Repository\LogEntryRepository'
+      - "@doctrine.orm.entity_manager"
+    tags:
+      - {
+          name: 'tactician.handler',
+          command: 'Roanja\Module\RjMulticarrier\Domain\Log\Command\BulkDeleteLogEntriesCommand',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\Log\Handler\DeleteLogEntryHandler:
+    arguments:
+      - '@Roanja\Module\RjMulticarrier\Repository\LogEntryRepository'
+      - '@doctrine.orm.entity_manager'
+    tags:
+      - {
+          name: 'tactician.handler',
+          command: 'Roanja\Module\RjMulticarrier\Domain\Log\Command\DeleteLogEntryCommand',
+        }

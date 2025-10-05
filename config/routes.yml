@@ -1,0 +1,199 @@
+admin_rj_multicarrier_configuration:
+  path: /rj-multicarrier/configuration
+  methods: [GET, POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ConfigurationController::indexAction'
+    _legacy_controller: "AdminRjMulticarrierConfiguration"
+    _legacy_link: 'AdminModules'
+  options:
+    expose: true
+
+admin_rj_multicarrier_type_shipment_index:
+  path: /rj-multicarrier/type-shipments
+  methods: [GET, POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\TypeShipmentController::indexAction'
+    _legacy_controller: "AdminRjMulticarrierTypeShipment"
+    _legacy_link: "AdminModules"
+  options:
+    expose: true
+
+admin_rj_multicarrier_type_shipment_delete:
+  path: /rj-multicarrier/type-shipments/{id}/delete
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\TypeShipmentController::deleteAction'
+    _legacy_controller: 'AdminRjMulticarrierTypeShipment'
+    _legacy_link: 'AdminRjMulticarrierTypeShipment:delete'
+  requirements:
+    id: '\d+'
+  options:
+    expose: true
+
+admin_rj_multicarrier_type_shipment_toggle:
+  path: /rj-multicarrier/type-shipments/{id}/toggle
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\TypeShipmentController::toggleAction'
+    _legacy_controller: 'AdminRjMulticarrierTypeShipment'
+    _legacy_link: 'AdminRjMulticarrierTypeShipment:status'
+  requirements:
+    id: '\d+'
+  options:
+    expose: true
+
+admin_rj_multicarrier_type_shipment_search:
+  path: /rj-multicarrier/type-shipments/search
+  methods: [POST]
+  defaults:
+    _controller: 'PrestaShopBundle:Admin/Common:searchGrid'
+    gridDefinitionFactoryServiceId: 'rj_multicarrier.grid.definition.factory.type_shipment'
+    redirectRoute: admin_rj_multicarrier_type_shipment_index
+    _legacy_controller: 'AdminRjMulticarrierTypeShipment'
+    _legacy_link: 'AdminRjMulticarrierTypeShipment:submitFilterrj_multicarrier_type_shipment'
+  options:
+    expose: true
+
+admin_rj_multicarrier_logs_index:
+  path: /rj-multicarrier/logs
+  methods: [GET, POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\LogController::indexAction'
+    _legacy_controller: "AdminRjMulticarrierLog"
+    _legacy_link: "AdminModules"
+  options:
+    expose: true
+
+admin_rj_multicarrier_logs_search:
+  path: /rj-multicarrier/logs/search
+  methods: [POST]
+  defaults:
+    _controller: 'PrestaShopBundle:Admin/Common:searchGrid'
+    gridDefinitionFactoryServiceId: 'rj_multicarrier.grid.definition.factory.log'
+    redirectRoute: admin_rj_multicarrier_logs_index
+    _legacy_controller: 'AdminRjMulticarrierLog'
+    _legacy_link: 'AdminRjMulticarrierLog:submitFilterrj_multicarrier_log'
+  options:
+    expose: true
+
+admin_rj_multicarrier_logs_delete:
+  path: /rj-multicarrier/logs/{id}/delete
+  methods: [POST, DELETE]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\LogController::deleteAction'
+    _legacy_controller: 'AdminRjMulticarrierLog'
+    _legacy_link: 'AdminRjMulticarrierLog:delete'
+  requirements:
+    id: '\d+'
+  options:
+    expose: true
+
+admin_rj_multicarrier_logs_delete_bulk:
+  path: /rj-multicarrier/logs/bulk-delete
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\LogController::deleteBulkAction'
+    _legacy_controller: 'AdminRjMulticarrierLog'
+    _legacy_link: 'AdminRjMulticarrierLog:bulkdelete'
+  options:
+    expose: true
+
+admin_rj_multicarrier_logs_export_csv:
+  path: /rj-multicarrier/logs/export
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\LogController::exportCsvAction'
+    _legacy_controller: 'AdminRjMulticarrierLog'
+    _legacy_link: 'AdminRjMulticarrierLog:export'
+  options:
+    expose: true
+
+admin_rj_multicarrier_shipments_index:
+  path: /rj-multicarrier/shipments
+  methods: [GET, POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ShipmentController::indexAction'
+    _legacy_controller: 'AdminRjShipments'
+    _legacy_link: 'AdminModules'
+  options:
+    expose: true
+
+admin_rj_multicarrier_shipments_delete:
+  path: /rj-multicarrier/shipments/{id}/delete
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ShipmentController::deleteAction'
+    _legacy_controller: 'AdminRjShipments'
+    _legacy_link: 'AdminRjShipments:delete'
+  requirements:
+    id: '\d+'
+  options:
+    expose: true
+
+admin_rj_multicarrier_shipments_print:
+  path: /rj-multicarrier/shipments/{id}/print
+  methods: [GET]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ShipmentController::printAction'
+    _legacy_controller: 'AdminRjShipments'
+    _legacy_link: 'AdminRjShipments:printlabel'
+  requirements:
+    id: '\d+'
+  options:
+    expose: true
+
+admin_rj_multicarrier_shipments_search:
+  path: /rj-multicarrier/shipments/search
+  methods: [POST]
+  defaults:
+    _controller: 'PrestaShopBundle:Admin/Common:searchGrid'
+    gridDefinitionFactoryServiceId: 'rj_multicarrier.grid.definition.factory.shipment'
+    redirectRoute: admin_rj_multicarrier_shipments_index
+    _legacy_controller: 'AdminRjShipments'
+    _legacy_link: 'AdminRjShipments:submitFilterrj_multicarrier_shipment'
+  options:
+    expose: true
+
+admin_rj_multicarrier_info_packages_index:
+  path: /rj-multicarrier/info-packages
+  methods: [GET, POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoPackageController::indexAction'
+    _legacy_controller: 'AdminRjShipmentGenerate'
+    _legacy_link: 'AdminModules'
+  options:
+    expose: true
+
+admin_rj_multicarrier_info_packages_generate:
+  path: /rj-multicarrier/info-packages/{infoPackageId}/generate
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoPackageController::generateAction'
+    _legacy_controller: 'AdminRjShipmentGenerate'
+    _legacy_link: 'AdminRjShipmentGenerate:generate'
+  requirements:
+    infoPackageId: '\d+'
+  options:
+    expose: true
+
+admin_rj_multicarrier_info_packages_bulk_generate:
+  path: /rj-multicarrier/info-packages/bulk-generate
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoPackageController::bulkGenerateAction'
+    _legacy_controller: 'AdminRjShipmentGenerate'
+    _legacy_link: 'AdminRjShipmentGenerate:bulkGenerate'
+  options:
+    expose: true
+
+admin_rj_multicarrier_info_packages_search:
+  path: /rj-multicarrier/info-packages/search
+  methods: [POST]
+  defaults:
+    _controller: 'PrestaShopBundle:Admin/Common:searchGrid'
+    gridDefinitionFactoryServiceId: 'rj_multicarrier.grid.definition.factory.info_package'
+    redirectRoute: admin_rj_multicarrier_info_packages_index
+    _legacy_controller: 'AdminRjShipmentGenerate'
+    _legacy_link: 'AdminRjShipmentGenerate:submitFilterrj_multicarrier_info_package'
+  options:
+    expose: true

@@ -1,0 +1,14 @@
+services:
+  roanja.module.rj_multicarrier.doctrine.attribute_driver:
+    class: Doctrine\ORM\Mapping\Driver\AttributeDriver
+    arguments:
+      - ["%kernel.project_dir%/modules/rj_multicarrier/src/Entity"]
+
+  roanja.module.rj_multicarrier.doctrine.mapping_configurator:
+    class: Roanja\Module\RjMulticarrier\Service\Doctrine\DoctrineMappingConfigurator
+    arguments:
+      $driverChain: '@doctrine.orm.default_metadata_driver'
+      $attributeDriver: '@roanja.module.rj_multicarrier.doctrine.attribute_driver'
+    public: true
+    tags:
+      - { name: kernel.event_subscriber }

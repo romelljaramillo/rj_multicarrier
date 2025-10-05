@@ -1,0 +1,68 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-xl-8">
+      <div class="card">
+        <h3 class="card-header">{{ 'Registros de transportistas'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
+        <div class="card-body">
+          {% include '@PrestaShop/Admin/Common/Grid/grid_panel.html.twig' with { grid: logGrid } %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-xl-4">
+      <div class="card">
+        <h3 class="card-header">{{ 'Detalle del registro'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
+        <div class="card-body">
+          {% if selectedLog %}
+            <dl class="mb-3">
+              <dt>{{ 'ID'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+              <dd>{{ selectedLog.id }}</dd>
+
+              <dt>{{ 'Nombre'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+              <dd>{{ selectedLog.name }}</dd>
+
+              <dt>{{ 'ID pedido'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+              <dd>{{ selectedLog.orderId }}</dd>
+
+              <dt>{{ 'Creado el'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+              <dd>
+                {% if selectedLog.createdAt %}
+                  {{ selectedLog.createdAt|date('Y-m-d H:i:s') }}
+                {% else %}
+                  &mdash;
+                {% endif %}
+              </dd>
+
+              <dt>{{ 'Actualizado el'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+              <dd>
+                {% if selectedLog.updatedAt %}
+                  {{ selectedLog.updatedAt|date('Y-m-d H:i:s') }}
+                {% else %}
+                  &mdash;
+                {% endif %}
+              </dd>
+            </dl>
+
+            <h4 class="h6">{{ 'Petición'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h4>
+            {% if selectedLog.requestPayload %}
+              <pre class="bg-light p-2 rounded text-break">{{ selectedLog.requestPayload }}</pre>
+            {% else %}
+              <p class="text-muted">{{ 'Sin datos de petición.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+            {% endif %}
+
+            <h4 class="h6 mt-3">{{ 'Respuesta'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h4>
+            {% if selectedLog.responsePayload %}
+              <pre class="bg-light p-2 rounded text-break">{{ selectedLog.responsePayload }}</pre>
+            {% else %}
+              <p class="text-muted">{{ 'Sin datos de respuesta.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+            {% endif %}
+          {% else %}
+            <p class="text-muted mb-0">{{ 'Selecciona un registro para ver los detalles.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

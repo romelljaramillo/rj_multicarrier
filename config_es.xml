@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<module>
+    <name>rj_multicarrier</name>
+    <displayName><![CDATA[Roanja Multi-carrier]]></displayName>
+    <version><![CDATA[3.1.0]]></version>
+    <description><![CDATA[Modern multi-carrier integration for PrestaShop 8 powered by Symfony.]]></description>
+    <author><![CDATA[Roanja]]></author>
+    <tab><![CDATA[administration]]></tab>
+    <is_configurable>1</is_configurable>
+    <need_instance>0</need_instance>
+</module>
