@@ -8,63 +8,212 @@ namespace Roanja\Module\RjMulticarrier\Grid\InfoPackage;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
-use PrestaShop\PrestaShop\Adapter\LegacyContext;
-use PrestaShop\PrestaShop\Core\Grid\Query\DoctrineQueryBuilderInterface;
+use PrestaShop\PrestaShop\Adapter\Shop\Context as ShopContext;
+use PrestaShop\PrestaShop\Core\Grid\Query\AbstractDoctrineQueryBuilder;
+use PrestaShop\PrestaShop\Core\Grid\Query\DoctrineSearchCriteriaApplicator;
 use PrestaShop\PrestaShop\Core\Grid\Search\SearchCriteriaInterface;
 
-final class InfoPackageQueryBuilder implements DoctrineQueryBuilderInterface
+final class InfoPackageQueryBuilder extends AbstractDoctrineQueryBuilder
 {
     public function __construct(
-    private readonly Connection $connection,
-    private readonly LegacyContext $legacyContext,
-    private readonly string $dbPrefix
+        Connection $connection,
+        string $dbPrefix,
+        private readonly ShopContext $shopContext,
+        private readonly DoctrineSearchCriteriaApplicator $searchCriteriaApplicator
     ) {
+        parent::__construct($connection, $dbPrefix);
     }
 
     public function getSearchQueryBuilder(SearchCriteriaInterface $searchCriteria)
     {
         $qb = $this->getBaseQueryBuilder();
+        $this->applyShopRestriction($qb);
+        $this->applyFilters($qb, $searchCriteria->getFilters());
+        $this->applySorting($searchCriteria, $qb);
+        $this->searchCriteriaApplicator->applyPagination($searchCriteria, $qb);
 
-        foreach ($searchCriteria->getFilters() as $filterName => $filterValue) {
-            if (null === $filterValue || '' === $filterValue) {
+        return $qb;
+    }
+
+    public function getCountQueryBuilder(SearchCriteriaInterface $searchCriteria)
+    {
+        $qb = $this->connection->createQueryBuilder()
+            ->select('COUNT(*)')
+            ->from($this->dbPrefix . 'rj_multicarrier_infopackage', 'info')
+            ->leftJoin('info', $this->dbPrefix . 'rj_multicarrier_infopackage_shop', 'info_shop', 'info_shop.id_infopackage = info.id_infopackage')
+            ->leftJoin('info', $this->dbPrefix . 'rj_multicarrier_shipment', 'shipment', 'shipment.id_infopackage = info.id_infopackage');
+
+        $this->applyShopRestriction($qb);
+        $qb->andWhere('(shipment.id_shipment IS NULL OR shipment.`delete` = 1)');
+        $this->applyFilters($qb, $searchCriteria->getFilters(), 'count_');
+
+        return $qb;
+    }
+
+    /**
+     * @param mixed $filterValue
+     */
+    private function isFilterEmpty($filterValue): bool
+    {
+        return [] === $this->collectScalarValues($filterValue);
+    }
+
+    private function resolveScalarFilterValue($filterValue): ?string
+    {
+        $values = $this->collectScalarValues($filterValue);
+
+        return $values[0] ?? null;
+    }
+
+    /**
+     * @param mixed $filterValue
+     *
+     * @return int[]
+     */
+    private function resolveShopFilterValues($filterValue): array
+    {
+        $values = $this->collectScalarValues($filterValue);
+        $values = array_map('intval', $values);
+        $values = array_filter($values, static fn (int $value): bool => $value > 0);
+
+        return array_values(array_unique($values));
+    }
+
+    /**
+     * @param mixed $filterValue
+     *
+     * @return array<string, string>
+     */
+    private function resolveDateRangeFilter($filterValue): array
+    {
+        if (is_array($filterValue) && array_key_exists('value', $filterValue)) {
+            $filterValue = $filterValue['value'];
+        }
+
+        if (!is_array($filterValue)) {
+            return [];
+        }
+
+        $range = [];
+
+        if (array_key_exists('from', $filterValue)) {
+            $from = $this->resolveScalarFilterValue($filterValue['from']);
+            if (null !== $from) {
+                $range['from'] = $from;
+            }
+        }
+
+        if (array_key_exists('to', $filterValue)) {
+            $to = $this->resolveScalarFilterValue($filterValue['to']);
+            if (null !== $to) {
+                $range['to'] = $to;
+            }
+        }
+
+        return $range;
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     */
+    private function applyFilters(QueryBuilder $qb, array $filters, string $parameterPrefix = ''): void
+    {
+        foreach ($filters as $filterName => $filterValue) {
+            if ($this->isFilterEmpty($filterValue)) {
                 continue;
             }
 
             switch ($filterName) {
                 case 'id_infopackage':
-                    $qb->andWhere('info.id_infopackage = :id_infopackage')
-                        ->setParameter('id_infopackage', (int) $filterValue);
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $parameter = $parameterPrefix . 'id_infopackage';
+                        $qb->andWhere(sprintf('info.id_infopackage = :%s', $parameter))
+                            ->setParameter($parameter, (int) $value);
+                    }
                     break;
                 case 'id_order':
-                    $qb->andWhere('info.id_order = :id_order')
-                        ->setParameter('id_order', (int) $filterValue);
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $parameter = $parameterPrefix . 'id_order';
+                        $qb->andWhere(sprintf('info.id_order = :%s', $parameter))
+                            ->setParameter($parameter, (int) $value);
+                    }
                     break;
                 case 'reference_order':
-                    $qb->andWhere('orders.reference LIKE :reference')
-                        ->setParameter('reference', '%' . $filterValue . '%');
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $parameter = $parameterPrefix . 'reference_order';
+                        $qb->andWhere(sprintf('orders.reference LIKE :%s', $parameter))
+                            ->setParameter($parameter, $this->buildContainsPattern($value));
+                    }
                     break;
                 case 'carrier_name':
-                    $qb->andWhere('carrier.name LIKE :carrier_name')
-                        ->setParameter('carrier_name', '%' . $filterValue . '%');
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $parameter = $parameterPrefix . 'carrier_name';
+                        $qb->andWhere(sprintf('carrier.name LIKE :%s', $parameter))
+                            ->setParameter($parameter, $this->buildContainsPattern($value));
+                    }
                     break;
                 case 'company_shortname':
-                    $qb->andWhere('company.shortname LIKE :company_shortname')
-                        ->setParameter('company_shortname', '%' . $filterValue . '%');
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $parameter = $parameterPrefix . 'company_shortname';
+                        $qb->andWhere(sprintf('company.shortname LIKE :%s', $parameter))
+                            ->setParameter($parameter, $this->buildContainsPattern($value));
+                    }
                     break;
                 case 'cash_ondelivery':
-                    $qb->andWhere('info.cash_ondelivery = :cod')
-                        ->setParameter('cod', $filterValue);
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $parameter = $parameterPrefix . 'cash_ondelivery';
+                        $qb->andWhere(sprintf('info.cash_ondelivery = :%s', $parameter))
+                            ->setParameter($parameter, $value);
+                    }
                     break;
                 case 'date_add':
-                    $qb->andWhere('DATE(info.date_add) = :date_add')
-                        ->setParameter('date_add', $filterValue);
+                    $this->applyDateFilter($qb, $filterValue, $parameterPrefix);
                     break;
             }
         }
+    }
 
-        $orderBy = $searchCriteria->getOrderBy() ?: 'date_add';
-        $orderWay = $searchCriteria->getOrderWay() ?: 'DESC';
+    private function applyDateFilter(QueryBuilder $qb, $filterValue, string $parameterPrefix): void
+    {
+        $range = $this->resolveDateRangeFilter($filterValue);
 
+        if (isset($range['from'])) {
+            $parameter = $parameterPrefix . 'date_add_from';
+            $qb->andWhere(sprintf('info.date_add >= :%s', $parameter))
+                ->setParameter($parameter, $range['from'] . ' 00:00:00');
+        }
+
+        if (isset($range['to'])) {
+            $parameter = $parameterPrefix . 'date_add_to';
+            $qb->andWhere(sprintf('info.date_add <= :%s', $parameter))
+                ->setParameter($parameter, $range['to'] . ' 23:59:59');
+        }
+
+        if (empty($range)) {
+            $value = $this->resolveScalarFilterValue($filterValue);
+            if (null !== $value) {
+                $parameter = $parameterPrefix . 'date_add';
+                $qb->andWhere(sprintf('DATE(info.date_add) = :%s', $parameter))
+                    ->setParameter($parameter, $value);
+            }
+        }
+    }
+
+    private function normalizeOrderWay(?string $orderWay): string
+    {
+        $orderWay = strtoupper($orderWay ?? 'DESC');
+
+        return in_array($orderWay, ['ASC', 'DESC'], true) ? $orderWay : 'DESC';
+    }
+
+    private function applySorting(SearchCriteriaInterface $searchCriteria, QueryBuilder $qb): void
+    {
         $allowedOrderBy = [
             'id_infopackage' => 'info.id_infopackage',
             'id_order' => 'info.id_order',
@@ -77,66 +226,53 @@ final class InfoPackageQueryBuilder implements DoctrineQueryBuilderInterface
             'date_add' => 'info.date_add',
         ];
 
-        if (isset($allowedOrderBy[$orderBy])) {
-            $qb->orderBy($allowedOrderBy[$orderBy], $orderWay);
-        } else {
-            $qb->orderBy('info.date_add', 'DESC');
+        $orderBy = $searchCriteria->getOrderBy();
+        if (!isset($allowedOrderBy[$orderBy])) {
+            $orderBy = 'date_add';
         }
 
-        if (null !== $searchCriteria->getOffset()) {
-            $qb->setFirstResult($searchCriteria->getOffset());
-        }
-
-        if (null !== $searchCriteria->getLimit()) {
-            $qb->setMaxResults($searchCriteria->getLimit());
-        }
-
-        return $qb;
+        $qb->orderBy($allowedOrderBy[$orderBy], $this->normalizeOrderWay($searchCriteria->getOrderWay()));
     }
 
-    public function getCountQueryBuilder(SearchCriteriaInterface $searchCriteria)
+    /**
+     * @param mixed $value
+     *
+     * @return string[]
+     */
+    private function collectScalarValues($value): array
     {
-        $qb = $this->connection->createQueryBuilder()
-            ->select('COUNT(*)')
-            ->from($this->dbPrefix . 'rj_multicarrier_infopackage', 'info')
-            ->leftJoin('info', $this->dbPrefix . 'rj_multicarrier_infopackage_shop', 'info_shop', 'info_shop.id_infopackage = info.id_infopackage')
-            ->leftJoin('info', $this->dbPrefix . 'rj_multicarrier_shipment', 'shipment', 'shipment.id_infopackage = info.id_infopackage AND shipment.`delete` = 0');
-
-    $shopId = (int) $this->legacyContext->getContext()->shop->id;
-        if ($shopId > 0) {
-            $qb->andWhere('info_shop.id_shop = :count_shop_id')
-                ->setParameter('count_shop_id', $shopId);
+        if (null === $value) {
+            return [];
         }
 
-        $qb->andWhere('shipment.id_shipment IS NULL');
+        if (is_scalar($value)) {
+            $stringValue = trim((string) $value);
 
-        foreach ($searchCriteria->getFilters() as $filterName => $filterValue) {
-            if (null === $filterValue || '' === $filterValue) {
-                continue;
-            }
-
-            switch ($filterName) {
-                case 'id_infopackage':
-                    $qb->andWhere('info.id_infopackage = :count_id_infopackage')
-                        ->setParameter('count_id_infopackage', (int) $filterValue);
-                    break;
-                case 'id_order':
-                    $qb->andWhere('info.id_order = :count_id_order')
-                        ->setParameter('count_id_order', (int) $filterValue);
-                    break;
-                case 'date_add':
-                    $qb->andWhere('DATE(info.date_add) = :count_date_add')
-                        ->setParameter('count_date_add', $filterValue);
-                    break;
-            }
+            return '' === $stringValue ? [] : [$stringValue];
         }
 
-        return $qb;
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $collected = [];
+        foreach ($value as $item) {
+            $collected = array_merge($collected, $this->collectScalarValues($item));
+        }
+
+        return $collected;
+    }
+
+    private function buildContainsPattern(string $value): string
+    {
+        $escaped = str_replace('_', '\\_', $this->escapePercent($value));
+
+        return '%' . $escaped . '%';
     }
 
     private function getBaseQueryBuilder(): QueryBuilder
     {
-        $qb = $this->connection->createQueryBuilder()
+        return $this->connection->createQueryBuilder()
             ->select(
                 'info.id_infopackage',
                 'info.id_order',
@@ -154,16 +290,35 @@ final class InfoPackageQueryBuilder implements DoctrineQueryBuilderInterface
             ->leftJoin('info', $this->dbPrefix . 'orders', 'orders', 'orders.id_order = info.id_order')
             ->leftJoin('info', $this->dbPrefix . 'rj_multicarrier_type_shipment', 'type_shipment', 'type_shipment.id_type_shipment = info.id_type_shipment')
             ->leftJoin('type_shipment', $this->dbPrefix . 'rj_multicarrier_company', 'company', 'company.id_carrier_company = type_shipment.id_carrier_company')
-            ->leftJoin('info', $this->dbPrefix . 'rj_multicarrier_shipment', 'shipment', 'shipment.id_infopackage = info.id_infopackage AND shipment.`delete` = 0');
+            ->leftJoin('info', $this->dbPrefix . 'rj_multicarrier_shipment', 'shipment', 'shipment.id_infopackage = info.id_infopackage')
+            ->andWhere('(shipment.id_shipment IS NULL OR shipment.`delete` = 1)');
+    }
 
-    $shopId = (int) $this->legacyContext->getContext()->shop->id;
-        if ($shopId > 0) {
-            $qb->andWhere('info_shop.id_shop = :shop_id')
-                ->setParameter('shop_id', $shopId);
+    private function applyShopRestriction(QueryBuilder $qb): void
+    {
+        $shopIds = $this->getContextShopIds();
+
+        if (!empty($shopIds)) {
+            $qb->andWhere('info_shop.id_shop IN (:context_shop_ids)')
+                ->setParameter('context_shop_ids', $shopIds, Connection::PARAM_INT_ARRAY);
+        }
+    }
+
+    /**
+     * @return int[]
+     */
+    private function getContextShopIds(): array
+    {
+        $shopIds = $this->shopContext->getContextListShopID();
+
+        if (empty($shopIds)) {
+            $contextShopId = $this->shopContext->getContextShopID(true);
+
+            if (null !== $contextShopId) {
+                $shopIds = [(int) $contextShopId];
+            }
         }
 
-        $qb->andWhere('shipment.id_shipment IS NULL');
-
-        return $qb;
+        return array_map('intval', $shopIds);
     }
 }

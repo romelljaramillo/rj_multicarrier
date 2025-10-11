@@ -31,6 +31,13 @@ class CompanyRepository
         }
     }
 
+    public function find(int $id): ?Company
+    {
+        $entity = $this->entityManager->find(Company::class, $id);
+
+        return $entity instanceof Company ? $entity : null;
+    }
+
     public function getIconByShortName(string $shortName): ?string
     {
         $company = $this->findOneByShortName($shortName);

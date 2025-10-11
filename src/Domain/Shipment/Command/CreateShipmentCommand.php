@@ -22,6 +22,7 @@ final class CreateShipmentCommand
         private readonly ?string $shipmentNumber,
         private readonly int $infoPackageId,
         private readonly ?int $companyId,
+        private readonly int $shopId,
         private readonly ?string $product,
         private readonly array $requestPayload,
         private readonly ?array $responsePayload,
@@ -52,6 +53,11 @@ final class CreateShipmentCommand
     public function getCompanyId(): ?int
     {
         return $this->companyId;
+    }
+
+    public function getShopId(): int
+    {
+        return $this->shopId;
     }
 
     public function getProduct(): ?string

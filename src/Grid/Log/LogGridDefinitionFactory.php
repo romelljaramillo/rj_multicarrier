@@ -8,8 +8,9 @@ declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Grid\Log;
 
-use Context;
 use PrestaShop\PrestaShop\Core\Grid\Action\Bulk\BulkActionCollection;
+use PrestaShop\PrestaShop\Core\Grid\Action\Bulk\Type\SubmitBulkAction;
+use PrestaShop\PrestaShop\Core\Grid\Action\GridActionCollection;
 use PrestaShop\PrestaShop\Core\Grid\Action\GridActionCollectionInterface;
 use PrestaShop\PrestaShop\Core\Grid\Action\Row\RowActionCollection;
 use PrestaShop\PrestaShop\Core\Grid\Action\Row\Type\LinkRowAction;
@@ -154,11 +155,14 @@ final class LogGridDefinitionFactory extends AbstractModuleGridDefinitionFactory
 
         $rowActions->add((new LinkRowAction('view'))
             ->setName($this->transString('View', [], 'Admin.Actions'))
-            ->setIcon('zoom_in')
+            ->setIcon('visibility')
             ->setOptions([
-                'route' => 'admin_rj_multicarrier_logs_index',
-                'route_param_name' => 'log',
+                'route' => 'admin_rj_multicarrier_logs_view',
+                'route_param_name' => 'id',
                 'route_param_field' => 'id_carrier_log',
+                'attr' => [
+                    'class' => 'js-log-view-row-action',
+                ],
             ]))
             ->add(
                 $this->buildDeleteAction(
@@ -174,32 +178,43 @@ final class LogGridDefinitionFactory extends AbstractModuleGridDefinitionFactory
 
     protected function getGridActions(): GridActionCollectionInterface
     {
-        $actions = parent::getGridActions();
-
-        $actions
-            ->add((new SimpleGridAction('common_show_query'))
-                ->setName($this->transString('Show SQL query', [], 'Admin.Actions'))
-                ->setIcon('code'))
+        return (new GridActionCollection())
+            ->add((new SimpleGridAction('common_refresh_list'))
+                    ->setName($this->transString('Refresh list', [], 'Admin.Actions'))
+                    ->setIcon('refresh')
+            )
+            ->add(
+                (new SimpleGridAction('common_show_query'))
+                    ->setName($this->transString('Show SQL query', [], 'Admin.Actions'))
+                    ->setIcon('code')
+            )
             ->add((new SimpleGridAction('common_export_sql_manager'))
-                ->setName($this->transString('Export to SQL Manager', [], 'Admin.Actions'))
-                ->setIcon('storage'))
-            ->add((new SubmitGridAction('export_csv'))
-                ->setName($this->transString('Export CSV'))
-                ->setIcon('download')
-                ->setOptions([
-                    'submit_route' => 'admin_rj_multicarrier_logs_export_csv',
-                    'confirm_message' => null,
-                ]));
-
-        return $actions;
+                    ->setName($this->transString('Export to SQL Manager', [], 'Admin.Actions'))
+                    ->setIcon('storage')
+            )
+            ->add(
+                (new SubmitGridAction('export_csv'))
+                    ->setName($this->transString('Export CSV'))
+                    ->setIcon('download')
+                    ->setOptions(['submit_route' => 'admin_rj_multicarrier_logs_export_csv', 'confirm_message' => null])
+            );
     }
 
     protected function getBulkActions(): BulkActionCollection
     {
-        return (new BulkActionCollection())
-            ->add(
-                $this->buildBulkDeleteAction('admin_rj_multicarrier_logs_delete_bulk')
-            );
+        $actions = new BulkActionCollection();
+
+        $actions->add((new SubmitBulkAction('export_selected_csv'))
+            ->setName($this->transString('Exportar selección (CSV)'))
+            ->setOptions([
+                'submit_route' => 'admin_rj_multicarrier_logs_export_selected_csv',
+            ]));
+
+        $actions->add(
+            $this->buildBulkDeleteAction('admin_rj_multicarrier_logs_delete_bulk')
+        );
+
+        return $actions;
     }
 
     /**
@@ -226,7 +241,10 @@ final class LogGridDefinitionFactory extends AbstractModuleGridDefinitionFactory
         $shopClass = $this->resolveShopClass();
 
         if ('' === $shopClass || !\is_callable([$shopClass, 'isFeatureActive']) || !\call_user_func([$shopClass, 'isFeatureActive'])) {
-            $context = Context::getContext();
+            $context = null;
+            if (\is_callable(['\\Context', 'getContext'])) {
+                $context = \call_user_func(['\\Context', 'getContext']);
+            }
             if (isset($context->shop->id, $context->shop->name)) {
                 return [[
                     'id_shop' => (int) $context->shop->id,

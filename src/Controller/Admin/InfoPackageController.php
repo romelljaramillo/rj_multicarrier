@@ -1,19 +1,29 @@
 <?php
+
 /**
- * Symfony controller for managing info packages pending shipment generation.
+ * Symfony controller for carrier logs management.
  */
+
 declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Controller\Admin;
 
+use Roanja\Module\RjMulticarrier\Domain\InfoPackage\Query\GetInfoPackagesForExport;
+use Roanja\Module\RjMulticarrier\Domain\InfoPackage\Query\GetInfoPackagesByIds;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use PrestaShop\PrestaShop\Core\Grid\Presenter\GridPresenterInterface;
 use PrestaShopBundle\Controller\Admin\FrameworkBundleAdminController;
+use PrestaShopBundle\Security\Annotation\AdminSecurity;
+use Roanja\Module\RjMulticarrier\Domain\InfoPackage\Query\GetInfoPackageForView;
+use Roanja\Module\RjMulticarrier\Domain\InfoPackage\View\InfoPackageView;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Exception\ShipmentGenerationException;
 use Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageFilters;
 use Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridFactory;
 use Roanja\Module\RjMulticarrier\Service\Shipment\ShipmentGenerationService;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -27,8 +37,7 @@ final class InfoPackageController extends FrameworkBundleAdminController
         private readonly GridPresenterInterface $gridPresenter,
         private readonly ShipmentGenerationService $shipmentGenerationService,
         private readonly TranslatorInterface $translator
-    ) {
-    }
+    ) {}
 
     public function indexAction(Request $request): Response
     {
@@ -36,16 +45,30 @@ final class InfoPackageController extends FrameworkBundleAdminController
         $grid = $this->gridFactory->getGrid($filters);
         $gridView = $this->gridPresenter->present($grid);
 
-    return $this->render('@Modules/rj_multicarrier/views/templates/admin/info_package/index.html.twig', [
+        return $this->render('@Modules/rj_multicarrier/views/templates/admin/info_package/index.html.twig', [
             'infoPackageGrid' => $gridView,
         ]);
     }
 
+    /**
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", message="Access denied.")
+     */
+    public function viewAction(int $id): JsonResponse
+    {
+        /** @var InfoPackageView|null $infoPackage */
+        $infoPackage = $this->getQueryBus()->handle(new GetInfoPackageForView($id));
+
+        if (null === $infoPackage) {
+            return $this->json([
+                'message' => $this->translate('El paquete solicitado ya no existe.'),
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        return $this->json($this->formatInfoPackageView($infoPackage));
+    }
+
     public function generateAction(Request $request, int $infoPackageId): RedirectResponse
     {
-        $token = $this->getTokenFromRequest($request);
-        $this->validateCsrfToken('generate_info_package_' . $infoPackageId, $token);
-
         try {
             $this->shipmentGenerationService->generateForInfoPackage($infoPackageId);
             $this->addFlash('success', $this->translate('Envío generado correctamente.'));
@@ -62,9 +85,6 @@ final class InfoPackageController extends FrameworkBundleAdminController
 
     public function bulkGenerateAction(Request $request): RedirectResponse
     {
-        $token = $this->getTokenFromRequest($request);
-        $this->validateCsrfToken('bulk_generate_info_packages', $token);
-
         $selectedIds = $this->getSelectedInfoPackageIds($request);
 
         if ([] === $selectedIds) {
@@ -91,6 +111,163 @@ final class InfoPackageController extends FrameworkBundleAdminController
         }
 
         return $this->redirectToInfoPackages();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function formatInfoPackageView(InfoPackageView $view): array
+    {
+        $data = $view->toArray();
+
+        return [
+            'id' => $data['id'],
+            'orderId' => $data['orderId'],
+            'referenceCarrierId' => $data['referenceCarrierId'],
+            'typeShipmentId' => $data['typeShipmentId'],
+            'typeShipmentName' => $data['typeShipmentName'],
+            'companyId' => $data['companyId'],
+            'companyName' => $data['companyName'],
+            'companyShortName' => $data['companyShortName'],
+            'quantity' => $data['quantity'],
+            'weight' => $data['weight'],
+            'length' => $data['length'],
+            'width' => $data['width'],
+            'height' => $data['height'],
+            'cashOnDelivery' => $data['cashOnDelivery'],
+            'message' => $data['message'],
+            'hourFrom' => $data['hourFrom'],
+            'hourUntil' => $data['hourUntil'],
+            'retorno' => $data['retorno'],
+            'rcs' => $data['rcs'],
+            'vsec' => $data['vsec'],
+            'dorig' => $data['dorig'],
+            'createdAt' => $data['createdAt'],
+            'updatedAt' => $data['updatedAt'],
+        ];
+    }
+
+    /**
+     * @AdminSecurity("is_granted('delete', request.get('_legacy_controller'))", message="Access denied.")
+     */
+    public function deleteBulkAction(Request $request): RedirectResponse
+    {
+        $infoPackageIds = $this->getBulkInfoPackageIds($request);
+
+        if (empty($infoPackageIds)) {
+            $this->addFlash('warning', $this->translate('No se seleccionaron paquetes para eliminar.'));
+
+            return $this->redirectToRoute('admin_rj_multicarrier_info_packages_index');
+        }
+
+        try {
+            // TODO: Implement bulk delete command when needed
+            $this->addFlash('info', $this->translate('Funcionalidad de eliminación masiva no implementada aún.'));
+        } catch (Throwable $exception) {
+            $this->addFlash('error', $this->translate('No se pudo completar la eliminación masiva.'));
+        }
+
+        return $this->redirectToRoute('admin_rj_multicarrier_info_packages_index');
+    }
+
+    /**
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", message="Access denied.")
+     */
+    public function exportCsvAction(Request $request): Response
+    {
+        $filters = $this->buildFilters($request);
+        $filters->set('limit', 0);
+        $filters->set('offset', 0);
+
+        $fileName = sprintf('rj_multicarrier_info_packages_%s.csv', date('Ymd_His'));
+        /** @var InfoPackageView[] $infoPackages */
+        $infoPackages = $this->getQueryBus()->handle(new GetInfoPackagesForExport($filters->getFilters()));
+        return $this->createCsvResponse($infoPackages, $fileName);
+    }
+
+    /**
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", message="Access denied.")
+     */
+    public function exportSelectedCsvAction(Request $request): Response
+    {
+        $infoPackageIds = $this->getBulkInfoPackageIds($request);
+
+        if (empty($infoPackageIds)) {
+            $this->addFlash('warning', $this->translate('Selecciona al menos un paquete para exportar.'));
+            return $this->redirectToRoute('admin_rj_multicarrier_info_packages_index');
+        }
+
+        /** @var InfoPackageView[] $infoPackages */
+        $infoPackages = $this->getQueryBus()->handle(new GetInfoPackagesByIds($infoPackageIds));
+
+        if (empty($infoPackages)) {
+            $this->addFlash('warning', $this->translate('No se encontraron paquetes para exportar.'));
+            return $this->redirectToRoute('admin_rj_multicarrier_info_packages_index');
+        }
+
+        $fileName = sprintf('rj_multicarrier_info_packages_seleccion_%s.csv', date('Ymd_His'));
+        return $this->createCsvResponse($infoPackages, $fileName);
+    }
+
+    /**
+     * @param iterable<InfoPackageView|array> $infoPackages
+     */
+    private function createCsvResponse(iterable $infoPackages, string $fileName): StreamedResponse
+    {
+        $response = new StreamedResponse(function () use ($infoPackages): void {
+            $handle = fopen('php://output', 'wb');
+            fputcsv($handle, [
+                'ID',
+                'ID Pedido',
+                'Referencia Pedido',
+                'ID Carrier Ref',
+                'ID Tipo Envío',
+                'Tipo Envío',
+                'ID Compañía',
+                'Compañía',
+                'Compañía (corto)',
+                'Cantidad',
+                'Peso',
+                'Largo',
+                'Ancho',
+                'Alto',
+                'Contra reembolso',
+                'Mensaje',
+                'Hora desde',
+                'Hora hasta',
+                'Retorno',
+                'RCS',
+                'VSEC',
+                'DORIG',
+                'Creado',
+                'Actualizado',
+            ]);
+            foreach ($infoPackages as $infoPackage) {
+                if (method_exists($infoPackage, 'toCsvRow')) {
+                    fputcsv($handle, $infoPackage->toCsvRow());
+                } else {
+                    fputcsv($handle, is_array($infoPackage) ? $infoPackage : []);
+                }
+            }
+            fclose($handle);
+        });
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', $response->headers->makeDisposition(
+            ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+            $fileName
+        ));
+        return $response;
+    }
+
+    private function getBulkInfoPackageIds(Request $request): array
+    {
+        $infoPackageIds = $request->request->all('info_package_bulk');
+
+        if (!is_array($infoPackageIds)) {
+            return [];
+        }
+
+        return array_filter(array_map('intval', $infoPackageIds));
     }
 
     private function buildFilters(Request $request): InfoPackageFilters
@@ -120,19 +297,12 @@ final class InfoPackageController extends FrameworkBundleAdminController
             return [];
         }
 
-        return array_values(array_filter(array_map('intval', $selected), static fn (int $id): bool => $id > 0));
+        return array_values(array_filter(array_map('intval', $selected), static fn(int $id): bool => $id > 0));
     }
 
     private function redirectToInfoPackages(): RedirectResponse
     {
         return $this->redirect($this->generateUrl('admin_rj_multicarrier_info_packages_index'));
-    }
-
-    private function validateCsrfToken(string $id, string $token): void
-    {
-        if (!$this->isCsrfTokenValid($id, $token)) {
-            throw $this->createAccessDeniedException('Invalid CSRF token.');
-        }
     }
 
     private function extractScopedParameters(Request $request, string $scope): array
@@ -201,16 +371,6 @@ final class InfoPackageController extends FrameworkBundleAdminController
 
     private function translate(string $message, array $parameters = []): string
     {
-    return $this->translator->trans($message, $parameters, self::TRANSLATION_DOMAIN);
-    }
-
-    private function getTokenFromRequest(Request $request): string
-    {
-        $token = (string) $request->request->get('_token', '');
-        if ('' !== $token) {
-            return $token;
-        }
-
-        return (string) $request->query->get('_token', '');
+        return $this->translator->trans($message, $parameters, self::TRANSLATION_DOMAIN);
     }
 }

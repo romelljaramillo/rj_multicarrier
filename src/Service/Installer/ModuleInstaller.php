@@ -22,16 +22,23 @@ final class ModuleInstaller
     private const ADMIN_TAB_DEFINITIONS = [
         [
             'class_name' => 'AdminRjMulticarrier',
-            'parent_class_name' => '0',
+            'parent_class_name' => 'IMPROVE',
             'route_name' => null,
             'active' => true,
+            'icon' => 'local_shipping',
             'wording' => 'Multi-carrier',
-            'wording_domain' => 'Modules.RjMulticarrier.Admin',
-            'translation_key' => 'Modules.RjMulticarrier.Admin.Menu.Parent',
+        ],
+        [
+            'class_name' => 'AdminRjMulticarrierConfigurationParent',
+            'parent_class_name' => 'AdminRjMulticarrier',
+            'route_name' => 'admin_rj_multicarrier_configuration',
+            'active' => true,
+            'icon' => 'settings',
+            'wording' => 'Configuration',
         ],
         [
             'class_name' => 'AdminRjMulticarrierConfiguration',
-            'parent_class_name' => 'AdminRjMulticarrier',
+            'parent_class_name' => 'AdminRjMulticarrierConfigurationParent',
             'route_name' => 'admin_rj_multicarrier_configuration',
             'icon' => 'settings',
             'active' => true,
@@ -40,11 +47,23 @@ final class ModuleInstaller
             'translation_key' => 'Modules.RjMulticarrier.Admin.Menu.Configuration',
         ],
         [
+            'class_name' => 'AdminRjMulticarrierCompanies',
+            'parent_class_name' => 'AdminRjMulticarrierConfigurationParent',
+            'route_name' => 'admin_rj_multicarrier_companies_index',
+            'icon' => 'business',
+            'active' => true,
+            'visible' => false,
+            'wording' => 'Companies',
+            'wording_domain' => 'Modules.RjMulticarrier.Admin',
+            'translation_key' => 'Modules.RjMulticarrier.Admin.Menu.Companies',
+        ],
+        [
             'class_name' => 'AdminRjMulticarrierTypeShipment',
-            'parent_class_name' => 'AdminRjMulticarrier',
+            'parent_class_name' => 'AdminRjMulticarrierConfigurationParent',
             'route_name' => 'admin_rj_multicarrier_type_shipment_index',
             'icon' => 'compare_arrows',
             'active' => true,
+            'visible' => false,
             'wording' => 'Shipment types',
             'wording_domain' => 'Modules.RjMulticarrier.Admin',
             'translation_key' => 'Modules.RjMulticarrier.Admin.Menu.TypeShipments',
@@ -60,7 +79,7 @@ final class ModuleInstaller
             'translation_key' => 'Modules.RjMulticarrier.Admin.Menu.Shipments',
         ],
         [
-            'class_name' => 'AdminRjShipmentGenerate',
+            'class_name' => 'AdminRjMulticarrierInfoPackages',
             'parent_class_name' => 'AdminRjMulticarrier',
             'route_name' => 'admin_rj_multicarrier_info_packages_index',
             'icon' => 'play_circle',
@@ -216,7 +235,20 @@ final class ModuleInstaller
     }
 
     /**
-     * @param array{class_name:string,parent_class_name?:string,route_name?:?string,icon?:?string,active?:bool,wording?:string,wording_domain?:string,translation_key?:string} $definition
+     * Create or update a Tab (admin menu entry) from a definition array.
+     *
+     * The definition may include the following keys:
+     * - class_name (string) required: class name used by PrestaShop Tab system
+     * - parent_class_name (string|null) optional: parent class name or '0' for root
+     * - route_name (string|null) optional: Symfony route name to attach for access control
+     * - icon (string|null) optional: material icon name
+     * - active (bool) optional: whether tab is active
+     * - visible (bool) optional: whether tab is visible in the menu (hidden tabs are used for permissions)
+     * - wording (string|null) optional: wording fallback
+     * - wording_domain (string|null) optional: translation domain
+     * - translation_key (string|null) optional: translation key used to build localized names
+     *
+     * @param array{class_name:string,parent_class_name?:string,route_name?:?string,icon?:?string,active?:bool,visible?:bool,wording?:string,wording_domain?:string,translation_key?:string} $definition
      * @param class-string $tabClass
      */
     private function createTab(array $definition, int $parentId, string $tabClass): bool
@@ -244,6 +276,10 @@ final class ModuleInstaller
 
         if (!empty($definition['wording_domain'])) {
             $tab->wording_domain = (string) $definition['wording_domain'];
+        }
+
+        if (array_key_exists('visible', $definition)) {
+            $tab->visible = (int) ($definition['visible'] ? 1 : 0);
         }
 
         $tab->name = $this->buildTabNames($definition);

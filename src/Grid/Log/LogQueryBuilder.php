@@ -9,109 +9,29 @@ namespace Roanja\Module\RjMulticarrier\Grid\Log;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
 use PrestaShop\PrestaShop\Adapter\Shop\Context as ShopContext;
-use PrestaShop\PrestaShop\Core\Grid\Query\DoctrineQueryBuilderInterface;
+use PrestaShop\PrestaShop\Core\Grid\Query\AbstractDoctrineQueryBuilder;
+use PrestaShop\PrestaShop\Core\Grid\Query\DoctrineSearchCriteriaApplicator;
 use PrestaShop\PrestaShop\Core\Grid\Search\SearchCriteriaInterface;
 
-final class LogQueryBuilder implements DoctrineQueryBuilderInterface
+final class LogQueryBuilder extends AbstractDoctrineQueryBuilder
 {
     public function __construct(
-        private readonly Connection $connection,
-        private readonly string $dbPrefix,
-        private readonly ShopContext $shopContext
+        Connection $connection,
+        string $dbPrefix,
+        private readonly ShopContext $shopContext,
+        private readonly DoctrineSearchCriteriaApplicator $searchCriteriaApplicator
     ) {
+        parent::__construct($connection, $dbPrefix);
+
     }
 
     public function getSearchQueryBuilder(SearchCriteriaInterface $searchCriteria)
     {
         $qb = $this->getBaseQueryBuilder();
         $this->applyShopRestriction($qb);
-
-        foreach ($searchCriteria->getFilters() as $filterName => $filterValue) {
-            if ($this->isFilterEmpty($filterValue)) {
-                continue;
-            }
-
-            switch ($filterName) {
-                case 'id_carrier_log':
-                    $value = $this->resolveScalarFilterValue($filterValue);
-                    if (null === $value) {
-                        break;
-                    }
-
-                    $qb->andWhere('log.id_carrier_log = :id_carrier_log')
-                        ->setParameter('id_carrier_log', (int) $value);
-                    break;
-                case 'name':
-                    $value = $this->resolveScalarFilterValue($filterValue);
-                    if (null === $value) {
-                        break;
-                    }
-
-                    $qb->andWhere('log.name LIKE :log_name')
-                        ->setParameter('log_name', '%' . $value . '%');
-                    break;
-                case 'id_order':
-                    $value = $this->resolveScalarFilterValue($filterValue);
-                    if (null === $value) {
-                        break;
-                    }
-
-                    $qb->andWhere('log.id_order = :id_order')
-                        ->setParameter('id_order', (int) $value);
-                    break;
-                case 'id_shop':
-                    $shopIds = $this->resolveShopFilterValues($filterValue);
-
-                    if (!empty($shopIds)) {
-                        $qb->andWhere('log.id_shop IN (:filter_shop_ids)')
-                            ->setParameter('filter_shop_ids', $shopIds, Connection::PARAM_INT_ARRAY);
-                    }
-                    break;
-                case 'date_add':
-                    $range = $this->resolveDateRangeFilter($filterValue);
-
-                    if (isset($range['from'])) {
-                        $qb->andWhere('log.date_add >= :date_add_from')
-                            ->setParameter('date_add_from', $range['from'] . ' 00:00:00');
-                    }
-
-                    if (isset($range['to'])) {
-                        $qb->andWhere('log.date_add <= :date_add_to')
-                            ->setParameter('date_add_to', $range['to'] . ' 23:59:59');
-                    }
-
-                    if (empty($range) && null !== ($value = $this->resolveScalarFilterValue($filterValue))) {
-                        $qb->andWhere('DATE(log.date_add) = :date_add')
-                            ->setParameter('date_add', $value);
-                    }
-                    break;
-            }
-        }
-
-        $orderBy = $searchCriteria->getOrderBy() ?: 'date_add';
-        $orderWay = $searchCriteria->getOrderWay() ?: 'DESC';
-
-        $allowedOrderBy = [
-            'id_carrier_log' => 'log.id_carrier_log',
-            'name' => 'log.name',
-            'id_order' => 'log.id_order',
-            'date_add' => 'log.date_add',
-            'id_shop' => 'log.id_shop',
-        ];
-
-        if (isset($allowedOrderBy[$orderBy])) {
-            $qb->orderBy($allowedOrderBy[$orderBy], $orderWay);
-        } else {
-            $qb->orderBy('log.date_add', 'DESC');
-        }
-
-        if (null !== $searchCriteria->getOffset()) {
-            $qb->setFirstResult($searchCriteria->getOffset());
-        }
-
-        if (null !== $searchCriteria->getLimit()) {
-            $qb->setMaxResults($searchCriteria->getLimit());
-        }
+        $this->applyFilters($qb, $searchCriteria->getFilters());
+        $this->applySorting($searchCriteria, $qb);
+        $this->searchCriteriaApplicator->applyPagination($searchCriteria, $qb);
 
         return $qb;
     }
@@ -123,68 +43,7 @@ final class LogQueryBuilder implements DoctrineQueryBuilderInterface
             ->from($this->dbPrefix . 'rj_multicarrier_log', 'log');
 
         $this->applyShopRestriction($qb);
-
-        foreach ($searchCriteria->getFilters() as $filterName => $filterValue) {
-            if ($this->isFilterEmpty($filterValue)) {
-                continue;
-            }
-
-            switch ($filterName) {
-                case 'id_carrier_log':
-                    $value = $this->resolveScalarFilterValue($filterValue);
-                    if (null === $value) {
-                        break;
-                    }
-
-                    $qb->andWhere('log.id_carrier_log = :count_id_carrier_log')
-                        ->setParameter('count_id_carrier_log', (int) $value);
-                    break;
-                case 'name':
-                    $value = $this->resolveScalarFilterValue($filterValue);
-                    if (null === $value) {
-                        break;
-                    }
-
-                    $qb->andWhere('log.name LIKE :count_log_name')
-                        ->setParameter('count_log_name', '%' . $value . '%');
-                    break;
-                case 'id_order':
-                    $value = $this->resolveScalarFilterValue($filterValue);
-                    if (null === $value) {
-                        break;
-                    }
-
-                    $qb->andWhere('log.id_order = :count_id_order')
-                        ->setParameter('count_id_order', (int) $value);
-                    break;
-                case 'id_shop':
-                    $shopIds = $this->resolveShopFilterValues($filterValue);
-
-                    if (!empty($shopIds)) {
-                        $qb->andWhere('log.id_shop IN (:count_filter_shop_ids)')
-                            ->setParameter('count_filter_shop_ids', $shopIds, Connection::PARAM_INT_ARRAY);
-                    }
-                    break;
-                case 'date_add':
-                    $range = $this->resolveDateRangeFilter($filterValue);
-
-                    if (isset($range['from'])) {
-                        $qb->andWhere('log.date_add >= :count_date_add_from')
-                            ->setParameter('count_date_add_from', $range['from'] . ' 00:00:00');
-                    }
-
-                    if (isset($range['to'])) {
-                        $qb->andWhere('log.date_add <= :count_date_add_to')
-                            ->setParameter('count_date_add_to', $range['to'] . ' 23:59:59');
-                    }
-
-                    if (empty($range) && null !== ($value = $this->resolveScalarFilterValue($filterValue))) {
-                        $qb->andWhere('DATE(log.date_add) = :count_date_add')
-                            ->setParameter('count_date_add', $value);
-                    }
-                    break;
-            }
-        }
+        $this->applyFilters($qb, $searchCriteria->getFilters(), 'count_');
 
         return $qb;
     }
@@ -194,46 +53,14 @@ final class LogQueryBuilder implements DoctrineQueryBuilderInterface
      */
     private function isFilterEmpty($filterValue): bool
     {
-        if (null === $filterValue) {
-            return true;
-        }
-
-        if (is_array($filterValue)) {
-            $filtered = array_filter($filterValue, static fn ($value) => '' !== $value && null !== $value && [] !== $value);
-
-            return empty($filtered);
-        }
-
-        return '' === trim((string) $filterValue);
+        return [] === $this->collectScalarValues($filterValue);
     }
 
-    /**
-     * @param mixed $filterValue
-     */
     private function resolveScalarFilterValue($filterValue): ?string
     {
-        if (is_array($filterValue)) {
-            if (array_key_exists('value', $filterValue)) {
-                $filterValue = $filterValue['value'];
-            } elseif (!empty($filterValue)) {
-                $first = reset($filterValue);
-                $filterValue = is_array($first) && array_key_exists('value', $first) ? $first['value'] : $first;
-            }
-        }
+        $values = $this->collectScalarValues($filterValue);
 
-        if (null === $filterValue) {
-            return null;
-        }
-
-        $stringValue = is_scalar($filterValue) ? (string) $filterValue : null;
-
-        if (null === $stringValue) {
-            return null;
-        }
-
-        $stringValue = trim($stringValue);
-
-        return '' === $stringValue ? null : $stringValue;
+        return $values[0] ?? null;
     }
 
     /**
@@ -243,18 +70,11 @@ final class LogQueryBuilder implements DoctrineQueryBuilderInterface
      */
     private function resolveShopFilterValues($filterValue): array
     {
-        if (is_array($filterValue)) {
-            if (array_key_exists('value', $filterValue)) {
-                $filterValue = $filterValue['value'];
-            }
-        }
-
-        $values = is_array($filterValue) ? $filterValue : (null !== $filterValue && '' !== $filterValue ? [$filterValue] : []);
-
+        $values = $this->collectScalarValues($filterValue);
         $values = array_map('intval', $values);
         $values = array_filter($values, static fn (int $value): bool => $value > 0);
 
-        return array_values($values);
+        return array_values(array_unique($values));
     }
 
     /**
@@ -264,25 +84,168 @@ final class LogQueryBuilder implements DoctrineQueryBuilderInterface
      */
     private function resolveDateRangeFilter($filterValue): array
     {
+        if (is_array($filterValue) && array_key_exists('value', $filterValue)) {
+            $filterValue = $filterValue['value'];
+        }
+
         if (!is_array($filterValue)) {
             return [];
         }
 
-        if (array_key_exists('value', $filterValue) && is_array($filterValue['value'])) {
-            $filterValue = $filterValue['value'];
-        }
-
         $range = [];
 
-        if (!empty($filterValue['from'])) {
-            $range['from'] = $filterValue['from'];
+        if (array_key_exists('from', $filterValue)) {
+            $from = $this->resolveScalarFilterValue($filterValue['from']);
+            if (null !== $from) {
+                $range['from'] = $from;
+            }
         }
 
-        if (!empty($filterValue['to'])) {
-            $range['to'] = $filterValue['to'];
+        if (array_key_exists('to', $filterValue)) {
+            $to = $this->resolveScalarFilterValue($filterValue['to']);
+            if (null !== $to) {
+                $range['to'] = $to;
+            }
         }
 
         return $range;
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     */
+    private function applyFilters(QueryBuilder $qb, array $filters, string $parameterPrefix = ''): void
+    {
+        foreach ($filters as $filterName => $filterValue) {
+            if ($this->isFilterEmpty($filterValue)) {
+                continue;
+            }
+
+            switch ($filterName) {
+                case 'id_carrier_log':
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $parameter = $parameterPrefix . 'id_carrier_log';
+                        $qb->andWhere(sprintf('log.id_carrier_log = :%s', $parameter))
+                            ->setParameter($parameter, (int) $value);
+                    }
+                    break;
+                case 'name':
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $parameter = $parameterPrefix . 'log_name';
+                        $qb->andWhere(sprintf('log.name LIKE :%s', $parameter))
+                            ->setParameter($parameter, $this->buildContainsPattern($value));
+                    }
+                    break;
+                case 'id_order':
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $parameter = $parameterPrefix . 'id_order';
+                        $qb->andWhere(sprintf('log.id_order = :%s', $parameter))
+                            ->setParameter($parameter, (int) $value);
+                    }
+                    break;
+                case 'id_shop':
+                    $shopIds = $this->resolveShopFilterValues($filterValue);
+                    if (!empty($shopIds)) {
+                        $parameter = $parameterPrefix . 'filter_shop_ids';
+                        $qb->andWhere(sprintf('log.id_shop IN (:%s)', $parameter))
+                            ->setParameter($parameter, $shopIds, Connection::PARAM_INT_ARRAY);
+                    }
+                    break;
+                case 'date_add':
+                    $this->applyDateFilter($qb, $filterValue, $parameterPrefix);
+                    break;
+            }
+        }
+    }
+
+    private function applyDateFilter(QueryBuilder $qb, $filterValue, string $parameterPrefix): void
+    {
+        $range = $this->resolveDateRangeFilter($filterValue);
+
+        if (isset($range['from'])) {
+            $parameter = $parameterPrefix . 'date_add_from';
+            $qb->andWhere(sprintf('log.date_add >= :%s', $parameter))
+                ->setParameter($parameter, $range['from'] . ' 00:00:00');
+        }
+
+        if (isset($range['to'])) {
+            $parameter = $parameterPrefix . 'date_add_to';
+            $qb->andWhere(sprintf('log.date_add <= :%s', $parameter))
+                ->setParameter($parameter, $range['to'] . ' 23:59:59');
+        }
+
+        if (empty($range)) {
+            $value = $this->resolveScalarFilterValue($filterValue);
+            if (null !== $value) {
+                $parameter = $parameterPrefix . 'date_add';
+                $qb->andWhere(sprintf('DATE(log.date_add) = :%s', $parameter))
+                    ->setParameter($parameter, $value);
+            }
+        }
+    }
+
+    private function normalizeOrderWay(?string $orderWay): string
+    {
+        $orderWay = strtoupper($orderWay ?? 'DESC');
+
+        return in_array($orderWay, ['ASC', 'DESC'], true) ? $orderWay : 'DESC';
+    }
+
+    private function applySorting(SearchCriteriaInterface $searchCriteria, QueryBuilder $qb): void
+    {
+        $allowedOrderBy = [
+            'id_carrier_log' => 'log.id_carrier_log',
+            'name' => 'log.name',
+            'id_order' => 'log.id_order',
+            'date_add' => 'log.date_add',
+            'id_shop' => 'log.id_shop',
+        ];
+
+        $orderBy = $searchCriteria->getOrderBy();
+        if (!isset($allowedOrderBy[$orderBy])) {
+            $orderBy = 'date_add';
+        }
+
+        $qb->orderBy($allowedOrderBy[$orderBy], $this->normalizeOrderWay($searchCriteria->getOrderWay()));
+    }
+
+    /**
+     * @param mixed $value
+     *
+     * @return string[]
+     */
+    private function collectScalarValues($value): array
+    {
+        if (null === $value) {
+            return [];
+        }
+
+        if (is_scalar($value)) {
+            $stringValue = trim((string) $value);
+
+            return '' === $stringValue ? [] : [$stringValue];
+        }
+
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $collected = [];
+        foreach ($value as $item) {
+            $collected = array_merge($collected, $this->collectScalarValues($item));
+        }
+
+        return $collected;
+    }
+
+    private function buildContainsPattern(string $value): string
+    {
+        $escaped = str_replace('_', '\\_', $this->escapePercent($value));
+
+        return '%' . $escaped . '%';
     }
 
     private function getBaseQueryBuilder(): QueryBuilder

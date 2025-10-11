@@ -5,12 +5,14 @@
 declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Entity;
-
 use Doctrine\ORM\Mapping as ORM;
+
 use Roanja\Module\RjMulticarrier\Entity\Traits\TimestampableTrait;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 #[ORM\Entity(repositoryClass: \Roanja\Module\RjMulticarrier\Repository\ShipmentRepository::class)]
-#[ORM\Table(name: 'rj_multicarrier_shipment')]
+#[ORM\Table(name: _DB_PREFIX_ . 'rj_multicarrier_shipment')]
 class Shipment
 {
     use TimestampableTrait;
@@ -52,10 +54,20 @@ class Shipment
     #[ORM\Column(name: '`delete`', type: 'boolean')]
     private bool $deleted = false;
 
+    /**
+     * Multi-shop mapping collection.
+    /**
+     * Legacy mapping to shops.
+     *
+     * @var Collection<int, ShipmentShop>
+     */
+    #[ORM\OneToMany(targetEntity: ShipmentShop::class, mappedBy: 'shipment')]
+    private Collection $shops;
     public function __construct(int $orderId, InfoPackage $infoPackage)
     {
         $this->orderId = $orderId;
         $this->infoPackage = $infoPackage;
+        $this->shops = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -186,6 +198,24 @@ class Shipment
     public function restore(): self
     {
         $this->deleted = false;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, ShipmentShop>
+     */
+    public function getShops(): Collection
+    {
+        return $this->shops;
+    }
+
+    public function addShop(ShipmentShop $shop): self
+    {
+        if (!$this->shops->contains($shop)) {
+            $this->shops->add($shop);
+            $shop->setShipment($this);
+        }
 
         return $this;
     }

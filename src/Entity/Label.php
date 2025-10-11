@@ -8,9 +8,11 @@ namespace Roanja\Module\RjMulticarrier\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Roanja\Module\RjMulticarrier\Entity\Traits\TimestampableTrait;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 #[ORM\Entity(repositoryClass: \Roanja\Module\RjMulticarrier\Repository\LabelRepository::class)]
-#[ORM\Table(name: 'rj_multicarrier_label')]
+#[ORM\Table(name: _DB_PREFIX_ . 'rj_multicarrier_label')]
 class Label
 {
     use TimestampableTrait;
@@ -42,6 +44,33 @@ class Label
     public function __construct(Shipment $shipment)
     {
         $this->shipment = $shipment;
+        $this->shops = new ArrayCollection();
+    }
+
+    /**
+     * Legacy mapping to shops.
+     *
+     * @var Collection<int, LabelShop>
+     */
+    #[ORM\OneToMany(targetEntity: LabelShop::class, mappedBy: 'label')]
+    private Collection $shops;
+
+    /**
+     * @return Collection<int, LabelShop>
+     */
+    public function getShops(): Collection
+    {
+        return $this->shops;
+    }
+
+    public function addShop(LabelShop $shop): self
+    {
+        if (!$this->shops->contains($shop)) {
+            $this->shops->add($shop);
+            $shop->setLabel($this);
+        }
+
+        return $this;
     }
 
     public function getId(): ?int

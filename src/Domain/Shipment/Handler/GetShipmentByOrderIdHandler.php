@@ -33,8 +33,8 @@ final class GetShipmentByOrderIdHandler
         $metadata = [
             'account' => $shipment->getAccount(),
             'product' => $shipment->getProduct(),
-            'request' => $shipment->getRequestPayload(),
-            'response' => $shipment->getResponsePayload(),
+            'requestPayload' => $shipment->getRequestPayload(),
+            'responsePayload' => $shipment->getResponsePayload(),
             'deleted' => $shipment->isDeleted(),
         ];
         $infoPackageId = $this->shipmentRepository->getInfoPackageIdByOrderId($query->getOrderId());
@@ -61,14 +61,14 @@ final class GetShipmentByOrderIdHandler
 
                 $package = [
                     'id' => $infoPackage->getId(),
+                    'id_reference_carrier' => $infoPackage->getReferenceCarrierId(),
                     'quantity' => $infoPackage->getQuantity(),
                     'weight' => $infoPackage->getWeight(),
-                    'cash_on_delivery' => $infoPackage->getCashOnDelivery(),
-                    'dimensions' => [
-                        'length' => $infoPackage->getLength(),
-                        'width' => $infoPackage->getWidth(),
-                        'height' => $infoPackage->getHeight(),
-                    ],
+                    // Legacy template expects key "cash_ondelivery" (without second underscore)
+                    'cash_ondelivery' => $infoPackage->getCashOnDelivery(),
+                    'length' => $infoPackage->getLength(),
+                    'width' => $infoPackage->getWidth(),
+                    'height' => $infoPackage->getHeight(),
                     'message' => $infoPackage->getMessage(),
                     'hour_from' => $hourFrom,
                     'hour_until' => $hourUntil,

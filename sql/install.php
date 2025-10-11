@@ -48,6 +48,17 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_company
     PRIMARY KEY (`id_carrier_company`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
+$sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_company_shop` (
+    `id_company_shop` INT(11) NOT NULL AUTO_INCREMENT,
+    `id_shop` INT(11) NOT NULL,
+    `id_carrier_company` INT(10) UNSIGNED NOT NULL,
+    `date_add` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `date_upd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id_company_shop`),
+    INDEX `idx_company` (`id_carrier_company`),
+    INDEX `idx_shop` (`id_shop`)
+) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
+
 $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_type_shipment` (
     `id_type_shipment` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
     `id_carrier_company` INT(10) UNSIGNED NOT NULL,

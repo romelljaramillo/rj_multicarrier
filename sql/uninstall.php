@@ -16,6 +16,7 @@ $sql = [
     'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_infopackage`',
     'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_infoshop_shop`',
     'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_infoshop`',
+    'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_company_shop`',
     'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_log`',
     'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_type_shipment`',
     'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_company`',

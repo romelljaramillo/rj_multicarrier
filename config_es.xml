@@ -2,7 +2,7 @@
 <module>
     <name>rj_multicarrier</name>
     <displayName><![CDATA[Roanja Multi-carrier]]></displayName>
-    <version><![CDATA[3.1.0]]></version>
+    <version><![CDATA[3.0.0]]></version>
     <description><![CDATA[Modern multi-carrier integration for PrestaShop 8 powered by Symfony.]]></description>
     <author><![CDATA[Roanja]]></author>
     <tab><![CDATA[administration]]></tab>

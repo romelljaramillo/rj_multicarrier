@@ -65,6 +65,16 @@ class TypeShipmentRepository
         return array_map(static fn (array $row): int => (int) $row['referenceCarrierId'], $results);
     }
 
+    public function findOneById(int $typeShipmentId): ?TypeShipment
+    {
+        return $this->createQueryBuilder('type')
+            ->andWhere('type.id = :id')
+            ->setParameter('id', $typeShipmentId)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     private function createQueryBuilder(string $alias): QueryBuilder
     {
         return $this->entityManager->createQueryBuilder()

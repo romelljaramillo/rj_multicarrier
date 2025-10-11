@@ -59,7 +59,8 @@ final class UpsertInfoPackageHandler
             throw new RuntimeException('Missing identifier after persisting InfoPackage');
         }
 
-        $this->syncShopAssociation($infoPackageId, $command->getShopId());
+    // Persist ORM mapping for multi-shop
+    $this->syncShopAssociation($infoPackage, $command->getShopId());
 
         return $infoPackage;
     }
@@ -94,7 +95,7 @@ final class UpsertInfoPackageHandler
 
     private function getTypeShipment(int $typeShipmentId): TypeShipment
     {
-        $typeShipment = $this->typeShipmentRepository->find($typeShipmentId);
+        $typeShipment = $this->entityManager->find(TypeShipment::class, $typeShipmentId);
 
         if (!$typeShipment instanceof TypeShipment) {
             throw new InvalidArgumentException(sprintf('TypeShipment with id %d not found', $typeShipmentId));
@@ -114,20 +115,17 @@ final class UpsertInfoPackageHandler
         return $dateTime ?: null;
     }
 
-    private function syncShopAssociation(int $infoPackageId, int $shopId): void
+    private function syncShopAssociation(InfoPackage $infoPackage, int $shopId): void
     {
-        $this->connection->executeStatement(
-            'INSERT INTO ' . _DB_PREFIX_ . 'rj_multicarrier_infopackage_shop (id_infopackage, id_shop)
-                VALUES (:infoPackageId, :shopId)
-                ON DUPLICATE KEY UPDATE id_shop = id_shop',
-            [
-                'infoPackageId' => $infoPackageId,
-                'shopId' => $shopId,
-            ],
-            [
-                'infoPackageId' => \PDO::PARAM_INT,
-                'shopId' => \PDO::PARAM_INT,
-            ]
-        );
+        // Create mapping entity and persist if not already present
+        foreach ($infoPackage->getShops() as $mapping) {
+            if ($mapping->getShopId() === $shopId) {
+                return; // already mapped
+            }
+        }
+
+        $mapping = new \Roanja\Module\RjMulticarrier\Entity\InfoPackageShop($infoPackage, $shopId);
+        $this->entityManager->persist($mapping);
+        $this->entityManager->flush();
     }
 }

@@ -176,6 +176,17 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
         $rowActions = new RowActionCollection();
 
         $rowActions
+            ->add((new LinkRowAction('view'))
+                ->setName($this->transString('View', [], 'Admin.Actions'))
+                ->setIcon('visibility')
+                ->setOptions([
+                    'route' => 'admin_rj_multicarrier_type_shipment_view',
+                    'route_param_name' => 'id',
+                    'route_param_field' => 'id_type_shipment',
+                    'attr' => [
+                        'class' => 'js-type-shipment-view-row-action',
+                    ],
+                ]))
             ->add((new LinkRowAction('edit'))
                 ->setName($this->transString('Edit', [], 'Admin.Actions'))
                 ->setIcon('edit')

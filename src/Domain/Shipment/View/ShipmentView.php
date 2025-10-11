@@ -22,6 +22,8 @@ final class ShipmentView
         private readonly ?string $orderReference,
         private readonly ?string $shipmentNumber,
         private readonly ?string $carrierShortName,
+        private readonly ?string $createdAt,
+        private readonly ?string $updatedAt,
         private readonly array $package,
         private readonly array $labels,
         private readonly array $metadata
@@ -56,6 +58,16 @@ final class ShipmentView
     /**
      * @return array<string, mixed>
      */
+    public function getCreatedAt(): ?string
+    {
+        return $this->createdAt;
+    }
+
+    public function getUpdatedAt(): ?string
+    {
+        return $this->updatedAt;
+    }
+
     public function getPackage(): array
     {
         return $this->package;
@@ -96,6 +108,8 @@ final class ShipmentView
             $shipment->getOrderReference(),
             $shipment->getShipmentNumber(),
             $company?->getShortName(),
+            $shipment->getCreatedAt()?->format('Y-m-d H:i:s'),
+            $shipment->getUpdatedAt()?->format('Y-m-d H:i:s'),
             $package,
             array_map(static function (Label $label): array {
                 return [
@@ -108,5 +122,24 @@ final class ShipmentView
             }, $labels),
             $metadata
         );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'orderId' => $this->orderId,
+            'orderReference' => $this->orderReference,
+            'shipmentNumber' => $this->shipmentNumber,
+            'carrierShortName' => $this->carrierShortName,
+            'createdAt' => $this->createdAt,
+            'updatedAt' => $this->updatedAt,
+            'package' => $this->package,
+            'labels' => $this->labels,
+            'metadata' => $this->metadata,
+        ];
     }
 }

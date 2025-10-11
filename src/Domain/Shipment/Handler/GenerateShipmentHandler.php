@@ -1,7 +1,9 @@
 <?php
+
 /**
  * Handles shipment generation by delegating to carrier adapters and persisting via CQRS.
  */
+
 declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Domain\Shipment\Handler;
@@ -18,8 +20,7 @@ final class GenerateShipmentHandler
     public function __construct(
         private readonly CarrierRegistry $carrierRegistry,
         private readonly CreateShipmentHandler $createShipmentHandler
-    ) {
-    }
+    ) {}
 
     public function handle(GenerateShipmentCommand $command): ShipmentEntity
     {
@@ -52,12 +53,14 @@ final class GenerateShipmentHandler
             ? (int) $companyData['id_carrier_company']
             : null;
 
-    $createShipmentCommand = new CreateShipmentCommand(
+        $createShipmentCommand = new CreateShipmentCommand(
             $command->getOrderId(),
             $command->getOrderReference(),
             $result->getShipmentNumber(),
             $infoPackageId,
             $companyId,
+            // pass current shop id for mapping
+            (int) (\Context::getContext()->shop->id ?? 0),
             isset($normalizedPayload['name_carrier']) ? (string) $normalizedPayload['name_carrier'] : null,
             $normalizedPayload,
             $result->getResponsePayload(),

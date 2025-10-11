@@ -9,9 +9,11 @@ namespace Roanja\Module\RjMulticarrier\Entity;
 use DateTimeInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Roanja\Module\RjMulticarrier\Entity\Traits\TimestampableTrait;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 #[ORM\Entity(repositoryClass: \Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository::class)]
-#[ORM\Table(name: 'rj_multicarrier_infopackage')]
+#[ORM\Table(name: _DB_PREFIX_ . 'rj_multicarrier_infopackage')]
 class InfoPackage
 {
     use TimestampableTrait;
@@ -30,6 +32,14 @@ class InfoPackage
     #[ORM\ManyToOne(targetEntity: TypeShipment::class)]
     #[ORM\JoinColumn(name: 'id_type_shipment', referencedColumnName: 'id_type_shipment', nullable: false, onDelete: 'CASCADE')]
     private TypeShipment $typeShipment;
+
+    /**
+     * Legacy mapping to shops.
+     *
+     * @var Collection<int, InfoPackageShop>
+     */
+    #[ORM\OneToMany(targetEntity: InfoPackageShop::class, mappedBy: 'infoPackage')]
+    private Collection $shops;
 
     #[ORM\Column(name: 'quantity', type: 'integer')]
     private int $quantity;
@@ -77,6 +87,15 @@ class InfoPackage
         $this->typeShipment = $typeShipment;
         $this->quantity = $quantity;
         $this->weight = $weight;
+        $this->shops = new ArrayCollection();
+    }
+
+    /**
+     * @return Collection<int, InfoPackageShop>
+     */
+    public function getShops(): Collection
+    {
+        return $this->shops;
     }
 
     public function getId(): ?int

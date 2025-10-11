@@ -38,14 +38,72 @@ services:
     resource: "../src/Domain/InfoPackage/Handler"
     public: true
 
-  Roanja\Module\RjMulticarrier\Domain\Log\Handler\:
-    resource: "../src/Domain/Log/Handler"
-    public: true
-
   Roanja\Module\RjMulticarrier\Repository\LogEntryRepository:
     arguments:
-      $registry: '@doctrine'
-      $shopContext: '@prestashop.adapter.shop.context'
+      $registry: "@doctrine"
+      $shopContext: "@prestashop.adapter.shop.context"
+    public: false
+
+  Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository:
+    arguments:
+      $registry: "@doctrine"
+      $shopContext: "@prestashop.adapter.shop.context"
+    public: false
+
+  Roanja\Module\RjMulticarrier\Domain\Log\Handler\GetLogEntryForViewHandler:
+    arguments:
+      $logRepository: '@Roanja\Module\RjMulticarrier\Repository\LogEntryRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\Log\Query\GetLogEntryForView',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\Log\Handler\GetLogsForExportHandler:
+    arguments:
+      $logRepository: '@Roanja\Module\RjMulticarrier\Repository\LogEntryRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\Log\Query\GetLogsForExport',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\Log\Handler\GetLogsByIdsHandler:
+    arguments:
+      $logRepository: '@Roanja\Module\RjMulticarrier\Repository\LogEntryRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\Log\Query\GetLogsByIds',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\GetShipmentForViewHandler:
+    arguments:
+      $shipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\ShipmentRepository'
+      $labelRepository: '@Roanja\Module\RjMulticarrier\Repository\LabelRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetShipmentForView',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\GetTypeShipmentForViewHandler:
+    arguments:
+      $typeShipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\TypeShipment\Query\GetTypeShipmentForView',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\InfoPackage\Handler\GetInfoPackageForViewHandler:
+    arguments:
+      $infoPackageRepository: '@Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\InfoPackage\Query\GetInfoPackageForView',
+        }
 
   Roanja\Module\RjMulticarrier\Domain\InfoShop\Handler\:
     resource: "../src/Domain/InfoShop/Handler"
@@ -101,6 +159,7 @@ services:
       $connection: "@doctrine.dbal.default_connection"
       $dbPrefix: "%database_prefix%"
       $shopContext: "@prestashop.adapter.shop.context"
+      $searchCriteriaApplicator: "@prestashop.core.query.doctrine_search_criteria_applicator"
 
   Roanja\Module\RjMulticarrier\Grid\Log\LogGridDefinitionFactory:
     public: true
@@ -117,10 +176,15 @@ services:
       $queryParser: "@prestashop.core.grid.query.doctrine_query_parser"
       $gridId: "rj_multicarrier_log"
 
+  Roanja\Module\RjMulticarrier\Grid\Log\LogGridDataFactory:
+    arguments:
+      $dataFactory: '@Roanja\Module\RjMulticarrier\Grid\Log\LogDoctrineGridDataFactory'
+      $translator: "@translator"
+
   Roanja\Module\RjMulticarrier\Grid\Log\LogGridFactory:
     arguments:
       $gridDefinitionFactory: '@Roanja\Module\RjMulticarrier\Grid\Log\LogGridDefinitionFactory'
-      $gridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\Log\LogDoctrineGridDataFactory'
+      $gridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\Log\LogGridDataFactory'
       $gridFilterFormFactory: "@prestashop.core.grid.filter.form_factory"
       $hookDispatcher: "@prestashop.core.hook.dispatcher"
     public: true
@@ -129,6 +193,8 @@ services:
     arguments:
       $connection: "@doctrine.dbal.default_connection"
       $dbPrefix: "%database_prefix%"
+      $shopContext: "@prestashop.adapter.shop.context"
+      $searchCriteriaApplicator: "@prestashop.core.query.doctrine_search_criteria_applicator"
 
   Roanja\Module\RjMulticarrier\Grid\Shipment\ShipmentGridDefinitionFactory:
     public: true
@@ -155,14 +221,14 @@ services:
   Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageQueryBuilder:
     arguments:
       $connection: "@doctrine.dbal.default_connection"
-      $legacyContext: "@prestashop.adapter.legacy.context"
       $dbPrefix: "%database_prefix%"
+      $shopContext: "@prestashop.adapter.shop.context"
+      $searchCriteriaApplicator: "@prestashop.core.query.doctrine_search_criteria_applicator"
 
   Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridDefinitionFactory:
     public: true
     arguments:
       $hookDispatcher: "@prestashop.core.hook.dispatcher"
-      $csrfTokenManager: "@security.csrf.token_manager"
     calls:
       - [setTranslator, ["@translator"]]
 
@@ -175,10 +241,7 @@ services:
       $gridId: "rj_multicarrier_info_package"
 
   Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridDataFactory:
-    class: Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridDataFactoryDecorator
-    arguments:
-      $infoPackageDoctrineGridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageDoctrineGridDataFactory'
-      $csrfTokenManager: "@security.csrf.token_manager"
+    alias: 'Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageDoctrineGridDataFactory'
 
   Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridFactory:
     arguments:
@@ -186,6 +249,37 @@ services:
       $gridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridDataFactory'
       $gridFilterFormFactory: "@prestashop.core.grid.filter.form_factory"
       $hookDispatcher: "@prestashop.core.hook.dispatcher"
+
+  Roanja\Module\RjMulticarrier\Grid\Company\CompanyQueryBuilder:
+    arguments:
+      $connection: "@doctrine.dbal.default_connection"
+      $dbPrefix: "%database_prefix%"
+
+  Roanja\Module\RjMulticarrier\Grid\Company\CompanyGridDefinitionFactory:
+    public: true
+    arguments:
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+    calls:
+      - [setTranslator, ["@translator"]]
+
+  Roanja\Module\RjMulticarrier\Grid\Company\CompanyDoctrineGridDataFactory:
+    class: PrestaShop\PrestaShop\Core\Grid\Data\Factory\DoctrineGridDataFactory
+    arguments:
+      $gridQueryBuilder: '@Roanja\Module\RjMulticarrier\Grid\Company\CompanyQueryBuilder'
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+      $queryParser: "@prestashop.core.grid.query.doctrine_query_parser"
+      $gridId: "rj_multicarrier_company"
+
+  Roanja\Module\RjMulticarrier\Grid\Company\CompanyGridFactory:
+    arguments:
+      $gridDefinitionFactory: '@Roanja\Module\RjMulticarrier\Grid\Company\CompanyGridDefinitionFactory'
+      $gridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\Company\CompanyDoctrineGridDataFactory'
+      $gridFilterFormFactory: "@prestashop.core.grid.filter.form_factory"
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+
+  rj_multicarrier.grid.definition.factory.company:
+    alias: 'Roanja\Module\RjMulticarrier\Grid\Company\CompanyGridDefinitionFactory'
+    public: true
 
   Roanja\Module\RjMulticarrier\Service\Shipment\ShipmentLabelPrinter:
     arguments:
@@ -260,7 +354,7 @@ services:
     class: Roanja\Module\RjMulticarrier\Service\Installer\ModuleInstaller
     arguments:
       - "@doctrine.dbal.default_connection"
-      - '@roanja.module.rj_multicarrier.doctrine.mapping_configurator'
+      - "@roanja.module.rj_multicarrier.doctrine.mapping_configurator"
     public: true
 
   roanja.module.rj_multicarrier.presenter.order_view:
@@ -287,16 +381,126 @@ services:
       - "@doctrine.orm.entity_manager"
     tags:
       - {
-          name: 'tactician.handler',
+          name: "tactician.handler",
           command: 'Roanja\Module\RjMulticarrier\Domain\Log\Command\BulkDeleteLogEntriesCommand',
         }
 
   Roanja\Module\RjMulticarrier\Domain\Log\Handler\DeleteLogEntryHandler:
     arguments:
       - '@Roanja\Module\RjMulticarrier\Repository\LogEntryRepository'
-      - '@doctrine.orm.entity_manager'
+      - "@doctrine.orm.entity_manager"
     tags:
       - {
-          name: 'tactician.handler',
+          name: "tactician.handler",
           command: 'Roanja\Module\RjMulticarrier\Domain\Log\Command\DeleteLogEntryCommand',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\DeleteShipmentHandler:
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\Shipment\Command\DeleteShipmentCommand',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\Company\Handler\GetCompaniesForGridHandler:
+    arguments:
+      $companyRepository: '@Roanja\Module\RjMulticarrier\Repository\CompanyRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\Company\Query\GetCompaniesForGrid',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\Company\Handler\GetCompaniesForExportHandler:
+    arguments:
+      $companyRepository: '@Roanja\Module\RjMulticarrier\Repository\CompanyRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\Company\Query\GetCompaniesForExport',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\Company\Handler\GetCompanyForViewHandler:
+    arguments:
+      $companyRepository: '@Roanja\Module\RjMulticarrier\Repository\CompanyRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\Company\Query\GetCompanyForView',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\UpsertTypeShipmentHandler:
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\UpsertTypeShipmentCommand',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\DeleteTypeShipmentHandler:
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\DeleteTypeShipmentCommand',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\ToggleTypeShipmentStatusHandler:
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\ToggleTypeShipmentStatusCommand',
+        }
+
+  # Shipment Repository
+  Roanja\Module\RjMulticarrier\Repository\ShipmentRepository:
+    arguments:
+      $registry: "@doctrine"
+    public: false
+
+  # Shipment CommandHandlers
+  Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\BulkDeleteShipmentHandler:
+    arguments:
+      $shipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\ShipmentRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\Shipment\Command\BulkDeleteShipmentCommand',
+        }
+
+  # Shipment QueryHandlers
+  Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\GetShipmentsForExportHandler:
+    arguments:
+      $shipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\ShipmentRepository'
+      $labelRepository: '@Roanja\Module\RjMulticarrier\Repository\LabelRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetShipmentsForExport',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\GetShipmentsByIdsHandler:
+    arguments:
+      $shipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\ShipmentRepository'
+      $labelRepository: '@Roanja\Module\RjMulticarrier\Repository\LabelRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetShipmentsByIds',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\InfoPackage\Handler\GetInfoPackagesByIdsHandler:
+    arguments:
+      $infoPackageRepository: '@Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\InfoPackage\Query\GetInfoPackagesByIds',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\InfoPackage\Handler\GetInfoPackagesForExportHandler:
+    arguments:
+      $infoPackageRepository: '@Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\InfoPackage\Query\GetInfoPackagesForExport',
         }

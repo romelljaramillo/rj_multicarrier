@@ -5,7 +5,7 @@
     <div class="col-xl-7">
       {% embed '@PrestaShop/Admin/Common/Grid/grid_panel.html.twig' with { grid: typeShipmentGrid } %}
         {% block grid_panel_header %}
-          <div class="card-header d-flex align-items-center justify-content-between">
+          <div class="card-header js-grid-header d-flex align-items-center justify-content-between">
             <div class="d-flex align-items-center">
               <h3 class="card-header-title mb-0">{{ 'Tipos de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
               <span class="badge badge-secondary ml-2">{{ grid.data.records_total }}</span>
@@ -67,6 +67,77 @@
               {{ form_row(form.save) }}
             </div>
           {{ form_end(form, { render_rest: false }) }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="modal fade js-detail-modal"
+    id="rj_type_shipment_detail_modal"
+    tabindex="-1"
+    role="dialog"
+    aria-hidden="true"
+    data-empty="{{ 'No disponible'|trans({}, 'Modules.RjMulticarrier.Admin') }}"
+    data-error-generic="{{ 'No se pudo cargar el detalle del tipo de envío.'|trans({}, 'Modules.RjMulticarrier.Admin') }}"
+    data-error-not-found="{{ 'El tipo de envío solicitado ya no existe.'|trans({}, 'Modules.RjMulticarrier.Admin') }}"
+    data-trigger=".js-type-shipment-view-row-action"
+  >
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title mb-0">{{ 'Detalle del tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="{{ 'Cerrar'|trans({}, 'Admin.Actions') }}">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-danger d-none js-detail-error" role="alert"></div>
+
+          <div class="text-center my-4 d-none js-detail-spinner">
+            <span class="spinner-border" role="status" aria-hidden="true"></span>
+            <span class="sr-only">{{ 'Cargando…'|trans({}, 'Admin.Actions') }}</span>
+          </div>
+
+          <div class="js-detail-content d-none">
+            <dl class="row">
+              <dt class="col-sm-4">{{ 'ID'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+              <dd class="col-sm-8 js-detail-field" data-detail-field="id">—</dd>
+
+              <dt class="col-sm-4">{{ 'Compañía'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+              <dd class="col-sm-8 js-detail-field" data-detail-field="companyName">—</dd>
+
+              <dt class="col-sm-4">{{ 'Nombre corto'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+              <dd class="col-sm-8 js-detail-field" data-detail-field="companyShortName">—</dd>
+
+              <dt class="col-sm-4">{{ 'Nombre'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+              <dd class="col-sm-8 js-detail-field" data-detail-field="name">—</dd>
+
+              <dt class="col-sm-4">{{ 'Código comercial'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+              <dd class="col-sm-8 js-detail-field" data-detail-field="businessCode">—</dd>
+
+              <dt class="col-sm-4">{{ 'Carrier referencia'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+              <dd class="col-sm-8 js-detail-field" data-detail-field="referenceCarrierId">—</dd>
+
+              <dt class="col-sm-4">{{ 'Activo'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+              <dd
+                class="col-sm-8 js-detail-field"
+                data-detail-field="active"
+                data-detail-render="boolean"
+                data-detail-true="{{ 'Sí'|trans({}, 'Admin.Global') }}"
+                data-detail-false="{{ 'No'|trans({}, 'Admin.Global') }}"
+              >—</dd>
+
+              <dt class="col-sm-4">{{ 'Creado el'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+              <dd class="col-sm-8 js-detail-field" data-detail-field="createdAt">—</dd>
+
+              <dt class="col-sm-4">{{ 'Actualizado el'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+              <dd class="col-sm-8 js-detail-field" data-detail-field="updatedAt">—</dd>
+            </dl>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ 'Cerrar'|trans({}, 'Admin.Actions') }}</button>
         </div>
       </div>
     </div>

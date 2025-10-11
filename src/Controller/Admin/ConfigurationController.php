@@ -10,6 +10,10 @@ use PrestaShopBundle\Controller\Admin\FrameworkBundleAdminController;
 use Roanja\Module\RjMulticarrier\Form\ExtraConfigType;
 use Roanja\Module\RjMulticarrier\Form\InfoShopType;
 use Roanja\Module\RjMulticarrier\Service\Configuration\ConfigurationManager;
+use Roanja\Module\RjMulticarrier\Grid\Company\CompanyGridFactory;
+use Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentGridFactory;
+use Roanja\Module\RjMulticarrier\Grid\Company\CompanyFilters;
+use Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentFilters;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -29,6 +33,7 @@ final class ConfigurationController extends FrameworkBundleAdminController
 
     public function indexAction(Request $request): Response
     {
+        // Tabs removed: configuration view now uses a single unified layout without BO tabs
         $infoShopDefaults = $this->configurationManager->getInfoShopDefaults();
         $extraConfigDefaults = $this->configurationManager->getExtraConfigDefaults();
         $currentModule = isset($extraConfigDefaults['RJ_MODULE_CONTRAREEMBOLSO']) ? (string) $extraConfigDefaults['RJ_MODULE_CONTRAREEMBOLSO'] : null;
@@ -62,9 +67,37 @@ final class ConfigurationController extends FrameworkBundleAdminController
             }
         }
 
-    return $this->render('@Modules/rj_multicarrier/views/templates/admin/configuration/index.html.twig', [
+        // Attempt to build company and type shipment grids if the factories are available
+        $companyGridRendered = null;
+        $typeShipmentGridRendered = null;
+
+        try {
+            $container = $this->get('service_container');
+
+            if ($container->has(CompanyGridFactory::class)) {
+                /** @var CompanyGridFactory $companyGridFactory */
+                $companyGridFactory = $container->get(CompanyGridFactory::class);
+                $companyFilters = CompanyFilters::getDefaults();
+                $companyGrid = $companyGridFactory->getGrid(new CompanyFilters($companyFilters));
+                $companyGridRendered = $this->presentGrid($companyGrid);
+            }
+
+            if ($container->has(TypeShipmentGridFactory::class)) {
+                /** @var TypeShipmentGridFactory $typeShipmentGridFactory */
+                $typeShipmentGridFactory = $container->get(TypeShipmentGridFactory::class);
+                $typeShipmentFilters = TypeShipmentFilters::getDefaults();
+                $typeGrid = $typeShipmentGridFactory->getGrid(new TypeShipmentFilters($typeShipmentFilters));
+                $typeShipmentGridRendered = $this->presentGrid($typeGrid);
+            }
+        } catch (\Throwable $e) {
+            // Non-fatal: grids are optional in configuration view
+        }
+
+        return $this->render('@Modules/rj_multicarrier/views/templates/admin/configuration/index.html.twig', [
             'infoShopForm' => $infoShopForm->createView(),
             'extraConfigForm' => $extraConfigForm->createView(),
+            'companyGrid' => $companyGridRendered,
+            'typeShipmentGrid' => $typeShipmentGridRendered,
         ]);
     }
 

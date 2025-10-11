@@ -15,10 +15,11 @@ final class LogFilters extends Filters
     public static function getDefaults(): array
     {
         return [
+            'id_shop' => null,
             'limit' => 20,
             'offset' => 0,
             'orderBy' => 'date_add',
-            'sortOrder' => 'desc',
+            'sortOrder' => 'DESC',
             'filters' => [],
         ];
     }

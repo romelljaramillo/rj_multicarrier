@@ -22,24 +22,6 @@ final class InfoPackageGridDataFactoryDecorator implements GridDataFactoryInterf
 
     public function getData(SearchCriteriaInterface $searchCriteria)
     {
-        $gridData = $this->infoPackageDoctrineGridDataFactory->getData($searchCriteria);
-
-        $recordsWithTokens = [];
-        foreach ($gridData->getRecords() as $record) {
-            $id = (int) ($record['id_infopackage'] ?? 0);
-            if ($id > 0) {
-                $record['generate_token'] = $this->csrfTokenManager
-                    ->getToken('generate_info_package_' . $id)
-                    ->getValue();
-            }
-
-            $recordsWithTokens[] = $record;
-        }
-
-        return new GridData(
-            new RecordCollection($recordsWithTokens),
-            $gridData->getRecordsTotal(),
-            $gridData->getQuery()
-        );
+        return $this->infoPackageDoctrineGridDataFactory->getData($searchCriteria);
     }
 }

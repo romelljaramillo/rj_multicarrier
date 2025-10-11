@@ -51,7 +51,8 @@ final class UpsertInfoShopHandler
             throw new RuntimeException('Missing identifier after persisting InfoShop');
         }
 
-        $this->syncShopAssociation($infoShopId, $command->getShopId());
+    // Persist ORM mapping for multi-shop
+    $this->syncShopAssociation($infoShop, $command->getShopId());
 
         return $infoShop;
     }
@@ -107,20 +108,16 @@ final class UpsertInfoShopHandler
         return $value ? '1' : '0';
     }
 
-    private function syncShopAssociation(int $infoShopId, int $shopId): void
+    private function syncShopAssociation(InfoShop $infoShop, int $shopId): void
     {
-        $this->connection->executeStatement(
-            'INSERT INTO ' . _DB_PREFIX_ . 'rj_multicarrier_infoshop_shop (id_infoshop, id_shop)
-                VALUES (:infoShopId, :shopId)
-                ON DUPLICATE KEY UPDATE id_shop = id_shop',
-            [
-                'infoShopId' => $infoShopId,
-                'shopId' => $shopId,
-            ],
-            [
-                'infoShopId' => \PDO::PARAM_INT,
-                'shopId' => \PDO::PARAM_INT,
-            ]
-        );
+        foreach ($infoShop->getShops() as $mapping) {
+            if ($mapping->getShopId() === $shopId) {
+                return;
+            }
+        }
+
+        $mapping = new \Roanja\Module\RjMulticarrier\Entity\InfoShopShop($infoShop, $shopId);
+        $this->entityManager->persist($mapping);
+        $this->entityManager->flush();
     }
 }

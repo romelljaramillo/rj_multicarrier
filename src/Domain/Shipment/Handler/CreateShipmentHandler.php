@@ -1,7 +1,9 @@
 <?php
+
 /**
  * Handles persistence of shipments triggered from legacy flows.
  */
+
 declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Domain\Shipment\Handler;
@@ -13,6 +15,8 @@ use Roanja\Module\RjMulticarrier\Entity\Company;
 use Roanja\Module\RjMulticarrier\Entity\InfoPackage;
 use Roanja\Module\RjMulticarrier\Entity\Label;
 use Roanja\Module\RjMulticarrier\Entity\Shipment;
+use Roanja\Module\RjMulticarrier\Entity\ShipmentShop;
+use Roanja\Module\RjMulticarrier\Entity\LabelShop;
 use Roanja\Module\RjMulticarrier\Support\Common;
 use Roanja\Module\RjMulticarrier\Repository\CompanyRepository;
 use Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository;
@@ -26,8 +30,7 @@ final class CreateShipmentHandler
         private readonly ShipmentRepository $shipmentRepository,
         private readonly InfoPackageRepository $infoPackageRepository,
         private readonly CompanyRepository $companyRepository
-    ) {
-    }
+    ) {}
 
     public function handle(CreateShipmentCommand $command): Shipment
     {
@@ -54,12 +57,30 @@ final class CreateShipmentHandler
 
         $this->entityManager->flush();
 
-        $this->createLabels($shipment, $command->getLabels());
+        // Persist shop mapping for shipment
+        $shopId = $command->getShopId();
+        if ($shopId > 0) {
+            $exists = false;
+            foreach ($shipment->getShops() as $s) {
+                if ($s->getShopId() === $shopId) {
+                    $exists = true;
+                    break;
+                }
+            }
+
+            if (!$exists) {
+                $mapping = new ShipmentShop($shipment, $shopId);
+                $this->entityManager->persist($mapping);
+                $this->entityManager->flush();
+            }
+        }
+
+        $this->createLabels($shipment, $command->getLabels(), $shopId);
 
         return $shipment;
     }
 
-    private function createLabels(Shipment $shipment, array $labels): void
+    private function createLabels(Shipment $shipment, array $labels, int $shopId = 0): void
     {
         foreach ($labels as $labelData) {
             if (!isset($labelData['storage_key'], $labelData['package_id'])) {
@@ -74,6 +95,21 @@ final class CreateShipmentHandler
             $label->setPrinted(false);
 
             $this->entityManager->persist($label);
+
+            if ($shopId > 0) {
+                $exists = false;
+                foreach ($label->getShops() as $s) {
+                    if ($s->getShopId() === $shopId) {
+                        $exists = true;
+                        break;
+                    }
+                }
+
+                if (!$exists) {
+                    $labelMapping = new LabelShop($label, $shopId);
+                    $this->entityManager->persist($labelMapping);
+                }
+            }
 
             if (!empty($labelData['pdf_content']) && is_string($labelData['pdf_content'])) {
                 Common::createFileLabel($labelData['pdf_content'], $labelData['storage_key']);

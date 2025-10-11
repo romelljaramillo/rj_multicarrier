@@ -32,18 +32,29 @@ class InfoShopRepository
 
     public function findOneByShop(int $shopId): ?InfoShop
     {
-        $connection = $this->entityManager->getConnection();
-        $infoShopId = $connection->fetchOne(
-            'SELECT id_infoshop FROM ' . _DB_PREFIX_ . 'rj_multicarrier_infoshop_shop WHERE id_shop = :shopId LIMIT 1',
-            ['shopId' => $shopId],
-            ['shopId' => \PDO::PARAM_INT]
-        );
+        $qb = $this->entityManager->createQueryBuilder()
+            ->select('s', 'infoshop')
+            ->from(\Roanja\Module\RjMulticarrier\Entity\InfoShopShop::class, 's')
+            ->leftJoin('s.infoShop', 'infoshop')
+            ->andWhere('s.shopId = :shopId')
+            ->setParameter('shopId', $shopId)
+            ->setMaxResults(1);
 
-        if (false === $infoShopId) {
-            return null;
+        $result = $qb->getQuery()->getOneOrNullResult();
+
+        if (is_array($result) && isset($result[1]) && $result[1] instanceof InfoShop) {
+            return $result[1];
         }
 
-        return $this->entityManager->find(InfoShop::class, (int) $infoShopId);
+        if ($result instanceof InfoShop) {
+            return $result;
+        }
+
+        if (is_array($result) && isset($result['infoShop']) && $result['infoShop'] instanceof InfoShop) {
+            return $result['infoShop'];
+        }
+
+        return null;
     }
 
     public function find(int $id): ?InfoShop

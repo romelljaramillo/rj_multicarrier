@@ -1,20 +1,21 @@
 <?php
+
 /**
  * Symfony controller for managing carrier type shipments.
  */
+
 declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Controller\Admin;
 
-use Context;
 use PrestaShopBundle\Controller\Admin\FrameworkBundleAdminController;
+use PrestaShopBundle\Security\Annotation\AdminSecurity;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\DeleteTypeShipmentCommand;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\ToggleTypeShipmentStatusCommand;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\UpsertTypeShipmentCommand;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Exception\TypeShipmentException;
-use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\DeleteTypeShipmentHandler;
-use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\ToggleTypeShipmentStatusHandler;
-use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\UpsertTypeShipmentHandler;
+use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Query\GetTypeShipmentForView;
+use Roanja\Module\RjMulticarrier\Domain\TypeShipment\View\TypeShipmentView;
 use Roanja\Module\RjMulticarrier\Entity\Company;
 use Roanja\Module\RjMulticarrier\Entity\TypeShipment;
 use Roanja\Module\RjMulticarrier\Form\TypeShipmentType;
@@ -23,27 +24,20 @@ use Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentGridDefinitionFac
 use Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentGridFactory;
 use Roanja\Module\RjMulticarrier\Repository\CompanyRepository;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
-use PrestaShop\PrestaShop\Core\Grid\Presenter\GridPresenterInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 final class TypeShipmentController extends FrameworkBundleAdminController
 {
     private const TRANSLATION_DOMAIN = 'Modules.RjMulticarrier.Admin';
 
     public function __construct(
-        private readonly UpsertTypeShipmentHandler $upsertHandler,
-        private readonly DeleteTypeShipmentHandler $deleteHandler,
-        private readonly ToggleTypeShipmentStatusHandler $toggleHandler,
         private readonly CompanyRepository $companyRepository,
         private readonly TypeShipmentRepository $typeShipmentRepository,
-        private readonly TypeShipmentGridFactory $gridFactory,
-        private readonly GridPresenterInterface $gridPresenter,
-        private readonly TranslatorInterface $translator
-    ) {
-    }
+        private readonly TypeShipmentGridFactory $gridFactory
+    ) {}
 
     public function indexAction(Request $request): Response
     {
@@ -55,7 +49,7 @@ final class TypeShipmentController extends FrameworkBundleAdminController
         $companyId = $company?->getId() ?? 0;
 
         $editingTypeShipment = $typeShipmentId > 0
-            ? $this->typeShipmentRepository->find($typeShipmentId)
+            ? $this->typeShipmentRepository->findOneById($typeShipmentId)
             : null;
 
         if ($editingTypeShipment instanceof TypeShipment) {
@@ -65,7 +59,6 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
         $filters = $this->buildFilters($request, $companyId);
         $grid = $this->gridFactory->getGrid($filters);
-        $gridView = $this->gridPresenter->present($grid);
 
         $formData = $this->buildFormData($company, $editingTypeShipment);
         $companyChoices = $this->buildCompanyChoices($companies);
@@ -94,7 +87,7 @@ final class TypeShipmentController extends FrameworkBundleAdminController
             );
 
             try {
-                $this->upsertHandler->handle($command);
+                $this->getCommandBus()->handle($command);
                 $this->addFlash('success', $this->translate('Tipo de envío guardado correctamente.'));
 
                 return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
@@ -105,21 +98,38 @@ final class TypeShipmentController extends FrameworkBundleAdminController
             }
         }
 
-    return $this->render('@Modules/rj_multicarrier/views/templates/admin/type_shipment/index.html.twig', [
+        return $this->render('@Modules/rj_multicarrier/views/templates/admin/type_shipment/index.html.twig', [
             'form' => $form->createView(),
-            'typeShipmentGrid' => $gridView,
+            'typeShipmentGrid' => $this->presentGrid($grid),
             'companies' => $this->buildCompanyView($companies, $companyId),
             'editingTypeShipment' => $editingTypeShipment,
             'currentCompanyId' => $companyId,
         ]);
     }
 
+    /**
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", message="Access denied.")
+     */
+    public function viewAction(int $id): JsonResponse
+    {
+        /** @var TypeShipmentView|null $typeShipment */
+        $typeShipment = $this->getQueryBus()->handle(new GetTypeShipmentForView($id));
+
+        if (null === $typeShipment) {
+            return $this->json([
+                'message' => $this->translate('El tipo de envío solicitado ya no existe.'),
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        return $this->json($this->formatTypeShipmentView($typeShipment));
+    }
+
     public function deleteAction(Request $request, int $id): RedirectResponse
     {
-        $this->validateCsrfToken('delete_type_shipment_' . $id, (string) $request->get('_token'));
+        // $this->validateCsrfToken('delete_type_shipment_' . $id, (string) $request->get('_token'));
 
         try {
-            $this->deleteHandler->handle(new DeleteTypeShipmentCommand($id));
+            $this->getCommandBus()->handle(new DeleteTypeShipmentCommand($id));
             $this->addFlash('success', $this->translate('Tipo de envío eliminado correctamente.'));
         } catch (TypeShipmentException $exception) {
             $this->addFlash('error', $exception->getMessage());
@@ -134,10 +144,11 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
     public function toggleAction(Request $request, int $id): RedirectResponse
     {
-        $this->validateCsrfToken('toggle_type_shipment_' . $id, (string) $request->get('_token'));
+        // $this->validateCsrfToken('toggle_type_shipment_' . $id, (string) $request->get('_token'));
 
         try {
-            $typeShipment = $this->toggleHandler->handle(new ToggleTypeShipmentStatusCommand($id));
+            /** @var TypeShipment $typeShipment */
+            $typeShipment = $this->getCommandBus()->handle(new ToggleTypeShipmentStatusCommand($id));
             $message = $typeShipment->isActive()
                 ? $this->translate('Tipo de envío activado.')
                 : $this->translate('Tipo de envío desactivado.');
@@ -149,6 +160,27 @@ final class TypeShipmentController extends FrameworkBundleAdminController
         return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
             'company' => (int) $request->get('company', 0),
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function formatTypeShipmentView(TypeShipmentView $view): array
+    {
+        $data = $view->toArray();
+
+        return [
+            'id' => $data['id'],
+            'companyId' => $data['companyId'],
+            'companyName' => $data['companyName'],
+            'companyShortName' => $data['companyShortName'],
+            'name' => $data['name'],
+            'businessCode' => $data['businessCode'],
+            'referenceCarrierId' => $data['referenceCarrierId'],
+            'active' => (bool) $data['active'],
+            'createdAt' => $data['createdAt'],
+            'updatedAt' => $data['updatedAt'],
+        ];
     }
 
     /**
@@ -207,8 +239,17 @@ final class TypeShipmentController extends FrameworkBundleAdminController
      */
     private function buildCarrierChoices(?int $currentReferenceCarrierId): array
     {
-        $languageId = Context::getContext()->language?->id ?? 1;
-        $carriers = (array) call_user_func(['Carrier', 'getCarriers'], (int) $languageId);
+        $languageId = 1;
+        if (class_exists('\\Context')) {
+            $contextClass = '\\Context';
+            $context = $contextClass::getContext();
+            $language = $context->language ?? null;
+            if ($language && isset($language->id)) {
+                $languageId = (int) $language->id;
+            }
+        }
+
+        $carriers = (array) call_user_func(['Carrier', 'getCarriers'], $languageId);
         $choices = [];
 
         $assignedReferences = $this->typeShipmentRepository->findAllActiveReferenceCarrierIds();
@@ -256,7 +297,7 @@ final class TypeShipmentController extends FrameworkBundleAdminController
     {
         $defaults = TypeShipmentFilters::getDefaults();
 
-    $scopedParameters = $this->extractScopedParameters($request, TypeShipmentGridDefinitionFactory::GRID_ID);
+        $scopedParameters = $this->extractScopedParameters($request, TypeShipmentGridDefinitionFactory::GRID_ID);
 
         $filterValues = array_merge($defaults, [
             'limit' => $this->getIntParam($request, $scopedParameters, 'limit', $defaults['limit']),
@@ -270,7 +311,7 @@ final class TypeShipmentController extends FrameworkBundleAdminController
             $filterValues['filters']['company_id'] = $companyId;
         }
 
-    $filters = new TypeShipmentFilters($filterValues);
+        $filters = new TypeShipmentFilters($filterValues);
         $filters->setNeedsToBePersisted(false);
 
         return $filters;
@@ -371,6 +412,6 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
     private function translate(string $message, array $parameters = []): string
     {
-    return $this->translator->trans($message, $parameters, self::TRANSLATION_DOMAIN);
+        return $this->trans($message, self::TRANSLATION_DOMAIN, $parameters);
     }
 }

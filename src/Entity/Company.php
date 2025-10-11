@@ -8,6 +8,8 @@ namespace Roanja\Module\RjMulticarrier\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Roanja\Module\RjMulticarrier\Entity\Traits\TimestampableTrait;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 #[ORM\Entity(repositoryClass: \Roanja\Module\RjMulticarrier\Repository\CompanyRepository::class)]
 #[ORM\Table(name: self::TABLE_NAME)]
@@ -31,10 +33,17 @@ class Company
     #[ORM\Column(name: 'icon', type: 'string', length: 250, nullable: true)]
     private ?string $icon = null;
 
+    /**
+     * @var Collection<int, CompanyShop>
+     */
+    #[ORM\OneToMany(mappedBy: 'company', targetEntity: CompanyShop::class, cascade: ['persist', 'remove'], orphanRemoval: true)]
+    private Collection $shops;
+
     public function __construct(string $name, string $shortName)
     {
         $this->name = $name;
         $this->shortName = $shortName;
+        $this->shops = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -76,5 +85,46 @@ class Company
         $this->icon = $icon;
 
         return $this;
+    }
+
+    /**
+     * @return Collection<int, CompanyShop>
+     */
+    public function getShops(): Collection
+    {
+        return $this->shops;
+    }
+
+    public function addShop(CompanyShop $shop): self
+    {
+        if (! $this->shops->contains($shop)) {
+            $this->shops->add($shop);
+        }
+
+        return $this;
+    }
+
+    public function removeShop(CompanyShop $shop): self
+    {
+        if ($this->shops->contains($shop)) {
+            $this->shops->removeElement($shop);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Utility: return an array of shop ids where this company is available
+     *
+     * @return int[]
+     */
+    public function getShopIds(): array
+    {
+        $ids = [];
+        foreach ($this->shops as $shop) {
+            $ids[] = $shop->getIdShop();
+        }
+
+        return $ids;
     }
 }

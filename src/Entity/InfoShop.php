@@ -8,6 +8,8 @@ namespace Roanja\Module\RjMulticarrier\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Roanja\Module\RjMulticarrier\Entity\Traits\TimestampableTrait;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 
 #[ORM\Entity(repositoryClass: \Roanja\Module\RjMulticarrier\Repository\InfoShopRepository::class)]
 #[ORM\Table(name: self::TABLE_NAME)]
@@ -64,6 +66,13 @@ class InfoShop
     #[ORM\Column(name: 'phone', type: 'string', length: 100)]
     private string $phone;
 
+    /**
+     * Legacy mapping to shops.
+     * @var Collection<int, InfoShopShop>
+     */
+    #[ORM\OneToMany(targetEntity: InfoShopShop::class, mappedBy: 'infoShop')]
+    private Collection $shops;
+
     #[ORM\Column(name: 'vatnumber', type: 'string', length: 100, nullable: true)]
     private ?string $vatNumber = null;
 
@@ -87,6 +96,15 @@ class InfoShop
         $this->streetNumber = $streetNumber;
         $this->postcode = $postcode;
         $this->phone = $phone;
+        $this->shops = new ArrayCollection();
+    }
+
+    /**
+     * @return Collection<int, InfoShopShop>
+     */
+    public function getShops(): Collection
+    {
+        return $this->shops;
     }
 
     public function getId(): ?int

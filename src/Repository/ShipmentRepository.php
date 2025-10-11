@@ -70,6 +70,18 @@ class ShipmentRepository extends ServiceEntityRepository
         return $result['infoPackageId'] ?? null;
     }
 
+    public function delete(int $shipmentId): void
+    {
+        $shipment = $this->find($shipmentId);
+        if ($shipment === null) {
+            throw new \Exception(sprintf('Shipment with ID %d not found', $shipmentId));
+        }
+
+        $shipment->markDeleted();
+        $this->_em->persist($shipment);
+        $this->_em->flush();
+    }
+
     public function softDelete(Shipment $shipment): void
     {
         $shipment->markDeleted();

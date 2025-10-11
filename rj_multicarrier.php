@@ -39,6 +39,7 @@ if (!defined('RJ_MULTICARRIER_LABEL_DIR')) {
 use PrestaShop\PrestaShop\Core\Module\WidgetInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Roanja\Module\RjMulticarrier\Service\Installer\ModuleInstaller;
+use PrestaShop\PrestaShop\Adapter\SymfonyContainer;
 use Twig\Environment;
 
 class Rj_Multicarrier extends Module implements WidgetInterface
@@ -102,17 +103,27 @@ class Rj_Multicarrier extends Module implements WidgetInterface
         return $result;
     }
 
-    public function getContent(): string
+    public function getContent()
     {
-        $url = $this->getSymfonyConfigureUrl();
+        try {
+            // Obtener contenedor Symfony global
+            $sfContainer = SymfonyContainer::getInstance();
+            /** @var Symfony\Component\Routing\Generator\UrlGeneratorInterface $router */
+            $router = $sfContainer->get('router');
 
-        if ($url) {
-            \Tools::redirectAdmin($url);
+            // Redirigir a la ruta Symfony del módulo
+            Tools::redirectAdmin(
+                $router->generate('admin_rj_multicarrier_configuration')
+            );
 
             return '';
+        } catch (\Throwable $e) {
+            return $this->trans(
+                'No se pudo generar la URL de configuración de Symfony: %error%',
+                ['%error%' => $e->getMessage()],
+                'Modules.RjMulticarrier.Admin'
+            );
         }
-
-        return $this->renderErrorTemplate($this->trans('No se pudo generar la URL de configuración de Symfony. Limpia la caché del router e inténtalo nuevamente.', [], 'Modules.RjMulticarrier.Admin'));
     }
 
     public function hookDisplayBackOfficeHeader(): void
@@ -128,7 +139,19 @@ class Rj_Multicarrier extends Module implements WidgetInterface
 
     public function hookDisplayAdminOrder(array $params)
     {
-        return $this->get('roanja.module.rj_multicarrier.presenter.order_view')->present((int) ($params['id_order'] ?? 0));
+        $idOrder = (int) ($params['id_order'] ?? 0);
+
+        if (0 === $idOrder) {
+            return '';
+        }
+
+        try {
+            $presenter = $this->get('roanja.module.rj_multicarrier.presenter.order_view');
+
+            return $presenter->present($idOrder);
+        } catch (\Throwable $e) {
+            return '';
+        }
     }
 
     public function hookDisplayBeforeCarrier(array $params)

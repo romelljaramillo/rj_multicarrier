@@ -87,6 +87,27 @@ class LogEntryRepository extends ServiceEntityRepository
         return $qb->getQuery()->getResult();
     }
 
+    /**
+     * @param int[] $ids
+     *
+     * @return LogEntry[]
+     */
+    public function findByIds(array $ids): array
+    {
+        if (empty($ids)) {
+            return [];
+        }
+
+        $qb = $this->createQueryBuilder('log')
+            ->andWhere('log.id IN (:ids)')
+            ->setParameter('ids', $ids)
+            ->orderBy('log.createdAt', 'DESC');
+
+        $this->applyShopRestriction($qb);
+
+        return $qb->getQuery()->getResult();
+    }
+
     private function applyShopRestriction(\Doctrine\ORM\QueryBuilder $qb): void
     {
         $shopIds = $this->getContextShopIds();

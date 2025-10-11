@@ -14,25 +14,24 @@ use Roanja\Module\RjMulticarrier\Domain\Log\Command\BulkDeleteLogEntriesCommand;
 use Roanja\Module\RjMulticarrier\Domain\Log\Command\DeleteLogEntryCommand;
 use Roanja\Module\RjMulticarrier\Domain\Log\Exception\LogEntryException;
 use Roanja\Module\RjMulticarrier\Domain\Log\Exception\LogEntryNotFoundException;
+use Roanja\Module\RjMulticarrier\Domain\Log\Query\GetLogEntryForView;
+use Roanja\Module\RjMulticarrier\Domain\Log\Query\GetLogsByIds;
+use Roanja\Module\RjMulticarrier\Domain\Log\Query\GetLogsForExport;
+use Roanja\Module\RjMulticarrier\Domain\Log\View\LogEntryView;
 use Roanja\Module\RjMulticarrier\Grid\Log\LogFilters;
 use Roanja\Module\RjMulticarrier\Grid\Log\LogGridDefinitionFactory;
 use Roanja\Module\RjMulticarrier\Grid\Log\LogGridFactory;
-use Roanja\Module\RjMulticarrier\Repository\LogEntryRepository;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 final class LogController extends FrameworkBundleAdminController
 {
     private const TRANSLATION_DOMAIN = 'Modules.RjMulticarrier.Admin';
-
-    public function __construct(
-        private readonly LogEntryRepository $logRepository
-    ) {
-    }
 
     public function indexAction(Request $request, LogFilters $filters): Response
     {
@@ -41,25 +40,28 @@ final class LogController extends FrameworkBundleAdminController
         /** @var LogGridFactory $gridFactory */
         $gridFactory = $this->get('rj_multicarrier.grid.factory.log');
         $grid = $gridFactory->getGrid($filters);
-        $gridView = $this->presentGrid($grid);
-
-        $selectedLogId = $request->query->getInt('log', 0);
-        $selectedLog = null;
-
-        if ($selectedLogId > 0) {
-            $selectedLog = $this->logRepository->find($selectedLogId);
-
-            if (null === $selectedLog) {
-                $this->addFlash('warning', $this->translate('El registro solicitado ya no existe.'));
-
-                return $this->redirectToRoute('admin_rj_multicarrier_logs_index');
-            }
-        }
 
         return $this->render('@Modules/rj_multicarrier/views/templates/admin/log/index.html.twig', [
-            'logGrid' => $gridView,
-            'selectedLog' => $selectedLog,
+            'layoutTitle' => $this->translate('Logs de envíos'),
+            'grid' => $this->presentGrid($grid),
         ]);
+    }
+
+    /**
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", message="Access denied.")
+     */
+    public function viewAction(int $id): JsonResponse
+    {
+        /** @var LogEntryView|null $log */
+        $log = $this->getQueryBus()->handle(new GetLogEntryForView($id));
+
+        if (null === $log) {
+            return $this->json([
+                'message' => $this->translate('El registro solicitado ya no existe.'),
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        return $this->json($log->toArray());
     }
 
     /**
@@ -105,51 +107,45 @@ final class LogController extends FrameworkBundleAdminController
     /**
      * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", message="Access denied.")
      */
-    public function exportCsvAction(Request $request): StreamedResponse
+    public function exportCsvAction(Request $request): Response
     {
         $filters = $this->buildFilters($request);
         $filters->set('limit', 0);
         $filters->set('offset', 0);
 
-        $logs = $this->logRepository->findForExport($filters->getFilters());
+        /** @var LogEntryView[] $logs */
+        $logs = $this->getQueryBus()->handle(new GetLogsForExport($filters->getFilters()));
 
         $fileName = sprintf('rj_multicarrier_logs_%s.csv', date('Ymd_His'));
 
-        $response = new StreamedResponse(function () use ($logs): void {
-            $handle = fopen('php://output', 'wb');
+        return $this->createCsvResponse($logs, $fileName);
+    }
 
-            fputcsv($handle, [
-                'ID',
-                'Nombre',
-                'Pedido',
-                'Fecha creación',
-                'Fecha actualización',
-                'Request',
-                'Response',
-            ]);
+    /**
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", message="Access denied.")
+     */
+    public function exportSelectedCsvAction(Request $request): Response
+    {
+        $logIds = $this->getBulkLogIds($request);
 
-            foreach ($logs as $log) {
-                fputcsv($handle, [
-                    $log->getId(),
-                    $log->getName(),
-                    $log->getOrderId(),
-                    $log->getCreatedAt()?->format('Y-m-d H:i:s'),
-                    $log->getUpdatedAt()?->format('Y-m-d H:i:s'),
-                    $log->getRequestPayload(),
-                    $log->getResponsePayload(),
-                ]);
-            }
+        if (empty($logIds)) {
+            $this->addFlash('warning', $this->translate('Selecciona al menos un registro para exportar.'));
 
-            fclose($handle);
-        });
+            return $this->redirectToRoute('admin_rj_multicarrier_logs_index');
+        }
 
-        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
-        $response->headers->set('Content-Disposition', $response->headers->makeDisposition(
-            ResponseHeaderBag::DISPOSITION_ATTACHMENT,
-            $fileName
-        ));
+        /** @var LogEntryView[] $logs */
+        $logs = $this->getQueryBus()->handle(new GetLogsByIds($logIds));
 
-        return $response;
+        if (empty($logs)) {
+            $this->addFlash('warning', $this->translate('No se encontraron registros para exportar.'));
+
+            return $this->redirectToRoute('admin_rj_multicarrier_logs_index');
+        }
+
+        $fileName = sprintf('rj_multicarrier_logs_seleccion_%s.csv', date('Ymd_His'));
+
+        return $this->createCsvResponse($logs, $fileName);
     }
 
     private function buildFilters(Request $request): LogFilters
@@ -292,5 +288,39 @@ final class LogController extends FrameworkBundleAdminController
         }
 
         return $this->redirectToRoute('admin_rj_multicarrier_logs_index');
+    }
+
+    /**
+     * @param iterable<LogEntryView> $logs
+     */
+    private function createCsvResponse(iterable $logs, string $fileName): StreamedResponse
+    {
+        $response = new StreamedResponse(function () use ($logs): void {
+            $handle = fopen('php://output', 'wb');
+
+            fputcsv($handle, [
+                'ID',
+                'Nombre',
+                'Pedido',
+                'Fecha creación',
+                'Fecha actualización',
+                'Request',
+                'Response',
+            ]);
+
+            foreach ($logs as $log) {
+                fputcsv($handle, $log->toCsvRow());
+            }
+
+            fclose($handle);
+        });
+
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', $response->headers->makeDisposition(
+            ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+            $fileName
+        ));
+
+        return $response;
     }
 }

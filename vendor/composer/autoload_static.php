@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit41c46afcf1eff88107404dde5c9e7e34
+class ComposerStaticInit1f2055a16fb2b3c56349f95fb9fad19e
 {
     public static $files = array (
         'e39a8b23c42d4e1452234d762b03835a' => __DIR__ . '/..' . '/ramsey/uuid/src/functions.php',
@@ -233,13 +233,21 @@ class ComposerStaticInit41c46afcf1eff88107404dde5c9e7e34
         'Roanja\\Module\\RjMulticarrier\\Carrier\\Adapter\\GlsCarrierAdapter' => __DIR__ . '/../..' . '/src/Carrier/Adapter/GlsCarrierAdapter.php',
         'Roanja\\Module\\RjMulticarrier\\Carrier\\Adapter\\GoiCarrierAdapter' => __DIR__ . '/../..' . '/src/Carrier/Adapter/GoiCarrierAdapter.php',
         'Roanja\\Module\\RjMulticarrier\\Carrier\\CarrierCompany' => __DIR__ . '/../..' . '/src/Carrier/CarrierCompany.php',
+        'Roanja\\Module\\RjMulticarrier\\Controller\\Admin\\AjaxBridgeController' => __DIR__ . '/../..' . '/src/Controller/Admin/AjaxBridgeController.php',
         'Roanja\\Module\\RjMulticarrier\\Controller\\Admin\\ConfigurationController' => __DIR__ . '/../..' . '/src/Controller/Admin/ConfigurationController.php',
         'Roanja\\Module\\RjMulticarrier\\Controller\\Admin\\InfoPackageController' => __DIR__ . '/../..' . '/src/Controller/Admin/InfoPackageController.php',
         'Roanja\\Module\\RjMulticarrier\\Controller\\Admin\\LogController' => __DIR__ . '/../..' . '/src/Controller/Admin/LogController.php',
         'Roanja\\Module\\RjMulticarrier\\Controller\\Admin\\ShipmentController' => __DIR__ . '/../..' . '/src/Controller/Admin/ShipmentController.php',
         'Roanja\\Module\\RjMulticarrier\\Controller\\Admin\\TypeShipmentController' => __DIR__ . '/../..' . '/src/Controller/Admin/TypeShipmentController.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\InfoPackage\\Command\\UpsertInfoPackageCommand' => __DIR__ . '/../..' . '/src/Domain/InfoPackage/Command/UpsertInfoPackageCommand.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\InfoPackage\\Handler\\GetInfoPackageForViewHandler' => __DIR__ . '/../..' . '/src/Domain/InfoPackage/Handler/GetInfoPackageForViewHandler.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\InfoPackage\\Handler\\GetInfoPackagesByIdsHandler' => __DIR__ . '/../..' . '/src/Domain/InfoPackage/Handler/GetInfoPackagesByIdsHandler.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\InfoPackage\\Handler\\GetInfoPackagesForExportHandler' => __DIR__ . '/../..' . '/src/Domain/InfoPackage/Handler/GetInfoPackagesForExportHandler.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\InfoPackage\\Handler\\UpsertInfoPackageHandler' => __DIR__ . '/../..' . '/src/Domain/InfoPackage/Handler/UpsertInfoPackageHandler.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\InfoPackage\\Query\\GetInfoPackageForView' => __DIR__ . '/../..' . '/src/Domain/InfoPackage/Query/GetInfoPackageForView.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\InfoPackage\\Query\\GetInfoPackagesByIds' => __DIR__ . '/../..' . '/src/Domain/InfoPackage/Query/GetInfoPackagesByIds.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\InfoPackage\\Query\\GetInfoPackagesForExport' => __DIR__ . '/../..' . '/src/Domain/InfoPackage/Query/GetInfoPackagesForExport.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\InfoPackage\\View\\InfoPackageView' => __DIR__ . '/../..' . '/src/Domain/InfoPackage/View/InfoPackageView.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\InfoShop\\Command\\UpsertInfoShopCommand' => __DIR__ . '/../..' . '/src/Domain/InfoShop/Command/UpsertInfoShopCommand.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\InfoShop\\Handler\\UpsertInfoShopHandler' => __DIR__ . '/../..' . '/src/Domain/InfoShop/Handler/UpsertInfoShopHandler.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\Log\\Command\\BulkDeleteLogEntriesCommand' => __DIR__ . '/../..' . '/src/Domain/Log/Command/BulkDeleteLogEntriesCommand.php',
@@ -250,6 +258,14 @@ class ComposerStaticInit41c46afcf1eff88107404dde5c9e7e34
         'Roanja\\Module\\RjMulticarrier\\Domain\\Log\\Handler\\BulkDeleteLogEntriesHandler' => __DIR__ . '/../..' . '/src/Domain/Log/Handler/BulkDeleteLogEntriesHandler.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\Log\\Handler\\CreateLogEntryHandler' => __DIR__ . '/../..' . '/src/Domain/Log/Handler/CreateLogEntryHandler.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\Log\\Handler\\DeleteLogEntryHandler' => __DIR__ . '/../..' . '/src/Domain/Log/Handler/DeleteLogEntryHandler.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\Log\\Handler\\GetLogEntryForViewHandler' => __DIR__ . '/../..' . '/src/Domain/Log/Handler/GetLogEntryForViewHandler.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\Log\\Handler\\GetLogsByIdsHandler' => __DIR__ . '/../..' . '/src/Domain/Log/Handler/GetLogsByIdsHandler.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\Log\\Handler\\GetLogsForExportHandler' => __DIR__ . '/../..' . '/src/Domain/Log/Handler/GetLogsForExportHandler.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\Log\\Query\\GetLogEntryForView' => __DIR__ . '/../..' . '/src/Domain/Log/Query/GetLogEntryForView.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\Log\\Query\\GetLogsByIds' => __DIR__ . '/../..' . '/src/Domain/Log/Query/GetLogsByIds.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\Log\\Query\\GetLogsForExport' => __DIR__ . '/../..' . '/src/Domain/Log/Query/GetLogsForExport.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\Log\\View\\LogEntryView' => __DIR__ . '/../..' . '/src/Domain/Log/View/LogEntryView.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Command\\BulkDeleteShipmentCommand' => __DIR__ . '/../..' . '/src/Domain/Shipment/Command/BulkDeleteShipmentCommand.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Command\\CreateShipmentCommand' => __DIR__ . '/../..' . '/src/Domain/Shipment/Command/CreateShipmentCommand.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Command\\DeleteShipmentCommand' => __DIR__ . '/../..' . '/src/Domain/Shipment/Command/DeleteShipmentCommand.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Command\\GenerateShipmentCommand' => __DIR__ . '/../..' . '/src/Domain/Shipment/Command/GenerateShipmentCommand.php',
@@ -257,11 +273,18 @@ class ComposerStaticInit41c46afcf1eff88107404dde5c9e7e34
         'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Exception\\ShipmentGenerationException' => __DIR__ . '/../..' . '/src/Domain/Shipment/Exception/ShipmentGenerationException.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Exception\\ShipmentLabelException' => __DIR__ . '/../..' . '/src/Domain/Shipment/Exception/ShipmentLabelException.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Exception\\ShipmentNotFoundException' => __DIR__ . '/../..' . '/src/Domain/Shipment/Exception/ShipmentNotFoundException.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Handler\\BulkDeleteShipmentHandler' => __DIR__ . '/../..' . '/src/Domain/Shipment/Handler/BulkDeleteShipmentHandler.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Handler\\CreateShipmentHandler' => __DIR__ . '/../..' . '/src/Domain/Shipment/Handler/CreateShipmentHandler.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Handler\\DeleteShipmentHandler' => __DIR__ . '/../..' . '/src/Domain/Shipment/Handler/DeleteShipmentHandler.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Handler\\GenerateShipmentHandler' => __DIR__ . '/../..' . '/src/Domain/Shipment/Handler/GenerateShipmentHandler.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Handler\\GetShipmentByOrderIdHandler' => __DIR__ . '/../..' . '/src/Domain/Shipment/Handler/GetShipmentByOrderIdHandler.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Handler\\GetShipmentForViewHandler' => __DIR__ . '/../..' . '/src/Domain/Shipment/Handler/GetShipmentForViewHandler.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Handler\\GetShipmentsByIdsHandler' => __DIR__ . '/../..' . '/src/Domain/Shipment/Handler/GetShipmentsByIdsHandler.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Handler\\GetShipmentsForExportHandler' => __DIR__ . '/../..' . '/src/Domain/Shipment/Handler/GetShipmentsForExportHandler.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Query\\GetShipmentByOrderId' => __DIR__ . '/../..' . '/src/Domain/Shipment/Query/GetShipmentByOrderId.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Query\\GetShipmentForView' => __DIR__ . '/../..' . '/src/Domain/Shipment/Query/GetShipmentForView.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Query\\GetShipmentsByIds' => __DIR__ . '/../..' . '/src/Domain/Shipment/Query/GetShipmentsByIds.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\Query\\GetShipmentsForExport' => __DIR__ . '/../..' . '/src/Domain/Shipment/Query/GetShipmentsForExport.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\Shipment\\View\\ShipmentView' => __DIR__ . '/../..' . '/src/Domain/Shipment/View/ShipmentView.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\TypeShipment\\Command\\DeleteTypeShipmentCommand' => __DIR__ . '/../..' . '/src/Domain/TypeShipment/Command/DeleteTypeShipmentCommand.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\TypeShipment\\Command\\ToggleTypeShipmentStatusCommand' => __DIR__ . '/../..' . '/src/Domain/TypeShipment/Command/ToggleTypeShipmentStatusCommand.php',
@@ -270,14 +293,21 @@ class ComposerStaticInit41c46afcf1eff88107404dde5c9e7e34
         'Roanja\\Module\\RjMulticarrier\\Domain\\TypeShipment\\Exception\\TypeShipmentException' => __DIR__ . '/../..' . '/src/Domain/TypeShipment/Exception/TypeShipmentException.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\TypeShipment\\Exception\\TypeShipmentNotFoundException' => __DIR__ . '/../..' . '/src/Domain/TypeShipment/Exception/TypeShipmentNotFoundException.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\TypeShipment\\Handler\\DeleteTypeShipmentHandler' => __DIR__ . '/../..' . '/src/Domain/TypeShipment/Handler/DeleteTypeShipmentHandler.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\TypeShipment\\Handler\\GetTypeShipmentForViewHandler' => __DIR__ . '/../..' . '/src/Domain/TypeShipment/Handler/GetTypeShipmentForViewHandler.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\TypeShipment\\Handler\\ToggleTypeShipmentStatusHandler' => __DIR__ . '/../..' . '/src/Domain/TypeShipment/Handler/ToggleTypeShipmentStatusHandler.php',
         'Roanja\\Module\\RjMulticarrier\\Domain\\TypeShipment\\Handler\\UpsertTypeShipmentHandler' => __DIR__ . '/../..' . '/src/Domain/TypeShipment/Handler/UpsertTypeShipmentHandler.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\TypeShipment\\Query\\GetTypeShipmentForView' => __DIR__ . '/../..' . '/src/Domain/TypeShipment/Query/GetTypeShipmentForView.php',
+        'Roanja\\Module\\RjMulticarrier\\Domain\\TypeShipment\\View\\TypeShipmentView' => __DIR__ . '/../..' . '/src/Domain/TypeShipment/View/TypeShipmentView.php',
         'Roanja\\Module\\RjMulticarrier\\Entity\\Company' => __DIR__ . '/../..' . '/src/Entity/Company.php',
         'Roanja\\Module\\RjMulticarrier\\Entity\\InfoPackage' => __DIR__ . '/../..' . '/src/Entity/InfoPackage.php',
+        'Roanja\\Module\\RjMulticarrier\\Entity\\InfoPackageShop' => __DIR__ . '/../..' . '/src/Entity/InfoPackageShop.php',
         'Roanja\\Module\\RjMulticarrier\\Entity\\InfoShop' => __DIR__ . '/../..' . '/src/Entity/InfoShop.php',
+        'Roanja\\Module\\RjMulticarrier\\Entity\\InfoShopShop' => __DIR__ . '/../..' . '/src/Entity/InfoShopShop.php',
         'Roanja\\Module\\RjMulticarrier\\Entity\\Label' => __DIR__ . '/../..' . '/src/Entity/Label.php',
+        'Roanja\\Module\\RjMulticarrier\\Entity\\LabelShop' => __DIR__ . '/../..' . '/src/Entity/LabelShop.php',
         'Roanja\\Module\\RjMulticarrier\\Entity\\LogEntry' => __DIR__ . '/../..' . '/src/Entity/LogEntry.php',
         'Roanja\\Module\\RjMulticarrier\\Entity\\Shipment' => __DIR__ . '/../..' . '/src/Entity/Shipment.php',
+        'Roanja\\Module\\RjMulticarrier\\Entity\\ShipmentShop' => __DIR__ . '/../..' . '/src/Entity/ShipmentShop.php',
         'Roanja\\Module\\RjMulticarrier\\Entity\\Traits\\TimestampableTrait' => __DIR__ . '/../..' . '/src/Entity/Traits/TimestampableTrait.php',
         'Roanja\\Module\\RjMulticarrier\\Entity\\TypeShipment' => __DIR__ . '/../..' . '/src/Entity/TypeShipment.php',
         'Roanja\\Module\\RjMulticarrier\\Form\\ExtraConfigType' => __DIR__ . '/../..' . '/src/Form/ExtraConfigType.php',
@@ -290,6 +320,7 @@ class ComposerStaticInit41c46afcf1eff88107404dde5c9e7e34
         'Roanja\\Module\\RjMulticarrier\\Grid\\InfoPackage\\InfoPackageGridFactory' => __DIR__ . '/../..' . '/src/Grid/InfoPackage/InfoPackageGridFactory.php',
         'Roanja\\Module\\RjMulticarrier\\Grid\\InfoPackage\\InfoPackageQueryBuilder' => __DIR__ . '/../..' . '/src/Grid/InfoPackage/InfoPackageQueryBuilder.php',
         'Roanja\\Module\\RjMulticarrier\\Grid\\Log\\LogFilters' => __DIR__ . '/../..' . '/src/Grid/Log/LogFilters.php',
+        'Roanja\\Module\\RjMulticarrier\\Grid\\Log\\LogGridDataFactory' => __DIR__ . '/../..' . '/src/Grid/Log/LogGridDataFactory.php',
         'Roanja\\Module\\RjMulticarrier\\Grid\\Log\\LogGridDefinitionFactory' => __DIR__ . '/../..' . '/src/Grid/Log/LogGridDefinitionFactory.php',
         'Roanja\\Module\\RjMulticarrier\\Grid\\Log\\LogGridFactory' => __DIR__ . '/../..' . '/src/Grid/Log/LogGridFactory.php',
         'Roanja\\Module\\RjMulticarrier\\Grid\\Log\\LogQueryBuilder' => __DIR__ . '/../..' . '/src/Grid/Log/LogQueryBuilder.php',
@@ -399,9 +430,9 @@ class ComposerStaticInit41c46afcf1eff88107404dde5c9e7e34
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit41c46afcf1eff88107404dde5c9e7e34::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit41c46afcf1eff88107404dde5c9e7e34::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit41c46afcf1eff88107404dde5c9e7e34::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit1f2055a16fb2b3c56349f95fb9fad19e::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit1f2055a16fb2b3c56349f95fb9fad19e::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInit1f2055a16fb2b3c56349f95fb9fad19e::$classMap;
 
         }, null, ClassLoader::class);
     }

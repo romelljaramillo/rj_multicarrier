@@ -851,6 +851,8 @@ class CarrierCompany extends Module
             $shipmentData['num_shipment'] ?? null,
             $infoPackageId,
             isset($companyData['id_carrier_company']) ? (int) $companyData['id_carrier_company'] : null,
+            // Determine current shop id for multistore mapping
+            (int) (Context::getContext()->shop->id ?? 0),
             $shipmentData['name_carrier'] ?? null,
             $shipmentData,
             $responseData,
