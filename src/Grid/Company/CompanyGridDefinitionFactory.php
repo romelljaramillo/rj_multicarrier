@@ -21,6 +21,7 @@ use PrestaShop\PrestaShop\Core\Grid\Action\Type\SimpleGridAction;
 use PrestaShop\PrestaShop\Core\Grid\Action\Type\SubmitGridAction;
 use Roanja\Module\RjMulticarrier\Grid\AbstractModuleGridDefinitionFactory;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\HttpFoundation\Request;
 
 final class CompanyGridDefinitionFactory extends AbstractModuleGridDefinitionFactory
 {
@@ -120,6 +121,15 @@ final class CompanyGridDefinitionFactory extends AbstractModuleGridDefinitionFac
                 'attr' => ['class' => 'js-company-view-row-action'],
             ]));
 
+        $rowActions->add((new LinkRowAction('configure'))
+            ->setName($this->transString('Settings', [], 'Admin.Actions'))
+            ->setIcon('settings')
+            ->setOptions([
+                'route' => 'admin_rj_multicarrier_companies_configuration',
+                'route_param_name' => 'id',
+                'route_param_field' => 'id_carrier_company',
+            ]));
+
         $rowActions->add((new LinkRowAction('edit'))
             ->setName($this->transString('Edit', [], 'Admin.Actions'))
             ->setIcon('edit')
@@ -128,6 +138,15 @@ final class CompanyGridDefinitionFactory extends AbstractModuleGridDefinitionFac
                 'route_param_name' => 'id',
                 'route_param_field' => 'id_carrier_company',
             ]));
+
+        $rowActions->add(
+            $this->buildDeleteAction(
+                'admin_rj_multicarrier_companies_delete',
+                'id',
+                'id_carrier_company',
+                Request::METHOD_DELETE
+            )
+        );
 
         return $rowActions;
     }

@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Form;
 
+use PrestaShopBundle\Form\Admin\Type\ShopChoiceTreeType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
@@ -100,6 +101,19 @@ final class InfoShopType extends AbstractType
                 'label' => 'Empresa',
                 'required' => false,
             ]);
+
+        if ($options['is_multistore_active']) {
+            $builder->add('shop_association', ShopChoiceTreeType::class, [
+                'label' => 'Asociación de tiendas',
+                'required' => true,
+                'translation_domain' => 'Modules.RjMulticarrier.Admin',
+                'constraints' => [
+                    new Assert\NotBlank([
+                        'message' => 'Selecciona al menos una tienda.',
+                    ]),
+                ],
+            ]);
+        }
     }
 
     public function configureOptions(OptionsResolver $resolver): void
@@ -108,6 +122,8 @@ final class InfoShopType extends AbstractType
             'data_class' => null,
             'country_choices' => [],
             'translation_domain' => 'Modules.RjMulticarrier.Admin',
+            'is_multistore_active' => false,
         ]);
+        $resolver->setAllowedTypes('is_multistore_active', 'bool');
     }
 }

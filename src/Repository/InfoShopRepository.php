@@ -61,4 +61,18 @@ class InfoShopRepository
     {
         return $this->entityManager->find(InfoShop::class, $id);
     }
+
+    /**
+     * @return InfoShop[]
+     */
+    public function findAllOrdered(): array
+    {
+        return $this->entityManager->createQueryBuilder()
+            ->select('infoshop')
+            ->from(InfoShop::class, 'infoshop')
+            ->orderBy('infoshop.firstname', 'ASC')
+            ->addOrderBy('infoshop.lastname', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

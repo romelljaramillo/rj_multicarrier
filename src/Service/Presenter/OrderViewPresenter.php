@@ -6,11 +6,17 @@ declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Service\Presenter;
 
+use PrestaShop\PrestaShop\Core\CommandBus\CommandBusInterface;
+use Roanja\Module\RjMulticarrier\Domain\CompanyConfiguration\Query\GetCompanyConfigurationsForCompany;
+use Roanja\Module\RjMulticarrier\Domain\CompanyConfiguration\View\CompanyConfigurationView;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\GetShipmentByOrderIdHandler;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetShipmentByOrderId;
+use Roanja\Module\RjMulticarrier\Domain\TypeShipmentConfiguration\Query\GetTypeShipmentConfigurations;
+use Roanja\Module\RjMulticarrier\Domain\TypeShipmentConfiguration\View\TypeShipmentConfigurationView;
 use Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository;
 use Roanja\Module\RjMulticarrier\Repository\CompanyRepository;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
+use Roanja\Module\RjMulticarrier\Domain\Shipment\View\ShipmentView;
 use Twig\Environment;
 
 final class OrderViewPresenter
@@ -21,6 +27,7 @@ final class OrderViewPresenter
         private readonly ?InfoPackageRepository $infoPackageRepository = null,
         private readonly ?CompanyRepository $companyRepository = null,
         private readonly ?TypeShipmentRepository $typeShipmentRepository = null,
+        private readonly ?CommandBusInterface $queryBus = null,
     ) {
     }
 
@@ -41,10 +48,14 @@ final class OrderViewPresenter
 
         // Normalize shipment to an array so Twig deals with consistent structure.
         $shipmentArray = null;
-        if ($shipmentView instanceof \Roanja\Module\RjMulticarrier\Domain\Shipment\View\ShipmentView) {
+        if ($shipmentView instanceof ShipmentView) {
             $shipmentArray = $shipmentView->toArray();
         } elseif (is_array($shipmentView)) {
             $shipmentArray = $shipmentView;
+        }
+
+        if ($shipmentArray instanceof ShipmentView) {
+            $shipmentArray = $shipmentArray->toArray();
         }
 
         if (is_array($shipmentArray)) {
@@ -97,6 +108,8 @@ final class OrderViewPresenter
             $typeShipments = [];
         }
 
+        $configurations = $this->buildConfigurationPayload($shipmentArray);
+
         return $this->twig->render('@Modules/rj_multicarrier/views/templates/admin/order/panel.html.twig', [
             'orderId' => $orderId,
             'shipment' => $shipmentArray,
@@ -107,12 +120,62 @@ final class OrderViewPresenter
             'carrier_name' => $carrierName,
             'id_order' => $orderId,
             'url_ajax' => $urlAjax,
-            'config_extra_info' => [],
+            'config_extra_info' => $configurations,
             'info_customer' => [],
             'info_shop' => [],
             // modern lists for form rendering when no shipment exists
             'companies' => $companies,
             'type_shipments' => $typeShipments,
         ]);
+    }
+
+    /**
+     * @param array<string, mixed>|null $shipment
+     *
+     * @return array<string, array<string, string|null>>
+     */
+    private function buildConfigurationPayload(?array $shipment): array
+    {
+        if (null === $this->queryBus) {
+            return [
+                'company' => [],
+                'type_shipment' => [],
+            ];
+        }
+
+        $companyId = (int) ($shipment['companyId'] ?? 0);
+        $typeShipmentId = (int) ($shipment['typeShipmentId'] ?? $shipment['id_type_shipment'] ?? 0);
+
+        $companyConfig = [];
+        $typeConfig = [];
+
+        if ($companyId > 0) {
+            try {
+                /** @var CompanyConfigurationView[] $views */
+                $views = $this->queryBus->handle(new GetCompanyConfigurationsForCompany($companyId));
+                foreach ($views as $view) {
+                    $companyConfig[$view->getName()] = $view->getValue();
+                }
+            } catch (\Throwable) {
+                $companyConfig = [];
+            }
+        }
+
+        if ($typeShipmentId > 0) {
+            try {
+                /** @var TypeShipmentConfigurationView[] $views */
+                $views = $this->queryBus->handle(new GetTypeShipmentConfigurations($typeShipmentId));
+                foreach ($views as $view) {
+                    $typeConfig[$view->getName()] = $view->getValue();
+                }
+            } catch (\Throwable) {
+                $typeConfig = [];
+            }
+        }
+
+        return [
+            'company' => $companyConfig,
+            'type_shipment' => $typeConfig,
+        ];
     }
 }

@@ -31,20 +31,20 @@ final class ModuleInstaller
         [
             'class_name' => 'AdminRjMulticarrierConfigurationParent',
             'parent_class_name' => 'AdminRjMulticarrier',
-            'route_name' => 'admin_rj_multicarrier_configuration',
+            'route_name' => 'admin_rj_multicarrier_info_shop_index',
             'active' => true,
             'icon' => 'settings',
-            'wording' => 'Configuration',
+            'wording' => 'Info shop',
         ],
         [
             'class_name' => 'AdminRjMulticarrierConfiguration',
             'parent_class_name' => 'AdminRjMulticarrierConfigurationParent',
-            'route_name' => 'admin_rj_multicarrier_configuration',
+            'route_name' => 'admin_rj_multicarrier_info_shop_index',
             'icon' => 'settings',
             'active' => true,
-            'wording' => 'Configuration',
+            'wording' => 'Info shop',
             'wording_domain' => 'Modules.RjMulticarrier.Admin',
-            'translation_key' => 'Modules.RjMulticarrier.Admin.Menu.Configuration',
+            'translation_key' => 'Modules.RjMulticarrier.Admin.Menu.InfoShop',
         ],
         [
             'class_name' => 'AdminRjMulticarrierCompanies',
@@ -122,7 +122,8 @@ final class ModuleInstaller
     {
         $installed = $this->executeSqlScript('install')
             && $this->ensureFilesystem()
-            && $this->installTabs();
+            && $this->installTabs()
+            && $this->ensureConfigurationSchema();
 
         if ($installed) {
             $this->mappingConfigurator?->registerDriver();
@@ -144,6 +145,26 @@ final class ModuleInstaller
         }
 
         return $uninstalled;
+    }
+
+    private function ensureConfigurationSchema(): bool
+    {
+        if (null === $this->connection) {
+            return true;
+        }
+
+        try {
+            $schemaManager = method_exists($this->connection, 'createSchemaManager')
+                ? $this->connection->createSchemaManager()
+                : $this->connection->getSchemaManager();
+
+            // Columns and indexes for the configuration table are ensured in install.sql.
+            // Keep this method available for future incremental schema adjustments.
+        } catch (\Throwable $exception) {
+            return false;
+        }
+
+        return true;
     }
 
     private function ensureFilesystem(): bool
@@ -328,9 +349,9 @@ final class ModuleInstaller
                 'en' => 'Multi-carrier',
                 'es' => 'Multi-carrier',
             ],
-            'Modules.RjMulticarrier.Admin.Menu.Configuration' => [
-                'en' => 'Configuration',
-                'es' => 'Configuración',
+            'Modules.RjMulticarrier.Admin.Menu.InfoShop' => [
+                'en' => 'Info shop',
+                'es' => 'Remitentes',
             ],
             'Modules.RjMulticarrier.Admin.Menu.TypeShipments' => [
                 'en' => 'Shipment types',

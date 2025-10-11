@@ -37,9 +37,9 @@ final class ShipmentController extends FrameworkBundleAdminController
     ) {
     }
 
-    public function indexAction(Request $request): Response
+    public function indexAction(Request $request, \Roanja\Module\RjMulticarrier\Grid\Shipment\ShipmentFilters $filters): Response
     {
-        $filters = $this->buildFilters($request);
+        $filters->setNeedsToBePersisted(false);
         $grid = $this->gridFactory->getGrid($filters);
 
         return $this->render('@Modules/rj_multicarrier/views/templates/admin/shipment/index.html.twig', [
@@ -133,12 +133,33 @@ final class ShipmentController extends FrameworkBundleAdminController
      */
     public function exportCsvAction(Request $request): Response
     {
-        $filters = $this->buildFilters($request);
-        $filters->set('limit', 0);
-        $filters->set('offset', 0);
+        $selectedIds = $this->getBulkShipmentIds($request);
 
-        /** @var ShipmentView[] $shipments */
-        $shipments = $this->getQueryBus()->handle(new GetShipmentsForExport($filters->getFilters()));
+        if (!empty($selectedIds)) {
+            if ($this->has('logger')) {
+                $this->get('logger')->debug('rj_multicarrier: shipments exportCsvAction - exporting selected ids', [
+                    'selected_ids' => $selectedIds,
+                    'request_query' => $request->query->all(),
+                    'request_post' => $request->request->all(),
+                ]);
+            }
+
+            $shipments = $this->getQueryBus()->handle(new GetShipmentsByIds($selectedIds));
+        } else {
+            $filters = $this->buildFilters($request);
+            $filters->set('limit', 0);
+            $filters->set('offset', 0);
+
+            if ($this->has('logger')) {
+                $this->get('logger')->debug('rj_multicarrier: shipments exportCsvAction request', [
+                    'request_query' => $request->query->all(),
+                    'request_post' => $request->request->all(),
+                    'resolved_filters' => $filters->getFilters(),
+                ]);
+            }
+
+            $shipments = $this->getQueryBus()->handle(new GetShipmentsForExport($filters->getFilters()));
+        }
 
         $fileName = sprintf('rj_multicarrier_shipments_%s.csv', date('Ymd_His'));
 
@@ -156,6 +177,15 @@ final class ShipmentController extends FrameworkBundleAdminController
             $this->addFlash('warning', $this->translate('Selecciona al menos un registro para exportar.'));
 
             return $this->redirectToRoute('admin_rj_multicarrier_shipments_index');
+        }
+
+        // Temporary debug: log selected ids and request payload
+        if ($this->has('logger')) {
+            $this->get('logger')->debug('rj_multicarrier: shipments exportSelectedCsvAction request', [
+                'request_query' => $request->query->all(),
+                'request_post' => $request->request->all(),
+                'selected_ids' => $shipmentIds,
+            ]);
         }
 
         /** @var ShipmentView[] $shipments */
@@ -240,10 +270,11 @@ final class ShipmentController extends FrameworkBundleAdminController
 
     private function extractScopedParameters(Request $request, string $scope): array
     {
-        $parameters = $request->query->all($scope);
+        // Use get($scope, []) to retrieve nested scoped parameters from query or request
+        $parameters = $request->query->get($scope, []);
 
         if (!is_array($parameters) || empty($parameters)) {
-            $parameters = $request->request->all($scope);
+            $parameters = $request->request->get($scope, []);
         }
 
         return is_array($parameters) ? $parameters : [];

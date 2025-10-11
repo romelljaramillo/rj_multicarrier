@@ -22,12 +22,15 @@ use Roanja\Module\RjMulticarrier\Form\TypeShipmentType;
 use Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentFilters;
 use Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentGridDefinitionFactory;
 use Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentGridFactory;
+use Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentQueryBuilder;
 use Roanja\Module\RjMulticarrier\Repository\CompanyRepository;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class TypeShipmentController extends FrameworkBundleAdminController
 {
@@ -36,16 +39,23 @@ final class TypeShipmentController extends FrameworkBundleAdminController
     public function __construct(
         private readonly CompanyRepository $companyRepository,
         private readonly TypeShipmentRepository $typeShipmentRepository,
-        private readonly TypeShipmentGridFactory $gridFactory
+        private readonly TypeShipmentGridFactory $gridFactory,
+        private readonly TypeShipmentQueryBuilder $typeShipmentQueryBuilder
     ) {}
 
-    public function indexAction(Request $request): Response
+    public function indexAction(Request $request, \Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentFilters $filters): Response
     {
-        $companyId = $request->query->getInt('company', 0);
+        // Resolve company and editing type shipment ids from query when needed for the form part
+        $companyFromQuery = $request->query->getInt('company', 0);
         $typeShipmentId = $request->query->getInt('id', 0);
 
+        $filters->setNeedsToBePersisted(false);
+        $currentFilters = $filters->getFilters();
+        $companyFromFilters = isset($currentFilters['company_id']) ? (int) $currentFilters['company_id'] : 0;
+
         $companies = $this->companyRepository->findAllOrdered();
-        $company = $this->resolveCompany($companies, $companyId);
+        $activeCompanyId = $companyFromQuery > 0 ? $companyFromQuery : $companyFromFilters;
+        $company = $this->resolveCompany($companies, $activeCompanyId);
         $companyId = $company?->getId() ?? 0;
 
         $editingTypeShipment = $typeShipmentId > 0
@@ -57,7 +67,12 @@ final class TypeShipmentController extends FrameworkBundleAdminController
             $companyId = $company->getId() ?? 0;
         }
 
-        $filters = $this->buildFilters($request, $companyId);
+        if ($companyId > 0) {
+            $filters->addFilter([
+                'company_id' => $companyId,
+            ]);
+        }
+
         $grid = $this->gridFactory->getGrid($filters);
 
         $formData = $this->buildFormData($company, $editingTypeShipment);
@@ -101,6 +116,7 @@ final class TypeShipmentController extends FrameworkBundleAdminController
         return $this->render('@Modules/rj_multicarrier/views/templates/admin/type_shipment/index.html.twig', [
             'form' => $form->createView(),
             'typeShipmentGrid' => $this->presentGrid($grid),
+            'layoutTitle' => $this->translate('Shipment types'),
             'companies' => $this->buildCompanyView($companies, $companyId),
             'editingTypeShipment' => $editingTypeShipment,
             'currentCompanyId' => $companyId,
@@ -160,6 +176,114 @@ final class TypeShipmentController extends FrameworkBundleAdminController
         return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
             'company' => (int) $request->get('company', 0),
         ]);
+    }
+
+    /**
+     * @AdminSecurity("is_granted('delete', request.get('_legacy_controller'))", message="Access denied.")
+     */
+    public function deleteBulkAction(Request $request): RedirectResponse
+    {
+        $typeShipmentIds = $this->getBulkTypeShipmentIds($request);
+        $companyId = $this->resolveCompanyIdForRedirect($request);
+
+        if (empty($typeShipmentIds)) {
+            $this->addFlash('warning', $this->translate('No se seleccionaron registros para eliminar.'));
+
+            return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
+                'company' => $companyId,
+            ]);
+        }
+
+        $deleted = 0;
+        $failed = 0;
+
+        foreach ($typeShipmentIds as $id) {
+            try {
+                $this->getCommandBus()->handle(new DeleteTypeShipmentCommand($id));
+                ++$deleted;
+            } catch (TypeShipmentException $exception) {
+                ++$failed;
+            }
+        }
+
+        if ($deleted > 0) {
+            $this->addFlash('success', $this->translate('%count% registros eliminados.', ['%count%' => $deleted]));
+        }
+
+        if ($failed > 0) {
+            $this->addFlash('warning', $this->translate('%count% registros no se pudieron eliminar.', ['%count%' => $failed]));
+        }
+
+        return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
+            'company' => $companyId,
+        ]);
+    }
+
+    /**
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", message="Access denied.")
+     */
+    public function exportCsvAction(Request $request): Response
+    {
+        $companyId = $this->resolveCompanyIdForRedirect($request);
+        $filters = $this->buildFilters($request, $companyId);
+        $filters->set('limit', 0);
+        $filters->set('offset', 0);
+
+        $rows = $this->fetchTypeShipments($filters);
+
+        if (empty($rows)) {
+            $this->addFlash('warning', $this->translate('No se encontraron registros para exportar.'));
+
+            return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
+                'company' => $companyId,
+            ]);
+        }
+
+        $fileName = sprintf('rj_multicarrier_type_shipments_%s.csv', date('Ymd_His'));
+
+        return $this->createTypeShipmentCsvResponse($rows, $fileName);
+    }
+
+    /**
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", message="Access denied.")
+     */
+    public function exportSelectedCsvAction(Request $request): Response
+    {
+        $typeShipmentIds = $this->getBulkTypeShipmentIds($request);
+        $companyId = $this->resolveCompanyIdForRedirect($request);
+
+        if (empty($typeShipmentIds)) {
+            $this->addFlash('warning', $this->translate('Selecciona al menos un registro para exportar.'));
+
+            return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
+                'company' => $companyId,
+            ]);
+        }
+
+        $filters = TypeShipmentFilters::buildDefaults();
+        $filters->setNeedsToBePersisted(false);
+        $filters->set('limit', 0);
+        $filters->set('offset', 0);
+
+        if ($companyId > 0) {
+            $filters->addFilter([
+                'company_id' => $companyId,
+            ]);
+        }
+
+        $rows = $this->fetchTypeShipments($filters, $typeShipmentIds);
+
+        if (empty($rows)) {
+            $this->addFlash('warning', $this->translate('No se encontraron registros para exportar.'));
+
+            return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
+                'company' => $companyId,
+            ]);
+        }
+
+        $fileName = sprintf('rj_multicarrier_type_shipments_seleccion_%s.csv', date('Ymd_His'));
+
+        return $this->createTypeShipmentCsvResponse($rows, $fileName);
     }
 
     /**
@@ -339,19 +463,133 @@ final class TypeShipmentController extends FrameworkBundleAdminController
         return $view;
     }
 
-    private function validateCsrfToken(string $id, string $token): void
+    private function createTypeShipmentCsvResponse(array $rows, string $fileName): StreamedResponse
     {
-        if (!$this->isCsrfTokenValid($id, $token)) {
-            throw $this->createAccessDeniedException('Invalid CSRF token.');
+        $response = new StreamedResponse(function () use ($rows): void {
+            $handle = fopen('php://output', 'wb');
+
+            fputcsv($handle, [
+                'ID',
+                'Company',
+                'Name',
+                'Business code',
+                'Reference carrier',
+                'Active',
+            ]);
+
+            foreach ($rows as $row) {
+                $active = (isset($row['active']) && (int) $row['active'] === 1) ? '1' : '0';
+
+                fputcsv($handle, [
+                    $row['id_type_shipment'] ?? '',
+                    $row['company_name'] ?? '',
+                    $row['name'] ?? '',
+                    $row['id_bc'] ?? '',
+                    $row['id_reference_carrier'] ?? '',
+                    $active,
+                ]);
+            }
+
+            fclose($handle);
+        });
+
+        $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+        $response->headers->set('Content-Disposition', $response->headers->makeDisposition(
+            ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+            $fileName
+        ));
+
+        return $response;
+    }
+
+    private function fetchTypeShipments(TypeShipmentFilters $filters, ?array $ids = null): array
+    {
+        $qb = $this->typeShipmentQueryBuilder->getSearchQueryBuilder($filters);
+
+        if (!empty($ids)) {
+            $qb->andWhere('ts.id_type_shipment IN (:ids)')
+                ->setParameter('ids', $ids, \Doctrine\DBAL\Connection::PARAM_INT_ARRAY);
         }
+
+        return $this->fetchAllAssociative($qb);
+    }
+
+    private function fetchAllAssociative(\Doctrine\DBAL\Query\QueryBuilder $qb): array
+    {
+        $statement = $qb->execute();
+
+        if (is_object($statement) && method_exists($statement, 'fetchAllAssociative')) {
+            return $statement->fetchAllAssociative();
+        }
+
+        if (is_object($statement) && method_exists($statement, 'fetchAll')) {
+            return $statement->fetchAll(\PDO::FETCH_ASSOC);
+        }
+
+        return [];
+    }
+
+    /**
+     * @return array<int>
+     */
+    private function getBulkTypeShipmentIds(Request $request): array
+    {
+        $gridId = TypeShipmentGridDefinitionFactory::GRID_ID;
+        $columnName = $gridId . '_type_shipment_bulk';
+
+        $collected = [];
+
+        $gridPayload = $request->request->get($gridId);
+        if (is_array($gridPayload)) {
+            if (isset($gridPayload[$columnName]['ids']) && is_array($gridPayload[$columnName]['ids'])) {
+                $collected = array_merge($collected, $gridPayload[$columnName]['ids']);
+            }
+
+            if (isset($gridPayload[$columnName]) && is_array($gridPayload[$columnName])) {
+                $collected = array_merge($collected, $gridPayload[$columnName]);
+            }
+        }
+
+        $flat = $request->request->get($columnName);
+        if (is_array($flat)) {
+            $collected = array_merge($collected, $flat);
+        }
+
+        $legacy = $request->request->get('ids');
+        if (is_array($legacy)) {
+            $collected = array_merge($collected, $legacy);
+        }
+
+        $collected = array_filter($collected, static function ($value): bool {
+            return ctype_digit((string) $value) && (int) $value > 0;
+        });
+
+        $collected = array_map(static function ($value): int {
+            return (int) $value;
+        }, $collected);
+
+        return array_values(array_unique($collected));
+    }
+
+    private function resolveCompanyIdForRedirect(Request $request): int
+    {
+        $companyId = (int) $request->get('company', 0);
+
+        $scoped = $this->extractScopedParameters($request, TypeShipmentGridDefinitionFactory::GRID_ID);
+        if (isset($scoped['filters']['company_id'])) {
+            $companyId = (int) $scoped['filters']['company_id'];
+        }
+
+        return $companyId;
     }
 
     private function extractScopedParameters(Request $request, string $scope): array
     {
-        $parameters = $request->query->all($scope);
+        // Use get($scope, []) to retrieve nested scoped parameters from query or request
+        $parameters = $request->query->get($scope, []);
 
         if (!is_array($parameters) || empty($parameters)) {
-            $parameters = $request->request->all($scope);
+            $parameters = $request->request->get($scope, []);
         }
 
         return is_array($parameters) ? $parameters : [];

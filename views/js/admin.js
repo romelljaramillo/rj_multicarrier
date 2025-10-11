@@ -173,21 +173,85 @@ ready(() => {
 
     const grid = button.closest('.js-grid');
     if (grid) {
+      const gridIdAttr = grid.dataset.gridId || DEFAULT_GRID_ID;
       const searchForm = grid.querySelector('form.js-grid-search-form');
       if (searchForm) {
         const inputs = searchForm.querySelectorAll('input[name], textarea[name], select[name]');
+        const debugThisGrid = gridIdAttr === 'rj_multicarrier_company' && window.console && typeof window.console.debug === 'function';
+        if (debugThisGrid) {
+          window.console.debug('[rj_multicarrier] Preparing to clone search form inputs for grid:', gridIdAttr, 'found inputs:', inputs.length);
+        }
+
         inputs.forEach((input) => {
           const name = input.getAttribute('name');
-          if (!name || (name === '_token' && csrf)) {
+
+          // skip if no name, disabled, or CSRF token handled separately
+          if (!name || input.disabled || (name === '_token' && csrf)) {
+            if (debugThisGrid) {
+              window.console.debug('[rj_multicarrier] Skipping input', { name, disabled: input.disabled, csrfSkipped: name === '_token' && csrf });
+            }
             return;
           }
 
-          const clone = document.createElement('input');
-          clone.type = 'hidden';
-          clone.name = name;
-          clone.value = input.value || '';
-          form.appendChild(clone);
+          const tag = (input.tagName || '').toLowerCase();
+          const type = (input.type || '').toLowerCase();
+
+          if (debugThisGrid) {
+            // log basic input info
+            let val = input.value;
+            if (tag === 'select' && input.multiple) {
+              val = Array.from(input.selectedOptions).map((o) => o.value);
+            }
+            window.console.debug('[rj_multicarrier] Cloning input', { name, tag, type, value: val, checked: !!input.checked, multiple: !!input.multiple });
+          }
+
+          // handle select multiple: create one hidden field per selected option
+          if (tag === 'select' && input.multiple) {
+            Array.from(input.selectedOptions).forEach((opt) => {
+              const clone = document.createElement('input');
+              clone.type = 'hidden';
+              clone.name = name;
+              clone.value = opt.value || '';
+              form.appendChild(clone);
+            });
+            return;
+          }
+
+          // handle checkboxes and radios: only include if checked
+          if (type === 'checkbox' || type === 'radio') {
+            if (!input.checked) {
+              return;
+            }
+
+            const clone = document.createElement('input');
+            clone.type = 'hidden';
+            clone.name = name;
+            // checkboxes may have explicit value, default to '1'
+            clone.value = input.value !== undefined && input.value !== null && input.value !== '' ? input.value : '1';
+            form.appendChild(clone);
+            return;
+          }
+
+          // normal input / textarea / select(single)
+          if (tag === 'textarea' || tag === 'select' || tag === 'input') {
+            // skip file inputs
+            if (type === 'file') {
+              return;
+            }
+
+            const clone = document.createElement('input');
+            clone.type = 'hidden';
+            clone.name = name;
+            clone.value = input.value || '';
+            form.appendChild(clone);
+          }
         });
+
+        if (debugThisGrid) {
+          // log what we appended to the temporary form
+          const appended = Array.from(form.querySelectorAll('input[name]')).map((n) => ({ name: n.name, value: n.value }));
+          window.console.debug('[rj_multicarrier] Appended hidden inputs for form submit:', appended);
+        }
       }
     }
 

@@ -1,7 +1,9 @@
 <?php
+
 /**
  * Doctrine query builder for the company grid.
  */
+
 declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Grid\Company;
@@ -28,22 +30,31 @@ final class CompanyQueryBuilder implements DoctrineQueryBuilderInterface
         $qb = $this->getBaseQueryBuilder();
 
         foreach ($searchCriteria->getFilters() as $filterName => $filterValue) {
-            if (null === $filterValue || '' === $filterValue) {
+            if ($this->isFilterEmpty($filterValue)) {
                 continue;
             }
 
             switch ($filterName) {
                 case 'id_carrier_company':
-                    $qb->andWhere('c.id_carrier_company = :id_carrier_company')
-                        ->setParameter('id_carrier_company', (int) $filterValue);
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $qb->andWhere('c.id_carrier_company = :id_carrier_company')
+                            ->setParameter('id_carrier_company', (int) $value);
+                    }
                     break;
                 case 'name':
-                    $qb->andWhere('c.name LIKE :name')
-                        ->setParameter('name', '%' . $filterValue . '%');
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $qb->andWhere('c.name LIKE :name')
+                            ->setParameter('name', $this->buildContainsPattern($value));
+                    }
                     break;
                 case 'shortname':
-                    $qb->andWhere('c.shortname LIKE :shortname')
-                        ->setParameter('shortname', '%' . $filterValue . '%');
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $qb->andWhere('c.shortname LIKE :shortname')
+                            ->setParameter('shortname', $this->buildContainsPattern($value));
+                    }
                     break;
             }
         }
@@ -77,25 +88,35 @@ final class CompanyQueryBuilder implements DoctrineQueryBuilderInterface
         $qb = $this->connection->createQueryBuilder();
         $qb
             ->select('COUNT(*)')
-            ->from($this->dbPrefix . 'rj_multicarrier_company', 'c');
+            ->from($this->dbPrefix . 'rj_multicarrier_company', 'c')
+            ->where('c.`delete` = 0');
 
         foreach ($searchCriteria->getFilters() as $filterName => $filterValue) {
-            if (null === $filterValue || '' === $filterValue) {
+            if ($this->isFilterEmpty($filterValue)) {
                 continue;
             }
 
             switch ($filterName) {
                 case 'id_carrier_company':
-                    $qb->andWhere('c.id_carrier_company = :count_id_carrier_company')
-                        ->setParameter('count_id_carrier_company', (int) $filterValue);
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $qb->andWhere('c.id_carrier_company = :count_id_carrier_company')
+                            ->setParameter('count_id_carrier_company', (int) $value);
+                    }
                     break;
                 case 'name':
-                    $qb->andWhere('c.name LIKE :count_name')
-                        ->setParameter('count_name', '%' . $filterValue . '%');
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $qb->andWhere('c.name LIKE :count_name')
+                            ->setParameter('count_name', $this->buildContainsPattern($value));
+                    }
                     break;
                 case 'shortname':
-                    $qb->andWhere('c.shortname LIKE :count_shortname')
-                        ->setParameter('count_shortname', '%' . $filterValue . '%');
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $qb->andWhere('c.shortname LIKE :count_shortname')
+                            ->setParameter('count_shortname', $this->buildContainsPattern($value));
+                    }
                     break;
             }
         }
@@ -112,6 +133,66 @@ final class CompanyQueryBuilder implements DoctrineQueryBuilderInterface
                 'c.icon AS icon',
                 'c.shortname'
             )
-            ->from($this->dbPrefix . 'rj_multicarrier_company', 'c');
+            ->from($this->dbPrefix . 'rj_multicarrier_company', 'c')
+            ->where('c.`delete` = 0');
+    }
+
+    /**
+     * @param mixed $value
+     *
+     * @return string[]
+     */
+    private function collectScalarValues($value): array
+    {
+        if (null === $value) {
+            return [];
+        }
+
+        if (is_scalar($value)) {
+            $stringValue = trim((string) $value);
+
+            return '' === $stringValue ? [] : [$stringValue];
+        }
+
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $collected = [];
+        foreach ($value as $item) {
+            $collected = array_merge($collected, $this->collectScalarValues($item));
+        }
+
+        return $collected;
+    }
+
+    /**
+     * @param mixed $filterValue
+     */
+    private function isFilterEmpty($filterValue): bool
+    {
+        return [] === $this->collectScalarValues($filterValue);
+    }
+
+    /**
+     * @param mixed $filterValue
+     */
+    private function resolveScalarFilterValue($filterValue): ?string
+    {
+        $values = $this->collectScalarValues($filterValue);
+
+        return $values[0] ?? null;
+    }
+
+    private function buildContainsPattern(string $value): string
+    {
+        $escaped = str_replace('_', '\\_', $this->escapePercent($value));
+
+        return '%' . $escaped . '%';
+    }
+
+    private function escapePercent(string $value): string
+    {
+        return str_replace('%', '\\%', $value);
     }
 }

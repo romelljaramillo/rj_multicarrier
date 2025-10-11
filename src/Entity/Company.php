@@ -33,6 +33,9 @@ class Company
     #[ORM\Column(name: 'icon', type: 'string', length: 250, nullable: true)]
     private ?string $icon = null;
 
+    #[ORM\Column(name: '`delete`', type: 'boolean')]
+    private bool $deleted = false;
+
     /**
      * @var Collection<int, CompanyShop>
      */
@@ -126,5 +129,24 @@ class Company
         }
 
         return $ids;
+    }
+
+    public function isDeleted(): bool
+    {
+        return $this->deleted;
+    }
+
+    public function markDeleted(): self
+    {
+        $this->deleted = true;
+
+        return $this;
+    }
+
+    public function restore(): self
+    {
+        $this->deleted = false;
+
+        return $this;
     }
 }

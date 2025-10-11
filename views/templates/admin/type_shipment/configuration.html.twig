@@ -1,0 +1,111 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card mb-3">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <div>
+            <h3 class="card-title mb-0">{{ 'Configuración del tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
+            <p class="mb-0 text-muted">{{ typeShipment.name }} · {{ company.name }}</p>
+          </div>
+          <div class="btn-group btn-group-sm" role="group">
+            <a class="btn btn-outline-secondary" href="{{ path('admin_rj_multicarrier_type_shipment_index', { company: company.id }) }}">
+              {{ 'Volver'|trans({}, 'Admin.Actions') }}
+            </a>
+            <a class="btn btn-outline-secondary" href="{{ path('admin_rj_multicarrier_companies_configuration', { id: company.id }) }}">
+              {{ 'Config. compañía'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+            </a>
+          </div>
+        </div>
+        <div class="card-body">
+          <p class="text-muted mb-4">
+            {{ 'Define valores adicionales específicos para este tipo de envío.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+          </p>
+
+          {% if configurations is not empty %}
+            <div class="table-responsive">
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>{{ 'Clave'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+                    <th>{{ 'Valor'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+                    <th class="text-right">{{ 'Acciones'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for configuration in configurations %}
+                    <tr>
+                      <td class="align-middle"><code>{{ configuration.name }}</code></td>
+                      <td class="align-middle">
+                        {% if configuration.value %}
+                          <span class="text-break">{{ configuration.value }}</span>
+                        {% else %}
+                          <span class="text-muted">{{ 'Sin valor'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
+                        {% endif %}
+                      </td>
+                      <td class="align-middle text-right">
+                        <div class="btn-group btn-group-sm" role="group">
+                          <a class="btn btn-outline-primary" href="{{ path('admin_rj_multicarrier_type_shipment_configuration', { id: typeShipment.id, configId: configuration.id }) }}">
+                            {{ 'Editar'|trans({}, 'Admin.Actions') }}
+                          </a>
+                          <form
+                            method="post"
+                            action="{{ path('admin_rj_multicarrier_type_shipment_configuration_delete', { id: typeShipment.id, configId: configuration.id }) }}"
+                            onsubmit="return confirm('{{ '¿Eliminar esta configuración?'|trans({}, 'Modules.RjMulticarrier.Admin')|escape('js') }}');"
+                          >
+                            <input type="hidden" name="_token" value="{{ deleteToken }}">
+                            <button type="submit" class="btn btn-outline-danger">
+                              {{ 'Eliminar'|trans({}, 'Admin.Actions') }}
+                            </button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% else %}
+            <p class="text-muted mb-0">{{ 'Todavía no hay configuraciones para este tipo.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title mb-0">
+            {% if isEditing %}
+              {{ 'Editar configuración'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+            {% else %}
+              {{ 'Nueva configuración'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+            {% endif %}
+          </h3>
+        </div>
+        <div class="card-body">
+          {{ form_start(configurationForm) }}
+            {{ form_row(configurationForm.name) }}
+            {{ form_row(configurationForm.value) }}
+
+            <div class="d-flex justify-content-between mt-3">
+              <button type="submit" class="btn btn-primary">
+                {% if isEditing %}
+                  {{ 'Actualizar'|trans({}, 'Admin.Actions') }}
+                {% else %}
+                  {{ 'Guardar'|trans({}, 'Admin.Actions') }}
+                {% endif %}
+              </button>
+              {% if isEditing %}
+                <a class="btn btn-outline-secondary" href="{{ path('admin_rj_multicarrier_type_shipment_configuration', { id: typeShipment.id }) }}">
+                  {{ 'Cancelar'|trans({}, 'Admin.Actions') }}
+                </a>
+              {% endif %}
+            </div>
+          {{ form_end(configurationForm) }}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

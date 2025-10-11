@@ -6,13 +6,21 @@ declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Grid\TypeShipment;
 
+use PrestaShop\PrestaShop\Core\Grid\Action\Bulk\BulkActionCollection;
+use PrestaShop\PrestaShop\Core\Grid\Action\Bulk\Type\SubmitBulkAction;
 use PrestaShop\PrestaShop\Core\Grid\Action\Row\RowActionCollection;
 use PrestaShop\PrestaShop\Core\Grid\Action\Row\Type\LinkRowAction;
 use PrestaShop\PrestaShop\Core\Grid\Action\Row\Type\SubmitRowAction;
+use PrestaShop\PrestaShop\Core\Grid\Action\GridActionCollection;
+use PrestaShop\PrestaShop\Core\Grid\Action\GridActionCollectionInterface;
+use PrestaShop\PrestaShop\Core\Grid\Action\Type\SimpleGridAction;
+use PrestaShop\PrestaShop\Core\Grid\Action\Type\SubmitGridAction;
 use PrestaShop\PrestaShop\Core\Grid\Column\ColumnCollection;
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\ActionColumn;
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn;
+use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\BulkActionColumn;
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\ToggleColumn;
+use PrestaShop\PrestaShop\Core\Grid\Definition\Factory\BulkDeleteActionTrait;
 use PrestaShop\PrestaShop\Core\Grid\Definition\Factory\DeleteActionTrait;
 use PrestaShop\PrestaShop\Core\Grid\Filter\Filter;
 use PrestaShop\PrestaShop\Core\Grid\Filter\FilterCollection;
@@ -25,6 +33,7 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 
 final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefinitionFactory
 {
+    use BulkDeleteActionTrait;
     use DeleteActionTrait;
 
     public const GRID_ID = 'rj_multicarrier_type_shipment';
@@ -51,6 +60,10 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
         $columns = new ColumnCollection();
 
         $columns
+            ->add((new BulkActionColumn('type_shipment_bulk'))
+                ->setOptions([
+                    'bulk_field' => 'id_type_shipment',
+                ]))
             ->add((new DataColumn('id_type_shipment'))
                 ->setName($this->transString('ID'))
                 ->setOptions([
@@ -168,6 +181,47 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
         return $filters;
     }
 
+    protected function getGridActions(): GridActionCollectionInterface
+    {
+        return (new GridActionCollection())
+            ->add((new SimpleGridAction('common_refresh_list'))
+                    ->setName($this->transString('Refresh list', [], 'Admin.Actions'))
+                    ->setIcon('refresh')
+            )
+            ->add(
+                (new SimpleGridAction('common_show_query'))
+                    ->setName($this->transString('Show SQL query', [], 'Admin.Actions'))
+                    ->setIcon('code')
+            )
+            ->add((new SimpleGridAction('common_export_sql_manager'))
+                    ->setName($this->transString('Export to SQL Manager', [], 'Admin.Actions'))
+                    ->setIcon('storage')
+            )
+            ->add(
+                (new SubmitGridAction('export_csv'))
+                    ->setName($this->transString('Export CSV'))
+                    ->setIcon('download')
+                    ->setOptions(['submit_route' => 'admin_rj_multicarrier_type_shipment_export_csv', 'confirm_message' => null])
+            );
+    }
+
+    protected function getBulkActions(): BulkActionCollection
+    {
+        $actions = new BulkActionCollection();
+
+        $actions->add((new SubmitBulkAction('export_selected_csv'))
+            ->setName($this->transString('Export selection (CSV)'))
+            ->setOptions([
+                'submit_route' => 'admin_rj_multicarrier_type_shipment_export_selected_csv',
+            ]));
+
+        $actions->add(
+            $this->buildBulkDeleteAction('admin_rj_multicarrier_type_shipment_delete_bulk')
+        );
+
+        return $actions;
+    }
+
     /**
      * @return RowActionCollection
      */
@@ -186,6 +240,14 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                     'attr' => [
                         'class' => 'js-type-shipment-view-row-action',
                     ],
+                ]))
+            ->add((new LinkRowAction('configure'))
+                ->setName($this->transString('Settings', [], 'Admin.Actions'))
+                ->setIcon('settings')
+                ->setOptions([
+                    'route' => 'admin_rj_multicarrier_type_shipment_configuration',
+                    'route_param_name' => 'id',
+                    'route_param_field' => 'id_type_shipment',
                 ]))
             ->add((new LinkRowAction('edit'))
                 ->setName($this->transString('Edit', [], 'Admin.Actions'))

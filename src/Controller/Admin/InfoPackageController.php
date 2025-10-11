@@ -39,9 +39,9 @@ final class InfoPackageController extends FrameworkBundleAdminController
         private readonly TranslatorInterface $translator
     ) {}
 
-    public function indexAction(Request $request): Response
+    public function indexAction(Request $request, InfoPackageFilters $filters): Response
     {
-        $filters = $this->buildFilters($request);
+        $filters->setNeedsToBePersisted(false);
         $grid = $this->gridFactory->getGrid($filters);
         $gridView = $this->gridPresenter->present($grid);
 
@@ -175,13 +175,36 @@ final class InfoPackageController extends FrameworkBundleAdminController
      */
     public function exportCsvAction(Request $request): Response
     {
-        $filters = $this->buildFilters($request);
-        $filters->set('limit', 0);
-        $filters->set('offset', 0);
+        $selectedIds = $this->getSelectedInfoPackageIds($request);
+
+        if (!empty($selectedIds)) {
+            if ($this->has('logger')) {
+                $this->get('logger')->debug('rj_multicarrier: info_packages exportCsvAction - exporting selected ids', [
+                    'selected_ids' => $selectedIds,
+                    'request_query' => $request->query->all(),
+                    'request_post' => $request->request->all(),
+                ]);
+            }
+
+            $infoPackages = $this->getQueryBus()->handle(new GetInfoPackagesByIds($selectedIds));
+        } else {
+            $filters = $this->buildFilters($request);
+            $filters->set('limit', 0);
+            $filters->set('offset', 0);
+
+            if ($this->has('logger')) {
+                $this->get('logger')->debug('rj_multicarrier: info_packages exportCsvAction request', [
+                    'request_query' => $request->query->all(),
+                    'request_post' => $request->request->all(),
+                    'resolved_filters' => $filters->getFilters(),
+                ]);
+            }
+
+            $infoPackages = $this->getQueryBus()->handle(new GetInfoPackagesForExport($filters->getFilters()));
+        }
 
         $fileName = sprintf('rj_multicarrier_info_packages_%s.csv', date('Ymd_His'));
-        /** @var InfoPackageView[] $infoPackages */
-        $infoPackages = $this->getQueryBus()->handle(new GetInfoPackagesForExport($filters->getFilters()));
+
         return $this->createCsvResponse($infoPackages, $fileName);
     }
 
@@ -206,6 +229,16 @@ final class InfoPackageController extends FrameworkBundleAdminController
         }
 
         $fileName = sprintf('rj_multicarrier_info_packages_seleccion_%s.csv', date('Ymd_His'));
+
+        // Temporary debug: log selected ids and request payload
+        if ($this->has('logger')) {
+            $this->get('logger')->debug('rj_multicarrier: info_packages exportSelectedCsvAction request', [
+                'request_query' => $request->query->all(),
+                'request_post' => $request->request->all(),
+                'selected_ids' => $infoPackageIds,
+            ]);
+        }
+
         return $this->createCsvResponse($infoPackages, $fileName);
     }
 
@@ -307,10 +340,11 @@ final class InfoPackageController extends FrameworkBundleAdminController
 
     private function extractScopedParameters(Request $request, string $scope): array
     {
-        $parameters = $request->query->all($scope);
+        // Use get($scope, []) to retrieve nested scoped parameters from query or request
+        $parameters = $request->query->get($scope, []);
 
         if (!is_array($parameters) || empty($parameters)) {
-            $parameters = $request->request->all($scope);
+            $parameters = $request->request->get($scope, []);
         }
 
         return is_array($parameters) ? $parameters : [];

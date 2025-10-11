@@ -22,6 +22,7 @@ class CompanyRepository
         try {
             return $this->createQueryBuilder('company')
                 ->andWhere('company.shortName = :shortName')
+                ->andWhere('company.deleted = false')
                 ->setParameter('shortName', $shortName)
                 ->setMaxResults(1)
                 ->getQuery()
@@ -34,6 +35,10 @@ class CompanyRepository
     public function find(int $id): ?Company
     {
         $entity = $this->entityManager->find(Company::class, $id);
+
+        if ($entity instanceof Company && $entity->isDeleted()) {
+            return null;
+        }
 
         return $entity instanceof Company ? $entity : null;
     }
@@ -51,6 +56,7 @@ class CompanyRepository
     public function findAllOrdered(?string $shortName = null): array
     {
         $qb = $this->createQueryBuilder('company')
+            ->andWhere('company.deleted = false')
             ->orderBy('company.name', 'ASC');
 
         if ($shortName) {

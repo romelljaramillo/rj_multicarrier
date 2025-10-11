@@ -26,6 +26,7 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_infosho
     `email` VARCHAR(100) NULL DEFAULT NULL,
     `phone` VARCHAR(100) NOT NULL,
     `vatnumber` VARCHAR(100) NULL DEFAULT NULL,
+    `active` TINYINT(1) NOT NULL DEFAULT 1,
     `date_add` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `date_upd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id_infoshop`),
@@ -43,20 +44,16 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_company
     `name` VARCHAR(50) NOT NULL,
     `shortname` VARCHAR(4) NOT NULL,
     `icon` VARCHAR(250) NULL DEFAULT NULL,
+    `delete` TINYINT(1) NOT NULL DEFAULT 0,
     `date_add` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `date_upd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id_carrier_company`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
 $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_company_shop` (
-    `id_company_shop` INT(11) NOT NULL AUTO_INCREMENT,
-    `id_shop` INT(11) NOT NULL,
     `id_carrier_company` INT(10) UNSIGNED NOT NULL,
-    `date_add` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `date_upd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id_company_shop`),
-    INDEX `idx_company` (`id_carrier_company`),
-    INDEX `idx_shop` (`id_shop`)
+    `id_shop` INT(11) NOT NULL,
+    PRIMARY KEY (`id_carrier_company`, `id_shop`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
 $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_type_shipment` (
@@ -66,6 +63,7 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_type_sh
     `id_bc` VARCHAR(100) NOT NULL,
     `id_reference_carrier` INT(10) NULL DEFAULT NULL,
     `active` TINYINT(1) UNSIGNED NOT NULL DEFAULT 1,
+    `settings` JSON NULL DEFAULT NULL,
     `date_add` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `date_upd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id_type_shipment`),
@@ -170,6 +168,7 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_configu
     `id_shop_group` INT(11) UNSIGNED NULL DEFAULT NULL,
     `id_shop` INT(11) UNSIGNED NULL DEFAULT NULL,
     `id_carrier_company` INT(11) UNSIGNED NULL DEFAULT NULL,
+    `id_type_shipment` INT(11) UNSIGNED NULL DEFAULT NULL,
     `name` VARCHAR(254) NOT NULL,
     `value` TEXT NULL DEFAULT NULL,
     `date_add` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -178,7 +177,9 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_configu
     KEY `idx_name` (`name`),
     KEY `idx_shop` (`id_shop`),
     KEY `idx_shop_group` (`id_shop_group`),
-    KEY `idx_company` (`id_carrier_company`)
+    KEY `idx_company` (`id_carrier_company`),
+    KEY `idx_type_shipment` (`id_type_shipment`),
+    UNIQUE KEY `uniq_company_config_scope` (`id_carrier_company`, `id_type_shipment`, `id_shop_group`, `id_shop`, `name`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
 $sql[] = 'INSERT INTO `' . _DB_PREFIX_ . 'rj_multicarrier_company` (`id_carrier_company`, `name`, `shortname`, `icon`) VALUES
@@ -187,6 +188,16 @@ $sql[] = 'INSERT INTO `' . _DB_PREFIX_ . 'rj_multicarrier_company` (`id_carrier_
     (3, \'Correo Express\', \'CEX\', NULL),
     (4, \'GOI\', \'GOI\', NULL)
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `shortname` = VALUES(`shortname`), `icon` = VALUES(`icon`);';
+
+$sql[] = 'INSERT INTO `' . _DB_PREFIX_ . 'rj_multicarrier_company_shop` (`id_shop`, `id_carrier_company`)
+SELECT s.id_shop, c.id_carrier_company
+FROM `' . _DB_PREFIX_ . 'shop` s
+CROSS JOIN `' . _DB_PREFIX_ . 'rj_multicarrier_company` c
+WHERE NOT EXISTS (
+    SELECT 1 FROM `' . _DB_PREFIX_ . 'rj_multicarrier_company_shop` cs
+    WHERE cs.id_shop = s.id_shop
+      AND cs.id_carrier_company = c.id_carrier_company
+);';
 
 $sql[] = 'INSERT INTO `' . _DB_PREFIX_ . 'rj_multicarrier_type_shipment` (`id_type_shipment`, `id_carrier_company`, `name`, `id_bc`, `id_reference_carrier`, `active`) VALUES
     (1, 3, \'PAQ 10\', \'61\', NULL, 0),

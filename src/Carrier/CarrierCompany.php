@@ -1391,7 +1391,7 @@ class CarrierCompany extends Module
                     self::nullableString(Tools::getValue('email')),
                     (string) Tools::getValue('phone'),
                     self::nullableString(Tools::getValue('vatnumber')),
-                    $shopId
+                    [(int) $shopId]
                 )
             );
         } catch (RuntimeException | InvalidArgumentException $exception) {

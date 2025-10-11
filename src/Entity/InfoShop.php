@@ -76,6 +76,9 @@ class InfoShop
     #[ORM\Column(name: 'vatnumber', type: 'string', length: 100, nullable: true)]
     private ?string $vatNumber = null;
 
+    #[ORM\Column(name: 'active', type: 'boolean', options: ['default' => true])]
+    private bool $active = true;
+
     public function __construct(
         string $firstName,
         string $lastName,
@@ -288,6 +291,18 @@ class InfoShop
     public function setVatNumber(?string $vatNumber): self
     {
         $this->vatNumber = $vatNumber;
+
+        return $this;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->active;
+    }
+
+    public function setActive(bool $active): self
+    {
+        $this->active = $active;
 
         return $this;
     }

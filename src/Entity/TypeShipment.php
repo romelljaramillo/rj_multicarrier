@@ -38,6 +38,9 @@ class TypeShipment
     #[ORM\Column(name: 'active', type: 'boolean')]
     private bool $active = true;
 
+    #[ORM\Column(name: 'settings', type: 'json', nullable: true)]
+    private ?array $settings = null;
+
     public function __construct(Company $company, string $name, string $businessCode)
     {
         $this->company = $company;
@@ -106,6 +109,26 @@ class TypeShipment
     public function setActive(bool $active): self
     {
         $this->active = $active;
+
+        return $this;
+    }
+
+    public function getSettings(): array
+    {
+        return $this->settings ?? [];
+    }
+
+    public function setSettings(?array $settings): self
+    {
+        $this->settings = $settings ?? [];
+
+        return $this;
+    }
+
+    public function mergeSettings(array $settings): self
+    {
+        $current = $this->getSettings();
+        $this->settings = array_merge($current, $settings);
 
         return $this;
     }

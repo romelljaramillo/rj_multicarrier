@@ -170,10 +170,11 @@ final class LogController extends FrameworkBundleAdminController
 
     private function extractScopedParameters(Request $request, string $scope): array
     {
-        $parameters = $request->query->all($scope);
+        // Use get($scope, []) to retrieve nested scoped parameters from query or request
+        $parameters = $request->query->get($scope, []);
 
         if (!is_array($parameters) || empty($parameters)) {
-            $parameters = $request->request->all($scope);
+            $parameters = $request->request->get($scope, []);
         }
 
         return is_array($parameters) ? $parameters : [];

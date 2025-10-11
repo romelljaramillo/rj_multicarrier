@@ -168,6 +168,29 @@
 					<textarea name="rj_message" class="form-control">{{ info_package.message|default('') }}</textarea>
 				</div>
 
+				{% if config_extra_info.company is not empty or config_extra_info.type_shipment is not empty %}
+					<div class="mb-3">
+						<h5 class="h6">{{ 'Configuraciones guardadas'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h5>
+						{% if config_extra_info.company is not empty %}
+							<p class="text-muted mb-1">{{ 'Compañía'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+							<ul class="list-unstyled small mb-2">
+								{% for key, value in config_extra_info.company %}
+									<li><strong>{{ key }}</strong>: {{ value is not empty ? value : '-' }}</li>
+								{% endfor %}
+							</ul>
+						{% endif %}
+
+						{% if config_extra_info.type_shipment is not empty %}
+							<p class="text-muted mb-1">{{ 'Tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+							<ul class="list-unstyled small mb-0">
+								{% for key, value in config_extra_info.type_shipment %}
+									<li><strong>{{ key }}</strong>: {{ value is not empty ? value : '-' }}</li>
+								{% endfor %}
+							</ul>
+						{% endif %}
+					</div>
+				{% endif %}
+
 				<div class="d-flex gap-2">
 					<button type="submit" name="submitShipment" class="btn btn-primary">{{ 'Generar envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</button>
 					<button type="submit" name="submitSavePackSend" class="btn btn-secondary">{{ 'Guardar bulto'|trans({}, 'Modules.RjMulticarrier.Admin') }}</button>
@@ -177,4 +200,3 @@
 		{% endif %}
 	</div>
 </div>
-

@@ -6,11 +6,11 @@ declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Domain\InfoShop\Handler;
 
-use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use InvalidArgumentException;
 use Roanja\Module\RjMulticarrier\Domain\InfoShop\Command\UpsertInfoShopCommand;
 use Roanja\Module\RjMulticarrier\Entity\InfoShop;
+use Roanja\Module\RjMulticarrier\Entity\InfoShopShop;
 use Roanja\Module\RjMulticarrier\Repository\InfoShopRepository;
 use RuntimeException;
 
@@ -18,13 +18,18 @@ final class UpsertInfoShopHandler
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
-        private readonly InfoShopRepository $infoShopRepository,
-        private readonly Connection $connection
+        private readonly InfoShopRepository $infoShopRepository
     ) {
     }
 
     public function handle(UpsertInfoShopCommand $command): InfoShop
     {
+        $shopIds = $this->normalizeShopIds($command->getShopAssociation());
+
+        if (empty($shopIds)) {
+            throw new InvalidArgumentException('At least one shop association is required.');
+        }
+
         $infoShop = $this->resolveInfoShop($command);
 
         $infoShop
@@ -44,15 +49,17 @@ final class UpsertInfoShopHandler
             ->setPhone($command->getPhone())
             ->setVatNumber($this->sanitize($command->getVatNumber()));
 
-        $this->entityManager->flush();
-
-        $infoShopId = $infoShop->getId();
-        if (null === $infoShopId) {
-            throw new RuntimeException('Missing identifier after persisting InfoShop');
+        if (null === $infoShop->getId()) {
+            $infoShop->setActive(true);
         }
 
-    // Persist ORM mapping for multi-shop
-    $this->syncShopAssociation($infoShop, $command->getShopId());
+        $this->syncShopAssociation($infoShop, $shopIds);
+
+        $this->entityManager->flush();
+
+        if (null === $infoShop->getId()) {
+            throw new RuntimeException('Missing identifier after persisting InfoShop');
+        }
 
         return $infoShop;
     }
@@ -108,16 +115,50 @@ final class UpsertInfoShopHandler
         return $value ? '1' : '0';
     }
 
-    private function syncShopAssociation(InfoShop $infoShop, int $shopId): void
+    /**
+     * @param int[] $shopIds
+     */
+    private function syncShopAssociation(InfoShop $infoShop, array $shopIds): void
     {
-        foreach ($infoShop->getShops() as $mapping) {
-            if ($mapping->getShopId() === $shopId) {
-                return;
+        $shopIds = $this->normalizeShopIds($shopIds);
+
+        $existingIds = [];
+        $collection = $infoShop->getShops();
+
+        foreach ($collection as $mapping) {
+            $currentShopId = (int) $mapping->getShopId();
+            if (in_array($currentShopId, $shopIds, true)) {
+                $existingIds[] = $currentShopId;
+                continue;
             }
+
+            $collection->removeElement($mapping);
+            $this->entityManager->remove($mapping);
         }
 
-        $mapping = new \Roanja\Module\RjMulticarrier\Entity\InfoShopShop($infoShop, $shopId);
-        $this->entityManager->persist($mapping);
-        $this->entityManager->flush();
+        foreach ($shopIds as $shopId) {
+            if (in_array($shopId, $existingIds, true)) {
+                continue;
+            }
+
+            $mapping = new InfoShopShop($infoShop, $shopId);
+            $this->entityManager->persist($mapping);
+            if (method_exists($collection, 'add')) {
+                $collection->add($mapping);
+            }
+        }
+    }
+
+    /**
+     * @param array<int, int|string> $shopIds
+     *
+     * @return int[]
+     */
+    private function normalizeShopIds(array $shopIds): array
+    {
+        $ids = array_map('intval', $shopIds);
+        $ids = array_filter($ids, static fn (int $id): bool => $id > 0);
+
+        return array_values(array_unique($ids));
     }
 }

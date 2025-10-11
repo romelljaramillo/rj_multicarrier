@@ -11,6 +11,9 @@ namespace Roanja\Module\RjMulticarrier\Domain\InfoShop\Command;
  */
 final class UpsertInfoShopCommand
 {
+    /**
+     * @param int[] $shopAssociation
+     */
     public function __construct(
         private readonly ?int $infoShopId,
         private readonly string $firstName,
@@ -28,7 +31,7 @@ final class UpsertInfoShopCommand
         private readonly ?string $email,
         private readonly string $phone,
         private readonly ?string $vatNumber,
-        private readonly int $shopId
+        private readonly array $shopAssociation
     ) {
     }
 
@@ -112,8 +115,11 @@ final class UpsertInfoShopCommand
         return $this->vatNumber;
     }
 
-    public function getShopId(): int
+    /**
+     * @return int[]
+     */
+    public function getShopAssociation(): array
     {
-        return $this->shopId;
+        return $this->shopAssociation;
     }
 }

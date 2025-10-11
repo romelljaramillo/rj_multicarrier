@@ -1,68 +1,119 @@
 <?php
-/**
- * Doctrine query builder for the type shipment grid.
- */
 declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Grid\TypeShipment;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
-use PrestaShop\PrestaShop\Core\Grid\Query\DoctrineQueryBuilderInterface;
+use PrestaShop\PrestaShop\Core\Grid\Query\AbstractDoctrineQueryBuilder;
+use PrestaShop\PrestaShop\Core\Grid\Query\DoctrineSearchCriteriaApplicator;
 use PrestaShop\PrestaShop\Core\Grid\Search\SearchCriteriaInterface;
 
-final class TypeShipmentQueryBuilder implements DoctrineQueryBuilderInterface
+final class TypeShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
 {
-    private Connection $connection;
-
-    private string $dbPrefix;
-
-    public function __construct(Connection $connection, string $dbPrefix)
-    {
-        $this->connection = $connection;
-        $this->dbPrefix = $dbPrefix;
+    public function __construct(
+        Connection $connection,
+        string $dbPrefix,
+        private readonly DoctrineSearchCriteriaApplicator $searchCriteriaApplicator
+    ) {
+        parent::__construct($connection, $dbPrefix);
     }
 
     public function getSearchQueryBuilder(SearchCriteriaInterface $searchCriteria)
     {
         $qb = $this->getBaseQueryBuilder();
+        $this->applyFilters($qb, $searchCriteria->getFilters());
 
-        foreach ($searchCriteria->getFilters() as $filterName => $filterValue) {
-            if (null === $filterValue || '' === $filterValue) {
+        $this->applySorting($searchCriteria, $qb);
+        $this->searchCriteriaApplicator->applyPagination($searchCriteria, $qb);
+
+        return $qb;
+    }
+
+    public function getCountQueryBuilder(SearchCriteriaInterface $searchCriteria)
+    {
+        $qb = $this->connection->createQueryBuilder()
+            ->select('COUNT(*)')
+            ->from($this->dbPrefix . 'rj_multicarrier_type_shipment', 'ts')
+            ->innerJoin('ts', $this->dbPrefix . 'rj_multicarrier_company', 'c', 'ts.id_carrier_company = c.id_carrier_company');
+
+        $this->applyFilters($qb, $searchCriteria->getFilters(), 'count_');
+
+        return $qb;
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     */
+    private function applyFilters(QueryBuilder $qb, array $filters, string $parameterPrefix = ''): void
+    {
+        foreach ($filters as $filterName => $filterValue) {
+            if ($this->isFilterEmpty($filterValue)) {
                 continue;
             }
 
             switch ($filterName) {
                 case 'id_type_shipment':
-                    $qb->andWhere('ts.id_type_shipment = :id_type_shipment')
-                        ->setParameter('id_type_shipment', (int) $filterValue);
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $parameter = $parameterPrefix . 'id_type_shipment';
+                        $qb->andWhere(sprintf('ts.id_type_shipment = :%s', $parameter))
+                            ->setParameter($parameter, (int) $value);
+                    }
                     break;
                 case 'company_name':
-                    $qb->andWhere('c.name LIKE :company_name')
-                        ->setParameter('company_name', '%' . $filterValue . '%');
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $parameter = $parameterPrefix . 'company_name';
+                        $qb->andWhere(sprintf('c.name LIKE :%s', $parameter))
+                            ->setParameter($parameter, $this->buildContainsPattern($value));
+                    }
                     break;
                 case 'name':
-                    $qb->andWhere('ts.name LIKE :name')
-                        ->setParameter('name', '%' . $filterValue . '%');
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $parameter = $parameterPrefix . 'name';
+                        $qb->andWhere(sprintf('ts.name LIKE :%s', $parameter))
+                            ->setParameter($parameter, $this->buildContainsPattern($value));
+                    }
                     break;
                 case 'id_bc':
-                    $qb->andWhere('ts.id_bc LIKE :id_bc')
-                        ->setParameter('id_bc', '%' . $filterValue . '%');
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $parameter = $parameterPrefix . 'id_bc';
+                        $qb->andWhere(sprintf('ts.id_bc LIKE :%s', $parameter))
+                            ->setParameter($parameter, $this->buildContainsPattern($value));
+                    }
                     break;
                 case 'active':
-                    $qb->andWhere('ts.active = :active')
-                        ->setParameter('active', (int) $filterValue);
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $parameter = $parameterPrefix . 'active';
+                        $qb->andWhere(sprintf('ts.active = :%s', $parameter))
+                            ->setParameter($parameter, (int) $value);
+                    }
                     break;
                 case 'company_id':
-                    $qb->andWhere('ts.id_carrier_company = :company_id')
-                        ->setParameter('company_id', (int) $filterValue);
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $parameter = $parameterPrefix . 'company_id';
+                        $qb->andWhere(sprintf('ts.id_carrier_company = :%s', $parameter))
+                            ->setParameter($parameter, (int) $value);
+                    }
                     break;
             }
         }
+    }
 
-        $orderBy = $searchCriteria->getOrderBy() ?: 'id_type_shipment';
-        $orderWay = $searchCriteria->getOrderWay() ?: 'DESC';
+    private function normalizeOrderWay(?string $orderWay): string
+    {
+        $orderWay = strtoupper($orderWay ?? 'DESC');
 
+        return in_array($orderWay, ['ASC', 'DESC'], true) ? $orderWay : 'DESC';
+    }
+
+    private function applySorting(SearchCriteriaInterface $searchCriteria, QueryBuilder $qb): void
+    {
         $allowedOrderBy = [
             'id_type_shipment' => 'ts.id_type_shipment',
             'company_name' => 'c.name',
@@ -72,63 +123,71 @@ final class TypeShipmentQueryBuilder implements DoctrineQueryBuilderInterface
             'active' => 'ts.active',
         ];
 
-        if (isset($allowedOrderBy[$orderBy])) {
-            $qb->orderBy($allowedOrderBy[$orderBy], $orderWay);
+        $orderBy = $searchCriteria->getOrderBy();
+        if (!isset($allowedOrderBy[$orderBy])) {
+            $orderBy = 'id_type_shipment';
         }
 
-        if (null !== $searchCriteria->getOffset()) {
-            $qb->setFirstResult($searchCriteria->getOffset());
-        }
-
-        if (null !== $searchCriteria->getLimit()) {
-            $qb->setMaxResults($searchCriteria->getLimit());
-        }
-
-        return $qb;
+        $qb->orderBy($allowedOrderBy[$orderBy], $this->normalizeOrderWay($searchCriteria->getOrderWay()));
     }
 
-    public function getCountQueryBuilder(SearchCriteriaInterface $searchCriteria)
+    /**
+     * @param mixed $value
+     *
+     * @return string[]
+     */
+    private function collectScalarValues($value): array
     {
-        $qb = $this->connection->createQueryBuilder();
-        $qb
-            ->select('COUNT(*)')
-            ->from($this->dbPrefix . 'rj_multicarrier_type_shipment', 'ts')
-            ->innerJoin('ts', $this->dbPrefix . 'rj_multicarrier_company', 'c', 'ts.id_carrier_company = c.id_carrier_company');
-
-        foreach ($searchCriteria->getFilters() as $filterName => $filterValue) {
-            if (null === $filterValue || '' === $filterValue) {
-                continue;
-            }
-
-            switch ($filterName) {
-                case 'id_type_shipment':
-                    $qb->andWhere('ts.id_type_shipment = :count_id_type_shipment')
-                        ->setParameter('count_id_type_shipment', (int) $filterValue);
-                    break;
-                case 'company_name':
-                    $qb->andWhere('c.name LIKE :count_company_name')
-                        ->setParameter('count_company_name', '%' . $filterValue . '%');
-                    break;
-                case 'name':
-                    $qb->andWhere('ts.name LIKE :count_name')
-                        ->setParameter('count_name', '%' . $filterValue . '%');
-                    break;
-                case 'id_bc':
-                    $qb->andWhere('ts.id_bc LIKE :count_id_bc')
-                        ->setParameter('count_id_bc', '%' . $filterValue . '%');
-                    break;
-                case 'active':
-                    $qb->andWhere('ts.active = :count_active')
-                        ->setParameter('count_active', (int) $filterValue);
-                    break;
-                case 'company_id':
-                    $qb->andWhere('ts.id_carrier_company = :count_company_id')
-                        ->setParameter('count_company_id', (int) $filterValue);
-                    break;
-            }
+        if (null === $value) {
+            return [];
         }
 
-        return $qb;
+        if (is_scalar($value)) {
+            $stringValue = trim((string) $value);
+
+            return '' === $stringValue ? [] : [$stringValue];
+        }
+
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $collected = [];
+        foreach ($value as $item) {
+            $collected = array_merge($collected, $this->collectScalarValues($item));
+        }
+
+        return $collected;
+    }
+
+    /**
+     * @param mixed $filterValue
+     */
+    private function isFilterEmpty($filterValue): bool
+    {
+        return [] === $this->collectScalarValues($filterValue);
+    }
+
+    /**
+     * @param mixed $filterValue
+     */
+    private function resolveScalarFilterValue($filterValue): ?string
+    {
+        $values = $this->collectScalarValues($filterValue);
+
+        return $values[0] ?? null;
+    }
+
+    private function buildContainsPattern(string $value): string
+    {
+        $escaped = str_replace('_', '\\_', $this->escapePercent($value));
+
+        return '%' . $escaped . '%';
+    }
+
+    protected function escapePercent(string $value): string
+    {
+        return str_replace('%', '\\%', $value);
     }
 
     private function getBaseQueryBuilder(): QueryBuilder
