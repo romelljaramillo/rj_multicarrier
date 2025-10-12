@@ -35,7 +35,7 @@ final class TypeShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
         $qb = $this->connection->createQueryBuilder()
             ->select('COUNT(*)')
             ->from($this->dbPrefix . 'rj_multicarrier_type_shipment', 'ts')
-            ->innerJoin('ts', $this->dbPrefix . 'rj_multicarrier_company', 'c', 'ts.id_carrier_company = c.id_carrier_company');
+            ->innerJoin('ts', $this->dbPrefix . 'rj_multicarrier_carrier', 'c', 'ts.id_carrier = c.id_carrier');
 
         $this->applyFilters($qb, $searchCriteria->getFilters(), 'count_');
 
@@ -93,11 +93,11 @@ final class TypeShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
                             ->setParameter($parameter, (int) $value);
                     }
                     break;
-                case 'company_id':
+                case 'carrier_id':
                     $value = $this->resolveScalarFilterValue($filterValue);
                     if (null !== $value) {
-                        $parameter = $parameterPrefix . 'company_id';
-                        $qb->andWhere(sprintf('ts.id_carrier_company = :%s', $parameter))
+                        $parameter = $parameterPrefix . 'carrier_id';
+                        $qb->andWhere(sprintf('ts.id_carrier = :%s', $parameter))
                             ->setParameter($parameter, (int) $value);
                     }
                     break;
@@ -199,10 +199,10 @@ final class TypeShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
                 'ts.id_bc',
                 'ts.id_reference_carrier',
                 'ts.active',
-                'ts.id_carrier_company',
+                'ts.id_carrier',
                 'c.name AS company_name'
             )
             ->from($this->dbPrefix . 'rj_multicarrier_type_shipment', 'ts')
-            ->innerJoin('ts', $this->dbPrefix . 'rj_multicarrier_company', 'c', 'ts.id_carrier_company = c.id_carrier_company');
+            ->innerJoin('ts', $this->dbPrefix . 'rj_multicarrier_carrier', 'c', 'ts.id_carrier = c.id_carrier');
     }
 }

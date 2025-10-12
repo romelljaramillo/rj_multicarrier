@@ -5,11 +5,11 @@
 declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Entity;
-use Doctrine\ORM\Mapping as ORM;
 
-use Roanja\Module\RjMulticarrier\Entity\Traits\TimestampableTrait;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping as ORM;
+use Roanja\Module\RjMulticarrier\Entity\Traits\TimestampableTrait;
 
 #[ORM\Entity(repositoryClass: \Roanja\Module\RjMulticarrier\Repository\ShipmentRepository::class)]
 #[ORM\Table(name: _DB_PREFIX_ . 'rj_multicarrier_shipment')]
@@ -31,9 +31,9 @@ class Shipment
     #[ORM\Column(name: 'num_shipment', type: 'string', length: 100, nullable: true)]
     private ?string $shipmentNumber = null;
 
-    #[ORM\ManyToOne(targetEntity: Company::class)]
-    #[ORM\JoinColumn(name: 'id_carrier_company', referencedColumnName: 'id_carrier_company', nullable: true, onDelete: 'SET NULL')]
-    private ?Company $company = null;
+    #[ORM\ManyToOne(targetEntity: Carrier::class)]
+    #[ORM\JoinColumn(name: 'id_carrier', referencedColumnName: 'id_carrier', nullable: true, onDelete: 'SET NULL')]
+    private ?Carrier $carrier = null;
 
     #[ORM\ManyToOne(targetEntity: InfoPackage::class)]
     #[ORM\JoinColumn(name: 'id_infopackage', referencedColumnName: 'id_infopackage', nullable: false, onDelete: 'CASCADE')]
@@ -55,14 +55,11 @@ class Shipment
     private bool $deleted = false;
 
     /**
-     * Multi-shop mapping collection.
-    /**
-     * Legacy mapping to shops.
-     *
-     * @var Collection<int, ShipmentShop>
+     * @var Collection<int, ShipmentShop> Legacy mapping to shops.
      */
     #[ORM\OneToMany(targetEntity: ShipmentShop::class, mappedBy: 'shipment')]
     private Collection $shops;
+
     public function __construct(int $orderId, InfoPackage $infoPackage)
     {
         $this->orderId = $orderId;
@@ -111,14 +108,14 @@ class Shipment
         return $this;
     }
 
-    public function getCompany(): ?Company
+    public function getCarrier(): ?Carrier
     {
-        return $this->company;
+        return $this->carrier;
     }
 
-    public function setCompany(?Company $company): self
+    public function setCarrier(?Carrier $carrier): self
     {
-        $this->company = $company;
+        $this->carrier = $carrier;
 
         return $this;
     }

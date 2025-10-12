@@ -1,10 +1,12 @@
 {% extends '@PrestaShop/Admin/layout.html.twig' %}
 
 {% block content %}
-	<div class="card">
-		<div class="card-header">
-			<h3>{{ 'Multi-carrier Configuration'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
-		</div>
+    {% set carrierManagementUrl = carrierManagementUrl is defined ? carrierManagementUrl : (companyManagementUrl is defined ? companyManagementUrl : null) %}
+
+    <div class="card">
+        <div class="card-header">
+            <h3>{{ 'Multi-carrier Configuration'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
+        </div>
 
 		<div
 			class="card-body">
@@ -34,23 +36,13 @@
 								<div class="col-md-3">{{ form_row(infoShopForm.number) }}</div>
 								<div class="col-md-3">{{ form_row(infoShopForm.postcode) }}</div>
 							</div>
-							{{ form_widget(infoShopForm.id_infoshop) }}
+							{{ form_widget(infoShopForm.id_configuration) }}
 							<div class="mt-3">
 								<button type="submit" class="btn btn-primary">{{ 'Guardar remitente'|trans({}, 'Modules.RjMulticarrier.Admin') }}</button>
 							</div>
 							{{ form_end(infoShopForm) }}
 						</div>
 
-						<div class="col-md-4">
-							{{ form_start(extraConfigForm) }}
-							{{ form_errors(extraConfigForm) }}
-							{{ form_row(extraConfigForm.RJ_ETIQUETA_TRANSP_PREFIX) }}
-							{{ form_row(extraConfigForm.RJ_MODULE_CONTRAREEMBOLSO) }}
-							<div class="mt-3">
-								<button type="submit" class="btn btn-outline-primary">{{ 'Guardar configuración extra'|trans({}, 'Modules.RjMulticarrier.Admin') }}</button>
-							</div>
-							{{ form_end(extraConfigForm) }}
-						</div>
 					</div>
 				</div>
 
@@ -58,17 +50,17 @@
 
 				<div class="mt-3" id="section-navigation">
 					<h4>{{ 'Gestión avanzada'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h4>
-					<p class="text-muted">
-						{{ 'Administra compañías, tipos de envío y otras configuraciones específicas desde sus pantallas dedicadas.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-					</p>
-					<ul class="list-unstyled mb-0">
-						{% if companyManagementUrl %}
-							<li class="mb-2">
-								<a class="btn btn-outline-secondary btn-sm" href="{{ companyManagementUrl }}">
-									{{ 'Ir a compañías de transporte'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-								</a>
-							</li>
-						{% endif %}
+                    <p class="text-muted">
+                        {{ 'Administra transportistas, tipos de envío y otras configuraciones específicas desde sus pantallas dedicadas.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                    </p>
+                    <ul class="list-unstyled mb-0">
+                        {% if carrierManagementUrl %}
+                            <li class="mb-2">
+                                <a class="btn btn-outline-secondary btn-sm" href="{{ carrierManagementUrl }}">
+                                    {{ 'Ir a transportistas'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                                </a>
+                            </li>
+                        {% endif %}
 
 						{% if typeShipmentManagementUrl %}
 							<li class="mb-2">

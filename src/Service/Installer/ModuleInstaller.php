@@ -25,37 +25,37 @@ final class ModuleInstaller
             'parent_class_name' => 'IMPROVE',
             'route_name' => null,
             'active' => true,
-            'icon' => 'local_shipping',
+            'icon' => 'business',
             'wording' => 'Multi-carrier',
         ],
         [
             'class_name' => 'AdminRjMulticarrierConfigurationParent',
             'parent_class_name' => 'AdminRjMulticarrier',
-            'route_name' => 'admin_rj_multicarrier_info_shop_index',
+            'route_name' => 'admin_rj_multicarrier_configuration_shop_index',
             'active' => true,
             'icon' => 'settings',
-            'wording' => 'Info shop',
+            'wording' => 'Configuration shop',
         ],
         [
             'class_name' => 'AdminRjMulticarrierConfiguration',
             'parent_class_name' => 'AdminRjMulticarrierConfigurationParent',
-            'route_name' => 'admin_rj_multicarrier_info_shop_index',
+            'route_name' => 'admin_rj_multicarrier_configuration_shop_index',
             'icon' => 'settings',
             'active' => true,
-            'wording' => 'Info shop',
+            'wording' => 'Configuration shop',
             'wording_domain' => 'Modules.RjMulticarrier.Admin',
-            'translation_key' => 'Modules.RjMulticarrier.Admin.Menu.InfoShop',
+            'translation_key' => 'Modules.RjMulticarrier.Admin.Menu.Configuration',
         ],
         [
-            'class_name' => 'AdminRjMulticarrierCompanies',
+            'class_name' => 'AdminRjMulticarrierCarriers',
             'parent_class_name' => 'AdminRjMulticarrierConfigurationParent',
-            'route_name' => 'admin_rj_multicarrier_companies_index',
-            'icon' => 'business',
+            'route_name' => 'admin_rj_multicarrier_carriers_index',
+            'icon' => 'local_shipping',
             'active' => true,
             'visible' => false,
-            'wording' => 'Companies',
+            'wording' => 'Carriers',
             'wording_domain' => 'Modules.RjMulticarrier.Admin',
-            'translation_key' => 'Modules.RjMulticarrier.Admin.Menu.Companies',
+            'translation_key' => 'Modules.RjMulticarrier.Admin.Menu.Carriers',
         ],
         [
             'class_name' => 'AdminRjMulticarrierTypeShipment',
@@ -158,8 +158,18 @@ final class ModuleInstaller
                 ? $this->connection->createSchemaManager()
                 : $this->connection->getSchemaManager();
 
-            // Columns and indexes for the configuration table are ensured in install.sql.
-            // Keep this method available for future incremental schema adjustments.
+            $tableName = _DB_PREFIX_ . 'rj_multicarrier_configuration';
+            if ($schemaManager->tablesExist([$tableName])) {
+                $columns = $schemaManager->listTableColumns($tableName);
+
+                if (!isset($columns['label_prefix'])) {
+                    $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` ADD `label_prefix` VARCHAR(64) NULL DEFAULT NULL');
+                }
+
+                if (!isset($columns['cod_module'])) {
+                    $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` ADD `cod_module` VARCHAR(255) NULL DEFAULT NULL');
+                }
+            }
         } catch (\Throwable $exception) {
             return false;
         }
@@ -349,7 +359,7 @@ final class ModuleInstaller
                 'en' => 'Multi-carrier',
                 'es' => 'Multi-carrier',
             ],
-            'Modules.RjMulticarrier.Admin.Menu.InfoShop' => [
+            'Modules.RjMulticarrier.Admin.Menu.Configuration' => [
                 'en' => 'Info shop',
                 'es' => 'Remitentes',
             ],

@@ -13,9 +13,9 @@ final class InfoPackageView
         private readonly int $referenceCarrierId,
         private readonly int $typeShipmentId,
         private readonly string $typeShipmentName,
-        private readonly int $companyId,
-        private readonly string $companyName,
-        private readonly ?string $companyShortName,
+        private readonly int $carrierId,
+        private readonly string $carrierName,
+        private readonly ?string $carrierShortName,
         private readonly int $quantity,
         private readonly float $weight,
         private readonly ?float $length,
@@ -37,7 +37,7 @@ final class InfoPackageView
     public static function fromEntity(InfoPackage $infoPackage): self
     {
         $typeShipment = $infoPackage->getTypeShipment();
-        $company = $typeShipment->getCompany();
+        $carrier = $typeShipment->getCarrier();
 
         $vsecRaw = $infoPackage->getVsec();
         $vsec = null;
@@ -57,9 +57,9 @@ final class InfoPackageView
             $infoPackage->getReferenceCarrierId(),
             $typeShipment->getId() ?? 0,
             $typeShipment->getName(),
-            $company->getId() ?? 0,
-            $company->getName(),
-            $company->getShortName(),
+            $carrier->getId() ?? 0,
+            $carrier->getName(),
+            $carrier->getShortName(),
             $infoPackage->getQuantity(),
             $infoPackage->getWeight(),
             $infoPackage->getLength(),
@@ -90,9 +90,9 @@ final class InfoPackageView
             (int)($row['id_reference_carrier'] ?? 0),
             (int)($row['id_type_shipment'] ?? 0),
             (string)($row['type_shipment_name'] ?? ''), // not present in table unless joined
-            (int)($row['company_id'] ?? 0), // not present in table by default
-            (string)($row['company_name'] ?? ''), // not present unless joined
-            isset($row['company_short_name']) ? (string)$row['company_short_name'] : null,
+            (int)($row['carrier_id'] ?? $row['company_id'] ?? 0), // not present in table by default
+            (string)($row['carrier_name'] ?? $row['company_name'] ?? ''), // not present unless joined
+            isset($row['carrier_short_name']) ? (string)$row['carrier_short_name'] : (isset($row['company_short_name']) ? (string)$row['company_short_name'] : null),
             (int)($row['quantity'] ?? 0),
             (float)($row['weight'] ?? 0),
             isset($row['length']) ? (float)$row['length'] : null,
@@ -119,9 +119,10 @@ final class InfoPackageView
             'referenceCarrierId' => $this->referenceCarrierId,
             'typeShipmentId' => $this->typeShipmentId,
             'typeShipmentName' => $this->typeShipmentName,
-            'companyId' => $this->companyId,
-            'companyName' => $this->companyName,
-            'companyShortName' => $this->companyShortName,
+            'carrierId' => $this->carrierId,
+            'companyId' => $this->carrierId,
+            'companyName' => $this->carrierName,
+            'companyShortName' => $this->carrierShortName,
             'quantity' => $this->quantity,
             'weight' => $this->weight,
             'length' => $this->length,
@@ -148,9 +149,9 @@ final class InfoPackageView
             $this->referenceCarrierId,
             $this->typeShipmentId,
             $this->typeShipmentName,
-            $this->companyId,
-            $this->companyName,
-            $this->companyShortName,
+            $this->carrierId,
+            $this->carrierName,
+            $this->carrierShortName,
             $this->quantity,
             $this->weight,
             $this->length,

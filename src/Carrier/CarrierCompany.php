@@ -21,8 +21,8 @@ use Order;
 use PrestaShop\PrestaShop\Adapter\SymfonyContainer;
 use Roanja\Module\RjMulticarrier\Domain\InfoPackage\Command\UpsertInfoPackageCommand;
 use Roanja\Module\RjMulticarrier\Domain\InfoPackage\Handler\UpsertInfoPackageHandler;
-use Roanja\Module\RjMulticarrier\Domain\InfoShop\Command\UpsertInfoShopCommand;
-use Roanja\Module\RjMulticarrier\Domain\InfoShop\Handler\UpsertInfoShopHandler;
+use Roanja\Module\RjMulticarrier\Domain\Configuration\Command\UpsertConfigurationCommand;
+use Roanja\Module\RjMulticarrier\Domain\Configuration\Handler\UpsertConfigurationHandler;
 use Roanja\Module\RjMulticarrier\Domain\Log\Command\CreateLogEntryCommand;
 use Roanja\Module\RjMulticarrier\Domain\Log\Handler\CreateLogEntryHandler;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Command\CreateShipmentCommand;
@@ -36,7 +36,7 @@ use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Exception\TypeShipmentExcep
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\DeleteTypeShipmentHandler;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\ToggleTypeShipmentStatusHandler;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\UpsertTypeShipmentHandler as UpsertTypeShipmentHandlerDomain;
-use Roanja\Module\RjMulticarrier\Entity\Company;
+use Roanja\Module\RjMulticarrier\Entity\Carrier as CarrierEntity;
 use Roanja\Module\RjMulticarrier\Entity\InfoPackage as InfoPackageEntity;
 use Roanja\Module\RjMulticarrier\Entity\Label as LabelEntity;
 use Roanja\Module\RjMulticarrier\Entity\LogEntry as LogEntryEntity;
@@ -44,7 +44,7 @@ use Roanja\Module\RjMulticarrier\Entity\Shipment as ShipmentEntity;
 use Roanja\Module\RjMulticarrier\Entity\TypeShipment;
 use Roanja\Module\RjMulticarrier\Pdf\RjPDF;
 use Roanja\Module\RjMulticarrier\Support\Common;
-use Roanja\Module\RjMulticarrier\Repository\CompanyRepository;
+use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
 use RuntimeException;
 use Shop;
@@ -105,11 +105,11 @@ class CarrierCompany extends Module
 
     private static ?DeleteTypeShipmentHandler $deleteTypeShipmentHandler = null;
 
-    private static ?CompanyRepository $companyRepository = null;
+    private static ?CarrierRepository $carrierRepository = null;
 
     private static ?TypeShipmentRepository $typeShipmentRepository = null;
 
-    private static ?UpsertInfoShopHandler $upsertInfoShopHandlerService = null;
+    private static ?UpsertConfigurationHandler $upsertConfigurationHandlerService = null;
 
     public function __construct()
     {
@@ -385,7 +385,7 @@ class CarrierCompany extends Module
         $typeShipmentIdRaw = Tools::getValue('id_type_shipment');
         $typeShipmentId = $typeShipmentIdRaw !== null && $typeShipmentIdRaw !== '' ? (int) $typeShipmentIdRaw : null;
 
-        $companyId = (int) Tools::getValue('id_carrier_company');
+        $companyId = (int) Tools::getValue('id_carrier');
         $name = (string) Tools::getValue('name');
         $businessCode = (string) Tools::getValue('id_bc');
 
@@ -431,7 +431,7 @@ class CarrierCompany extends Module
         $typeShipment = self::getTypeShipmentRepository()->findActiveByReferenceCarrier((int) $id_reference_carrier);
 
         if ($typeShipment instanceof TypeShipment) {
-            return self::mapCompanyToArray($typeShipment->getCompany());
+            return self::mapCompanyToArray($typeShipment->getCarrier());
         }
 
         $companies = self::getAllCarrierCompanies();
@@ -474,7 +474,7 @@ class CarrierCompany extends Module
             return null;
         }
 
-        $carrierTypeShipments = self::getTypeShipmentsForCompany((int) $carrierCompany['id_carrier_company']);
+        $carrierTypeShipments = self::getTypeShipmentsForCompany((int) $carrierCompany['id_carrier']);
 
         if (!$carrierTypeShipments) {
             return null;
@@ -492,7 +492,7 @@ class CarrierCompany extends Module
                 'type' => 'text',
             ],
             'carrier_company' => [
-                'title' => $this->l('Company'),
+                'title' => $this->l('Carrier'),
                 'width' => 140,
                 'type' => 'text',
             ],
@@ -563,7 +563,7 @@ class CarrierCompany extends Module
 
         if ($carrier_company) {
             $company_array[] = [
-                'id' => $carrier_company['id_carrier_company'],
+                'id' => $carrier_company['id_carrier'],
                 'name' => $carrier_company['name'],
             ];
         } else {
@@ -584,8 +584,8 @@ class CarrierCompany extends Module
                     ],
                     [
                         'type' => 'select',
-                        'label' => $this->l('Select Company'),
-                        'name' => 'id_carrier_company',
+                        'label' => $this->l('Select Carrier'),
+                        'name' => 'id_carrier',
                         'options' => [
                             'query' => $company_array,
                             'id' => 'id',
@@ -680,7 +680,7 @@ class CarrierCompany extends Module
         }
 
         $defaults = [
-            'id_carrier_company' => $typeShipmentData['id_carrier_company'] ?? null,
+            'id_carrier' => $typeShipmentData['id_carrier'] ?? null,
             'name' => $typeShipmentData['name'] ?? '',
             'id_bc' => $typeShipmentData['id_bc'] ?? '',
             'id_reference_carrier' => $typeShipmentData['id_reference_carrier'] ?? null,
@@ -850,7 +850,7 @@ class CarrierCompany extends Module
             $order->reference ?? null,
             $shipmentData['num_shipment'] ?? null,
             $infoPackageId,
-            isset($companyData['id_carrier_company']) ? (int) $companyData['id_carrier_company'] : null,
+            isset($companyData['id_carrier']) ? (int) $companyData['id_carrier'] : null,
             // Determine current shop id for multistore mapping
             (int) (Context::getContext()->shop->id ?? 0),
             $shipmentData['name_carrier'] ?? null,
@@ -1020,44 +1020,44 @@ class CarrierCompany extends Module
         return self::$createLogEntryHandler;
     }
 
-    private static function getUpsertInfoShopHandler(): UpsertInfoShopHandler
+    private static function getUpsertConfigurationHandler(): UpsertConfigurationHandler
     {
-        if (!self::$upsertInfoShopHandlerService instanceof UpsertInfoShopHandler) {
+        if (!self::$upsertConfigurationHandlerService instanceof UpsertConfigurationHandler) {
             $container = SymfonyContainer::getInstance();
             if (null === $container) {
                 throw new RuntimeException('Symfony container is not available');
             }
 
-            $handler = $container->get(UpsertInfoShopHandler::class);
+            $handler = $container->get(UpsertConfigurationHandler::class);
 
-            if (!$handler instanceof UpsertInfoShopHandler) {
-                throw new RuntimeException('Unable to resolve UpsertInfoShopHandler service');
+            if (!$handler instanceof UpsertConfigurationHandler) {
+                throw new RuntimeException('Unable to resolve UpsertConfigurationHandler service');
             }
 
-            self::$upsertInfoShopHandlerService = $handler;
+            self::$upsertConfigurationHandlerService = $handler;
         }
 
-        return self::$upsertInfoShopHandlerService;
+        return self::$upsertConfigurationHandlerService;
     }
 
-    private static function getCompanyRepository(): CompanyRepository
+    private static function getCarrierRepository(): CarrierRepository
     {
-        if (!self::$companyRepository instanceof CompanyRepository) {
+        if (!self::$carrierRepository instanceof CarrierRepository) {
             $container = SymfonyContainer::getInstance();
             if (null === $container) {
                 throw new RuntimeException('Symfony container is not available');
             }
 
-            $repository = $container->get(CompanyRepository::class);
+            $repository = $container->get(CarrierRepository::class);
 
-            if (!$repository instanceof CompanyRepository) {
-                throw new RuntimeException('Unable to resolve CompanyRepository service');
+            if (!$repository instanceof CarrierRepository) {
+                throw new RuntimeException('Unable to resolve CarrierRepository service');
             }
 
-            self::$companyRepository = $repository;
+            self::$carrierRepository = $repository;
         }
 
-        return self::$companyRepository;
+        return self::$carrierRepository;
     }
 
     private static function getTypeShipmentRepository(): TypeShipmentRepository
@@ -1082,9 +1082,9 @@ class CarrierCompany extends Module
 
     private static function getCarrierCompanyByShortname(string $shortname): ?array
     {
-        $company = self::getCompanyRepository()->findOneByShortName($shortname);
+        $company = self::getCarrierRepository()->findOneByShortName($shortname);
 
-        return $company instanceof Company ? self::mapCompanyToArray($company) : null;
+        return $company instanceof CarrierEntity ? self::mapCompanyToArray($company) : null;
     }
 
     /**
@@ -1092,9 +1092,9 @@ class CarrierCompany extends Module
      */
     private static function getAllCarrierCompanies(): array
     {
-        $companies = self::getCompanyRepository()->findAllOrdered();
+        $companies = self::getCarrierRepository()->findAllOrdered();
 
-        return array_map(static fn (Company $company): array => self::mapCompanyToArray($company), $companies);
+        return array_map(static fn (CarrierEntity $company): array => self::mapCompanyToArray($company), $companies);
     }
 
     /**
@@ -1102,13 +1102,13 @@ class CarrierCompany extends Module
      */
     private static function getTypeShipmentsForCompany(int $companyId, bool $onlyActive = false): array
     {
-        $company = self::getCompanyRepository()->find($companyId);
+        $company = self::getCarrierRepository()->find($companyId);
 
-        if (!$company instanceof Company) {
+        if (!$company instanceof Carrier) {
             return [];
         }
 
-        $typeShipments = self::getTypeShipmentRepository()->findByCompany($company, $onlyActive);
+        $typeShipments = self::getTypeShipmentRepository()->findByCarrier($company, $onlyActive);
 
         return array_map(
             static fn (TypeShipment $typeShipment): array => self::mapTypeShipmentToArray($typeShipment, $company),
@@ -1124,7 +1124,7 @@ class CarrierCompany extends Module
             return null;
         }
 
-        return self::mapTypeShipmentToArray($typeShipment, $typeShipment->getCompany());
+        return self::mapTypeShipmentToArray($typeShipment, $typeShipment->getCarrier());
     }
 
     private static function typeShipmentExists(int $typeShipmentId): bool
@@ -1141,10 +1141,10 @@ class CarrierCompany extends Module
         return self::getTypeShipmentRepository()->findActiveByReferenceCarrier($referenceCarrierId) instanceof TypeShipment;
     }
 
-    private static function mapCompanyToArray(Company $company): array
+    private static function mapCompanyToArray(CarrierEntity $company): array
     {
         return [
-            'id_carrier_company' => (int) $company->getId(),
+            'id_carrier' => (int) $company->getId(),
             'name' => $company->getName(),
             'shortname' => $company->getShortName(),
             'icon' => $company->getIcon(),
@@ -1153,13 +1153,13 @@ class CarrierCompany extends Module
         ];
     }
 
-    private static function mapTypeShipmentToArray(TypeShipment $typeShipment, Company $company): array
+    private static function mapTypeShipmentToArray(TypeShipment $typeShipment, CarrierEntity $company): array
     {
         $referenceId = $typeShipment->getReferenceCarrierId();
 
         return [
             'id_type_shipment' => (int) $typeShipment->getId(),
-            'id_carrier_company' => (int) $company->getId(),
+            'id_carrier' => (int) $company->getId(),
             'name' => $typeShipment->getName(),
             'id_bc' => $typeShipment->getBusinessCode(),
             'id_reference_carrier' => $referenceId,
@@ -1359,23 +1359,28 @@ class CarrierCompany extends Module
 
     public static function saveInfoShop(): bool
     {
+        return self::saveConfiguration();
+    }
+
+    public static function saveConfiguration(): bool
+    {
         $shopId = self::resolveShopId();
 
         if ($shopId <= 0) {
             return false;
         }
 
-        $infoShopIdRaw = Tools::getValue('id_infoshop');
-        $infoShopId = (null !== $infoShopIdRaw && '' !== $infoShopIdRaw) ? (int) $infoShopIdRaw : null;
+        $ConfigurationIdRaw = Tools::getValue('id_configuration');
+        $ConfigurationId = (null !== $ConfigurationIdRaw && '' !== $ConfigurationIdRaw) ? (int) $ConfigurationIdRaw : null;
 
         $companyValue = Tools::getValue('company');
         $explicitBusiness = Tools::getValue('isbusiness');
         $isBusiness = self::resolveBusinessFlag($companyValue, $explicitBusiness);
 
         try {
-            self::getUpsertInfoShopHandler()->handle(
-                new UpsertInfoShopCommand(
-                    $infoShopId,
+            self::getUpsertConfigurationHandler()->handle(
+                new UpsertConfigurationCommand(
+                    $ConfigurationId,
                     (string) Tools::getValue('firstname'),
                     (string) Tools::getValue('lastname'),
                     self::nullableString($companyValue),
@@ -1391,6 +1396,8 @@ class CarrierCompany extends Module
                     self::nullableString(Tools::getValue('email')),
                     (string) Tools::getValue('phone'),
                     self::nullableString(Tools::getValue('vatnumber')),
+                    self::nullableString(Tools::getValue('RJ_ETIQUETA_TRANSP_PREFIX')),
+                    self::nullableString(Tools::getValue('RJ_MODULE_CONTRAREEMBOLSO')),
                     [(int) $shopId]
                 )
             );

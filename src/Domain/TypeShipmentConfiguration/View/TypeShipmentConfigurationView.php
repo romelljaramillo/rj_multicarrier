@@ -11,7 +11,7 @@ final class TypeShipmentConfigurationView
     public function __construct(
         private readonly int $id,
         private readonly int $typeShipmentId,
-        private readonly int $companyId,
+        private readonly int $carrierId,
         private readonly string $name,
         private readonly ?string $value,
         private readonly ?string $createdAt,
@@ -29,9 +29,9 @@ final class TypeShipmentConfigurationView
         return $this->typeShipmentId;
     }
 
-    public function getCompanyId(): int
+    public function getCarrierId(): int
     {
-        return $this->companyId;
+        return $this->carrierId;
     }
 
     public function getName(): string
@@ -62,7 +62,8 @@ final class TypeShipmentConfigurationView
         return [
             'id' => $this->id,
             'typeShipmentId' => $this->typeShipmentId,
-            'companyId' => $this->companyId,
+            'carrierId' => $this->carrierId,
+            'companyId' => $this->carrierId,
             'name' => $this->name,
             'value' => $this->value,
             'createdAt' => $this->createdAt,

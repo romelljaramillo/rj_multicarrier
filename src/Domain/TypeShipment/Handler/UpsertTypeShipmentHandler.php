@@ -11,24 +11,24 @@ use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\UpsertTypeShipmentC
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Exception\TypeShipmentCarrierConflictException;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Exception\TypeShipmentException;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Exception\TypeShipmentNotFoundException;
-use Roanja\Module\RjMulticarrier\Entity\Company;
+use Roanja\Module\RjMulticarrier\Entity\Carrier;
 use Roanja\Module\RjMulticarrier\Entity\TypeShipment;
-use Roanja\Module\RjMulticarrier\Repository\CompanyRepository;
+use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
 
 final class UpsertTypeShipmentHandler
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
-        private readonly CompanyRepository $companyRepository,
+        private readonly CarrierRepository $carrierRepository,
         private readonly TypeShipmentRepository $typeShipmentRepository
     ) {
     }
 
     public function handle(UpsertTypeShipmentCommand $command): TypeShipment
     {
-        $company = $this->resolveCompany($command->getCompanyId());
-        $typeShipment = $this->resolveTypeShipment($command, $company);
+        $carrier = $this->resolveCarrier($command->getCarrierId());
+        $typeShipment = $this->resolveTypeShipment($command, $carrier);
 
         $referenceCarrierId = $command->getReferenceCarrierId();
         if (null !== $referenceCarrierId) {
@@ -36,7 +36,7 @@ final class UpsertTypeShipmentHandler
         }
 
         $typeShipment
-            ->setCompany($company)
+            ->setCarrier($carrier)
             ->setName($command->getName())
             ->setBusinessCode($command->getBusinessCode())
             ->setReferenceCarrierId($referenceCarrierId)
@@ -47,23 +47,23 @@ final class UpsertTypeShipmentHandler
         return $typeShipment;
     }
 
-    private function resolveCompany(int $companyId): Company
+    private function resolveCarrier(int $carrierId): Carrier
     {
-        $company = $this->companyRepository->find($companyId);
+        $carrier = $this->carrierRepository->find($carrierId);
 
-        if (!$company instanceof Company) {
-            throw new TypeShipmentException(sprintf('Company with id %d was not found.', $companyId));
+        if (!$carrier instanceof Carrier) {
+            throw new TypeShipmentException(sprintf('Carrier with id %d was not found.', $carrierId));
         }
 
-        return $company;
+        return $carrier;
     }
 
-    private function resolveTypeShipment(UpsertTypeShipmentCommand $command, Company $company): TypeShipment
+    private function resolveTypeShipment(UpsertTypeShipmentCommand $command, Carrier $carrier): TypeShipment
     {
         $typeShipmentId = $command->getTypeShipmentId();
 
         if (null === $typeShipmentId) {
-            $typeShipment = new TypeShipment($company, $command->getName(), $command->getBusinessCode());
+            $typeShipment = new TypeShipment($carrier, $command->getName(), $command->getBusinessCode());
             $typeShipment->setReferenceCarrierId($command->getReferenceCarrierId());
             $typeShipment->setActive($command->isActive());
 

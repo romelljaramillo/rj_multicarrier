@@ -289,7 +289,7 @@ final class InfoPackageQueryBuilder extends AbstractDoctrineQueryBuilder
             ->leftJoin('info', $this->dbPrefix . 'carrier', 'carrier', 'carrier.id_reference = info.id_reference_carrier AND carrier.deleted = 0')
             ->leftJoin('info', $this->dbPrefix . 'orders', 'orders', 'orders.id_order = info.id_order')
             ->leftJoin('info', $this->dbPrefix . 'rj_multicarrier_type_shipment', 'type_shipment', 'type_shipment.id_type_shipment = info.id_type_shipment')
-            ->leftJoin('type_shipment', $this->dbPrefix . 'rj_multicarrier_company', 'company', 'company.id_carrier_company = type_shipment.id_carrier_company')
+            ->leftJoin('type_shipment', $this->dbPrefix . 'rj_multicarrier_carrier', 'company', 'company.id_carrier = type_shipment.id_carrier')
             ->leftJoin('info', $this->dbPrefix . 'rj_multicarrier_shipment', 'shipment', 'shipment.id_infopackage = info.id_infopackage')
             ->andWhere('(shipment.id_shipment IS NULL OR shipment.`delete` = 1)');
     }

@@ -76,7 +76,7 @@ final class InfoPackageGridDefinitionFactory extends AbstractModuleGridDefinitio
                     'field' => 'carrier_name',
                 ]))
             ->add((new DataColumn('company_shortname'))
-                ->setName($this->transString('Company'))
+                ->setName($this->transString('Carrier'))
                 ->setOptions([
                     'field' => 'company_shortname',
                 ]))
@@ -145,7 +145,7 @@ final class InfoPackageGridDefinitionFactory extends AbstractModuleGridDefinitio
             ->add((new Filter('company_shortname', TextType::class))
                 ->setTypeOptions([
                     'attr' => [
-                        'placeholder' => $this->transString('Company'),
+                        'placeholder' => $this->transString('Carrier'),
                     ],
                 ])
                 ->setAssociatedColumn('company_shortname'))

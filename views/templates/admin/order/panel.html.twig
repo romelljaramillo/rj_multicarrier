@@ -121,7 +121,7 @@
 				<div class="row mb-3">
 					<div class="col-md-6">
 						<label class="form-label">{{ 'Compañía'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-						<select name="company_id" class="form-select">
+						<select name="carrier_id" class="form-select">
 							<option value="">{{ 'Selecciona compañía'|trans({}, 'Modules.RjMulticarrier.Admin') }}</option>
 							{% for company in companies %}
 								<option value="{{ company.id|default(company.getId()|default('')) }}">{{ company.name|default(company.getName()|default('')) }}</option>

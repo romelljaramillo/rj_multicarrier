@@ -27,10 +27,10 @@ final class TypeShipmentGridDataFactoryDecorator implements GridDataFactoryInter
         $recordsWithTokens = [];
         foreach ($gridData->getRecords() as $record) {
             $id = (int) ($record['id_type_shipment'] ?? 0);
-            $companyId = (int) ($record['id_carrier_company'] ?? 0);
+            $companyId = (int) ($record['id_carrier'] ?? 0);
 
             $record['id_type_shipment'] = $id;
-            $record['id_carrier_company'] = $companyId;
+            $record['id_carrier'] = $companyId;
             $record['toggle_token'] = $this->csrfTokenManager
                 ->getToken('toggle_type_shipment_' . $id)
                 ->getValue();

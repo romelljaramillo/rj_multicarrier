@@ -9,7 +9,7 @@ namespace Roanja\Module\RjMulticarrier\Repository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\NonUniqueResultException;
 use Doctrine\ORM\QueryBuilder;
-use Roanja\Module\RjMulticarrier\Entity\Company;
+use Roanja\Module\RjMulticarrier\Entity\Carrier;
 use Roanja\Module\RjMulticarrier\Entity\TypeShipment;
 
 class TypeShipmentRepository
@@ -21,11 +21,11 @@ class TypeShipmentRepository
     /**
      * @return TypeShipment[]
      */
-    public function findByCompany(Company $company, bool $onlyActive = false): array
+    public function findByCarrier(Carrier $carrier, bool $onlyActive = false): array
     {
         $qb = $this->createQueryBuilder('type')
-            ->andWhere('type.company = :company')
-            ->setParameter('company', $company)
+            ->andWhere('type.carrier = :carrier')
+            ->setParameter('carrier', $carrier)
             ->orderBy('type.name', 'ASC');
 
         if ($onlyActive) {

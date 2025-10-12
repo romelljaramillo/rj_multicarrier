@@ -10,7 +10,7 @@ use Configuration;
 use Context;
 use PrestaShop\PrestaShop\Adapter\SymfonyContainer;
 use Roanja\Module\RjMulticarrier\Support\Common;
-use Roanja\Module\RjMulticarrier\Repository\CompanyRepository;
+use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
 use Roanja\Module\RjMulticarrier\Entity\TypeShipment;
 use RuntimeException;
@@ -40,7 +40,7 @@ abstract class TemplateLabel
     public $incH = 88;
     public $offset = 7;
 
-    private static ?CompanyRepository $companyRepository = null;
+    private static ?CarrierRepository $companyRepository = null;
 
     private static ?TypeShipmentRepository $typeShipmentRepository = null;
 
@@ -100,11 +100,11 @@ abstract class TemplateLabel
         $this->pdf_class->setY(15);
         $this->pdf_class->MultiCell(10, 0, $this->l('From') . ':', 0, 'L', 1, 0, '', '', true);
 
-        $data_shipper = $this->shipment['info_shop']['company'] . "\n"
-            . $this->shipment['info_shop']['lastname'] . ' ' . $this->shipment['info_shop']['firstname'] . "\n"
-            . $this->shipment['info_shop']['street'] . ' - ' . $this->shipment['info_shop']['city'] . "\n"
-            . $this->shipment['info_shop']['state'] . ' - ' . $this->shipment['info_shop']['country'] . "\n"
-            . $this->shipment['info_shop']['email'] . ' - ' . $this->shipment['info_shop']['phone'];
+        $data_shipper = $this->shipment['configuration_shop']['company'] . "\n"
+            . $this->shipment['configuration_shop']['lastname'] . ' ' . $this->shipment['configuration_shop']['firstname'] . "\n"
+            . $this->shipment['configuration_shop']['street'] . ' - ' . $this->shipment['configuration_shop']['city'] . "\n"
+            . $this->shipment['configuration_shop']['state'] . ' - ' . $this->shipment['configuration_shop']['country'] . "\n"
+            . $this->shipment['configuration_shop']['email'] . ' - ' . $this->shipment['configuration_shop']['phone'];
 
         $this->pdf_class->MultiCell(80, 0, $data_shipper, 0, 'L', 0, 1, '', '', true);
         $this->pdf_class->Line(5, 40, 105, 40);
@@ -339,18 +339,18 @@ abstract class TemplateLabel
         // legacy template does not render extra pagination block
     }
 
-    private static function getCompanyRepository(): CompanyRepository
+    private static function getCarrierRepository(): CarrierRepository
     {
-        if (!self::$companyRepository instanceof CompanyRepository) {
+        if (!self::$companyRepository instanceof CarrierRepository) {
             $container = SymfonyContainer::getInstance();
             if (null === $container) {
                 throw new RuntimeException('Symfony container is not available');
             }
 
-            $repository = $container->get(CompanyRepository::class);
+            $repository = $container->get(CarrierRepository::class);
 
-            if (!$repository instanceof CompanyRepository) {
-                throw new RuntimeException('Unable to resolve CompanyRepository service');
+            if (!$repository instanceof CarrierRepository) {
+                throw new RuntimeException('Unable to resolve CarrierRepository service');
             }
 
             self::$companyRepository = $repository;
@@ -401,7 +401,7 @@ abstract class TemplateLabel
         }
 
         try {
-            $company = self::getCompanyRepository()->findOneByShortName($shortname);
+            $company = self::getCarrierRepository()->findOneByShortName($shortname);
         } catch (RuntimeException $exception) {
             return null;
         }

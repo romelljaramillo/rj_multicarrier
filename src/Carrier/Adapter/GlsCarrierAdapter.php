@@ -126,7 +126,7 @@ final class GlsCarrierAdapter implements CarrierAdapterInterface
         $orderReference = $context->getOrderReference();
 
         $infoCustomer = (array) ($payload['info_customer'] ?? []);
-        $infoShop = (array) ($payload['info_shop'] ?? []);
+        $Configuration = (array) ($payload['configuration_shop'] ?? []);
         $infoPackage = (array) ($payload['info_package'] ?? []);
         $infoTypeShipment = (array) ($payload['info_type_shipment'] ?? []);
         $configExtra = (array) ($payload['config_extra_info'] ?? []);
@@ -159,7 +159,7 @@ final class GlsCarrierAdapter implements CarrierAdapterInterface
         $infoCustomer['message'] = $message;
 
         $receiver = $this->buildReceiver($infoCustomer);
-        $shipper = $this->buildShipper($infoShop, $departmentOrigin);
+        $shipper = $this->buildShipper($Configuration, $departmentOrigin);
 
         $totalWeight = $weight * $quantity;
 

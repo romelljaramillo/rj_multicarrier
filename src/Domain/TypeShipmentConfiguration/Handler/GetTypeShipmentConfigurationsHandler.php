@@ -28,14 +28,14 @@ final class GetTypeShipmentConfigurationsHandler
         }
 
         $entries = $this->configurationRepository->findByTypeShipment($typeShipment);
-        $companyId = $typeShipment->getCompany()->getId() ?? 0;
+        $carrierId = $typeShipment->getCarrier()->getId() ?? 0;
         $views = [];
 
         foreach ($entries as $entry) {
             $views[] = new TypeShipmentConfigurationView(
                 $entry->getId(),
                 $typeShipment->getId() ?? 0,
-                $companyId,
+                $carrierId,
                 $entry->getName(),
                 $entry->getValue(),
                 $entry->getCreatedAt()?->format('Y-m-d H:i:s'),

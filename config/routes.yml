@@ -1,43 +1,43 @@
 ###############################################################################
 # INFO SHOP CONTROLLER
 ###############################################################################
-admin_rj_multicarrier_info_shop_index:
-  path: /rj-multicarrier/info-shops
+admin_rj_multicarrier_configuration_shop_index:
+  path: /rj-multicarrier/configuration-shops
   methods: [GET]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShopController::indexAction'
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ConfigurationController::indexAction'
     _legacy_controller: "AdminRjMulticarrierConfiguration"
     _legacy_link: "AdminRjMulticarrierConfiguration"
   options:
     expose: true
 
-admin_rj_multicarrier_info_shop_create:
-  path: /rj-multicarrier/info-shops/create
+admin_rj_multicarrier_configuration_shop_create:
+  path: /rj-multicarrier/configuration-shops/create
   methods: [GET, POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShopController::createAction'
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ConfigurationController::createAction'
     _legacy_controller: "AdminRjMulticarrierConfiguration"
     _legacy_link: "AdminRjMulticarrierConfiguration:create"
   options:
     expose: true
 
-admin_rj_multicarrier_info_shop_search:
-  path: /rj-multicarrier/info-shops
+admin_rj_multicarrier_configuration_shop_search:
+  path: /rj-multicarrier/configuration-shops
   methods: [POST]
   defaults:
     _controller: "PrestaShopBundle:Admin/Common:searchGrid"
-    gridDefinitionFactoryServiceId: "rj_multicarrier.grid.definition.factory.info_shop"
-    redirectRoute: admin_rj_multicarrier_info_shop_index
+    gridDefinitionFactoryServiceId: "rj_multicarrier.grid.definition.factory.configuration_shop"
+    redirectRoute: admin_rj_multicarrier_configuration_shop_index
     _legacy_controller: "AdminRjMulticarrierConfiguration"
-    _legacy_link: "AdminRjMulticarrierConfiguration:submitFilterrj_multicarrier_info_shop"
+    _legacy_link: "AdminRjMulticarrierConfiguration:submitFilterrj_multicarrier_configuration_shop"
   options:
     expose: true
 
-admin_rj_multicarrier_info_shop_edit:
-  path: /rj-multicarrier/info-shops/{id}/edit
+admin_rj_multicarrier_configuration_shop_edit:
+  path: /rj-multicarrier/configuration-shops/{id}/edit
   methods: [GET, POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShopController::editAction'
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ConfigurationController::editAction'
     _legacy_controller: "AdminRjMulticarrierConfiguration"
     _legacy_link: "AdminRjMulticarrierConfiguration:edit"
   requirements:
@@ -45,11 +45,11 @@ admin_rj_multicarrier_info_shop_edit:
   options:
     expose: true
 
-admin_rj_multicarrier_info_shop_delete:
-  path: /rj-multicarrier/info-shops/{id}/delete
+admin_rj_multicarrier_configuration_shop_delete:
+  path: /rj-multicarrier/configuration-shops/{id}/delete
   methods: [POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShopController::deleteAction'
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ConfigurationController::deleteAction'
     _legacy_controller: "AdminRjMulticarrierConfiguration"
     _legacy_link: "AdminRjMulticarrierConfiguration:delete"
   requirements:
@@ -57,11 +57,11 @@ admin_rj_multicarrier_info_shop_delete:
   options:
     expose: true
 
-admin_rj_multicarrier_info_shop_toggle:
-  path: /rj-multicarrier/info-shops/{id}/toggle
+admin_rj_multicarrier_configuration_shop_toggle:
+  path: /rj-multicarrier/configuration-shops/{id}/toggle
   methods: [POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShopController::toggleAction'
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ConfigurationController::toggleAction'
     _legacy_controller: "AdminRjMulticarrierConfiguration"
     _legacy_link: "AdminRjMulticarrierConfiguration:toggle"
   requirements:
@@ -69,43 +69,33 @@ admin_rj_multicarrier_info_shop_toggle:
   options:
     expose: true
 
-admin_rj_multicarrier_info_shop_delete_bulk:
-  path: /rj-multicarrier/info-shops/bulk-delete
+admin_rj_multicarrier_configuration_shop_delete_bulk:
+  path: /rj-multicarrier/configuration-shops/bulk-delete
   methods: [POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShopController::deleteBulkAction'
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ConfigurationController::deleteBulkAction'
     _legacy_controller: "AdminRjMulticarrierConfiguration"
     _legacy_link: "AdminRjMulticarrierConfiguration:bulkdelete"
   options:
     expose: true
 
-admin_rj_multicarrier_info_shop_export_csv:
-  path: /rj-multicarrier/info-shops/export
+admin_rj_multicarrier_configuration_shop_export_csv:
+  path: /rj-multicarrier/configuration-shops/export
   methods: [POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShopController::exportCsvAction'
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ConfigurationController::exportCsvAction'
     _legacy_controller: "AdminRjMulticarrierConfiguration"
     _legacy_link: "AdminRjMulticarrierConfiguration:export"
   options:
     expose: true
 
-admin_rj_multicarrier_info_shop_export_selected_csv:
-  path: /rj-multicarrier/info-shops/export-selected
+admin_rj_multicarrier_configuration_shop_export_selected_csv:
+  path: /rj-multicarrier/configuration-shops/export-selected
   methods: [POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShopController::exportSelectedCsvAction'
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ConfigurationController::exportSelectedCsvAction'
     _legacy_controller: "AdminRjMulticarrierConfiguration"
     _legacy_link: "AdminRjMulticarrierConfiguration:exportSelected"
-  options:
-    expose: true
-
-admin_rj_multicarrier_info_shop_extra:
-  path: /rj-multicarrier/info-shops/extra-configuration
-  methods: [GET, POST]
-  defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShopController::extraConfigAction'
-    _legacy_controller: "AdminRjMulticarrierConfiguration"
-    _legacy_link: "AdminRjMulticarrierConfiguration:extra"
   options:
     expose: true
 
@@ -114,7 +104,7 @@ admin_rj_multicarrier_configuration:
   path: /rj-multicarrier/configuration
   methods: [GET]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShopController::indexAction'
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ConfigurationController::indexAction'
     _legacy_controller: "AdminRjMulticarrierConfiguration"
     _legacy_link: "AdminRjMulticarrierConfiguration"
   options:
@@ -517,125 +507,125 @@ admin_rj_multicarrier_ajax:
 ###############################################################################
 # COMPANY CONTROLLER
 ###############################################################################
-admin_rj_multicarrier_companies_index:
-  path: /rj-multicarrier/companies
+admin_rj_multicarrier_carriers_index:
+  path: /rj-multicarrier/carriers
   methods: [GET]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CompanyController::indexAction'
-    _legacy_controller: "AdminRjMulticarrierCompanies"
-    _legacy_link: "AdminRjMulticarrierCompanies"
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CarrierController::indexAction'
+    _legacy_controller: "AdminRjMulticarrierCarriers"
+    _legacy_link: "AdminRjMulticarrierCarriers"
   options:
     expose: true
 
-admin_rj_multicarrier_companies_view:
-  path: /rj-multicarrier/companies/{id}/view
+admin_rj_multicarrier_carriers_view:
+  path: /rj-multicarrier/carriers/{id}/view
   methods: [GET]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CompanyController::viewAction'
-    _legacy_controller: "AdminRjMulticarrierCompanies"
-    _legacy_link: "AdminRjMulticarrierCompanies:view"
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CarrierController::viewAction'
+    _legacy_controller: "AdminRjMulticarrierCarriers"
+    _legacy_link: "AdminRjMulticarrierCarriers:view"
   requirements:
     id: '\d+'
   options:
     expose: true
 
-admin_rj_multicarrier_companies_create:
-  path: /rj-multicarrier/companies/create
+admin_rj_multicarrier_carriers_create:
+  path: /rj-multicarrier/carriers/create
   methods: [GET, POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CompanyController::createAction'
-    _legacy_controller: "AdminRjMulticarrierCompanies"
-    _legacy_link: "AdminRjMulticarrierCompanies:create"
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CarrierController::createAction'
+    _legacy_controller: "AdminRjMulticarrierCarriers"
+    _legacy_link: "AdminRjMulticarrierCarriers:create"
   options:
     expose: true
 
-admin_rj_multicarrier_companies_edit:
-  path: /rj-multicarrier/companies/{id}/edit
+admin_rj_multicarrier_carriers_edit:
+  path: /rj-multicarrier/carriers/{id}/edit
   methods: [GET, POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CompanyController::editAction'
-    _legacy_controller: "AdminRjMulticarrierCompanies"
-    _legacy_link: "AdminRjMulticarrierCompanies:edit"
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CarrierController::editAction'
+    _legacy_controller: "AdminRjMulticarrierCarriers"
+    _legacy_link: "AdminRjMulticarrierCarriers:edit"
   requirements:
     id: '\d+'
   options:
     expose: true
 
-admin_rj_multicarrier_companies_configuration:
-  path: /rj-multicarrier/companies/{id}/configuration
+admin_rj_multicarrier_carriers_configuration:
+  path: /rj-multicarrier/carriers/{id}/configuration
   methods: [GET, POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CompanyConfigurationController::indexAction'
-    _legacy_controller: "AdminRjMulticarrierCompanies"
-    _legacy_link: "AdminRjMulticarrierCompanies:configuration"
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CarrierConfigurationController::indexAction'
+    _legacy_controller: "AdminRjMulticarrierCarriers"
+    _legacy_link: "AdminRjMulticarrierCarriers:configuration"
   requirements:
     id: '\d+'
   options:
     expose: true
 
-admin_rj_multicarrier_companies_configuration_delete:
-  path: /rj-multicarrier/companies/{id}/configuration/{configId}/delete
+admin_rj_multicarrier_carriers_configuration_delete:
+  path: /rj-multicarrier/carriers/{id}/configuration/{configId}/delete
   methods: [POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CompanyConfigurationController::deleteAction'
-    _legacy_controller: "AdminRjMulticarrierCompanies"
-    _legacy_link: "AdminRjMulticarrierCompanies:configurationDelete"
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CarrierConfigurationController::deleteAction'
+    _legacy_controller: "AdminRjMulticarrierCarriers"
+    _legacy_link: "AdminRjMulticarrierCarriers:configurationDelete"
   requirements:
     id: '\d+'
     configId: '\d+'
   options:
     expose: true
 
-admin_rj_multicarrier_companies_delete:
-  path: /rj-multicarrier/companies/{id}/delete
+admin_rj_multicarrier_carriers_delete:
+  path: /rj-multicarrier/carriers/{id}/delete
   methods: [POST, DELETE]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CompanyController::deleteAction'
-    _legacy_controller: "AdminRjMulticarrierCompanies"
-    _legacy_link: "AdminRjMulticarrierCompanies:delete"
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CarrierController::deleteAction'
+    _legacy_controller: "AdminRjMulticarrierCarriers"
+    _legacy_link: "AdminRjMulticarrierCarriers:delete"
   requirements:
     id: '\d+'
   options:
     expose: true
 
-admin_rj_multicarrier_companies_search:
-  path: /rj-multicarrier/companies
+admin_rj_multicarrier_carriers_search:
+  path: /rj-multicarrier/carriers
   methods: [POST]
   defaults:
     _controller: "PrestaShopBundle:Admin/Common:searchGrid"
-    gridDefinitionFactoryServiceId: "rj_multicarrier.grid.definition.factory.company"
-    redirectRoute: admin_rj_multicarrier_companies_index
-    _legacy_controller: "AdminRjMulticarrierCompanies"
-    _legacy_link: "AdminRjMulticarrierCompanies:submitFilterrj_multicarrier_company"
+    gridDefinitionFactoryServiceId: "rj_multicarrier.grid.definition.factory.carrier"
+    redirectRoute: admin_rj_multicarrier_carriers_index
+    _legacy_controller: "AdminRjMulticarrierCarriers"
+    _legacy_link: "AdminRjMulticarrierCarriers:submitFilterrj_multicarrier_carrier"
   options:
     expose: true
 
-admin_rj_multicarrier_companies_delete_bulk:
-  path: /rj-multicarrier/companies/bulk-delete
+admin_rj_multicarrier_carriers_delete_bulk:
+  path: /rj-multicarrier/carriers/bulk-delete
   methods: [POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CompanyController::deleteBulkAction'
-    _legacy_controller: "AdminRjMulticarrierCompanies"
-    _legacy_link: "AdminRjMulticarrierCompanies:bulkdelete"
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CarrierController::deleteBulkAction'
+    _legacy_controller: "AdminRjMulticarrierCarriers"
+    _legacy_link: "AdminRjMulticarrierCarriers:bulkdelete"
   options:
     expose: true
 
-admin_rj_multicarrier_companies_export_csv:
-  path: /rj-multicarrier/companies/export
+admin_rj_multicarrier_carriers_export_csv:
+  path: /rj-multicarrier/carriers/export
   methods: [POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CompanyController::exportCsvAction'
-    _legacy_controller: "AdminRjMulticarrierCompanies"
-    _legacy_link: "AdminRjMulticarrierCompanies:export"
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CarrierController::exportCsvAction'
+    _legacy_controller: "AdminRjMulticarrierCarriers"
+    _legacy_link: "AdminRjMulticarrierCarriers:export"
   options:
     expose: true
 
-admin_rj_multicarrier_companies_export_selected_csv:
-  path: /rj-multicarrier/companies/export-selected
+admin_rj_multicarrier_carriers_export_selected_csv:
+  path: /rj-multicarrier/carriers/export-selected
   methods: [POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CompanyController::exportSelectedCsvAction'
-    _legacy_controller: "AdminRjMulticarrierCompanies"
-    _legacy_link: "AdminRjMulticarrierCompanies:exportSelected"
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CarrierController::exportSelectedCsvAction'
+    _legacy_controller: "AdminRjMulticarrierCarriers"
+    _legacy_link: "AdminRjMulticarrierCarriers:exportSelected"
   options:
     expose: true

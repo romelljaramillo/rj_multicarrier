@@ -53,12 +53,12 @@ class InfoPackageRepository extends ServiceEntityRepository
 
         // Join type shipment and company to include their names for exports
         $qb->leftJoin('package.typeShipment', 'ts')
-            ->leftJoin('ts.company', 'company')
+            ->leftJoin('ts.carrier', 'company')
             ->addSelect([
                 'ts.name AS type_shipment_name',
-                'company.id AS company_id',
-                'company.name AS company_name',
-                'company.shortName AS company_short_name',
+                'company.id AS carrier_id',
+                'company.name AS carrier_name',
+                'company.shortName AS carrier_short_name',
             ]);
 
         $this->applyShopRestriction($qb);

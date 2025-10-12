@@ -7,14 +7,14 @@ declare(strict_types=1);
 namespace Roanja\Module\RjMulticarrier\Service\Presenter;
 
 use PrestaShop\PrestaShop\Core\CommandBus\CommandBusInterface;
-use Roanja\Module\RjMulticarrier\Domain\CompanyConfiguration\Query\GetCompanyConfigurationsForCompany;
-use Roanja\Module\RjMulticarrier\Domain\CompanyConfiguration\View\CompanyConfigurationView;
+use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Query\GetCarrierConfigurationsForCarrier;
+use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\View\CarrierConfigurationView;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\GetShipmentByOrderIdHandler;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetShipmentByOrderId;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipmentConfiguration\Query\GetTypeShipmentConfigurations;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipmentConfiguration\View\TypeShipmentConfigurationView;
 use Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository;
-use Roanja\Module\RjMulticarrier\Repository\CompanyRepository;
+use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\View\ShipmentView;
 use Twig\Environment;
@@ -25,7 +25,7 @@ final class OrderViewPresenter
         private readonly Environment $twig,
         private readonly GetShipmentByOrderIdHandler $getShipmentByOrderIdHandler,
         private readonly ?InfoPackageRepository $infoPackageRepository = null,
-        private readonly ?CompanyRepository $companyRepository = null,
+        private readonly ?CarrierRepository $carrierRepository = null,
         private readonly ?TypeShipmentRepository $typeShipmentRepository = null,
         private readonly ?CommandBusInterface $queryBus = null,
     ) {
@@ -73,8 +73,8 @@ final class OrderViewPresenter
         $companies = [];
         $typeShipments = [];
         try {
-            if ($this->companyRepository instanceof CompanyRepository) {
-                $companies = $this->companyRepository->findAllOrdered();
+            if ($this->carrierRepository instanceof CarrierRepository) {
+                $companies = $this->carrierRepository->findAllOrdered();
             }
         } catch (\Throwable $e) {
             $companies = [];
@@ -94,7 +94,7 @@ final class OrderViewPresenter
                     }
 
                     if ($companyEntity !== null) {
-                        $typeShipments = $this->typeShipmentRepository->findByCompany($companyEntity, true);
+                        $typeShipments = $this->typeShipmentRepository->findByCarrier($companyEntity, true);
                     }
                 }
 
@@ -122,7 +122,7 @@ final class OrderViewPresenter
             'url_ajax' => $urlAjax,
             'config_extra_info' => $configurations,
             'info_customer' => [],
-            'info_shop' => [],
+            'configuration_shop' => [],
             // modern lists for form rendering when no shipment exists
             'companies' => $companies,
             'type_shipments' => $typeShipments,
@@ -143,16 +143,16 @@ final class OrderViewPresenter
             ];
         }
 
-        $companyId = (int) ($shipment['companyId'] ?? 0);
+        $carrierId = (int) ($shipment['carrierId'] ?? $shipment['companyId'] ?? 0);
         $typeShipmentId = (int) ($shipment['typeShipmentId'] ?? $shipment['id_type_shipment'] ?? 0);
 
         $companyConfig = [];
         $typeConfig = [];
 
-        if ($companyId > 0) {
+        if ($carrierId > 0) {
             try {
-                /** @var CompanyConfigurationView[] $views */
-                $views = $this->queryBus->handle(new GetCompanyConfigurationsForCompany($companyId));
+                /** @var CarrierConfigurationView[] $views */
+                $views = $this->queryBus->handle(new GetCarrierConfigurationsForCarrier($carrierId));
                 foreach ($views as $view) {
                     $companyConfig[$view->getName()] = $view->getValue();
                 }

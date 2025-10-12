@@ -24,13 +24,23 @@ final class TypeShipmentType extends AbstractType
             ->setMethod('POST')
             ->add('id', HiddenType::class, [
                 'required' => false,
-            ])
-            ->add('company_id', ChoiceType::class, [
+            ]);
+
+        if (count($options['company_choices']) <= 1) {
+            $builder->add('carrier_id', HiddenType::class, [
+                'data' => $options['current_carrier_id'],
+                'constraints' => [new Assert\NotBlank()],
+            ]);
+        } else {
+            $builder->add('carrier_id', ChoiceType::class, [
                 'label' => 'Compañía',
                 'choices' => $options['company_choices'],
                 'placeholder' => 'Selecciona una compañía',
                 'constraints' => [new Assert\NotBlank()],
-            ])
+            ]);
+        }
+
+        $builder
             ->add('name', TextType::class, [
                 'label' => 'Nombre',
                 'constraints' => [
@@ -66,7 +76,9 @@ final class TypeShipmentType extends AbstractType
             'data_class' => null,
             'company_choices' => [],
             'carrier_choices' => [],
+            'current_carrier_id' => null,
             'translation_domain' => 'Modules.RjMulticarrier.Admin',
         ]);
+        $resolver->setAllowedTypes('current_carrier_id', ['null', 'int']);
     }
 }

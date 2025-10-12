@@ -69,7 +69,7 @@ final class CexCarrierAdapter implements CarrierAdapterInterface
     private function buildRequestPayload(array $payload, array $config, CarrierContext $context): array
     {
         $infoPackage = (array) ($payload['info_package'] ?? []);
-        $infoShop = (array) ($payload['info_shop'] ?? []);
+        $Configuration = (array) ($payload['configuration_shop'] ?? []);
         $infoCustomer = (array) ($payload['info_customer'] ?? []);
         $configExtra = (array) ($payload['config_extra_info'] ?? []);
 
@@ -87,7 +87,7 @@ final class CexCarrierAdapter implements CarrierAdapterInterface
             'codRte' => $config['COD_CLIENT'] ?? '',
         ];
 
-        $shipper = $this->buildShipper($infoShop);
+        $shipper = $this->buildShipper($Configuration);
         $receiver = $this->buildReceiver($infoCustomer);
         $pieces = $this->buildPieces($infoPackage, $businessCode);
         $additional = [

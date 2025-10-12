@@ -23,12 +23,12 @@ final class GetTypeShipmentConfigurationForViewHandler
         }
 
         $typeShipment = $configuration->getTypeShipment();
-        $company = $configuration->getCompany();
+        $carrier = $configuration->getCarrier();
 
         return new TypeShipmentConfigurationView(
             $configuration->getId(),
             $typeShipment->getId() ?? 0,
-            $company?->getId() ?? 0,
+            $carrier?->getId() ?? 0,
             $configuration->getName(),
             $configuration->getValue(),
             $configuration->getCreatedAt()?->format('Y-m-d H:i:s'),

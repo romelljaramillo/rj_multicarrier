@@ -127,12 +127,12 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
         }
 
         $infoCustomer = (array) ($payload['info_customer'] ?? []);
-        $infoShop = (array) ($payload['info_shop'] ?? []);
+        $Configuration = (array) ($payload['configuration_shop'] ?? []);
         $infoPackage = (array) ($payload['info_package'] ?? []);
         $infoCustomer['referenceClient'] = (string) ($infoPackage['message'] ?? '');
 
         $receiver = $this->buildReceiver($infoCustomer);
-        $shipper = $this->buildShipper($infoShop);
+        $shipper = $this->buildShipper($Configuration);
         $pieces = $this->buildPieces($infoPackage);
 
         $options = [[

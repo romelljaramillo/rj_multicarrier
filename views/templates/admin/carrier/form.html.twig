@@ -1,0 +1,86 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            <h3>{{ action == 'create' ? 'Create carrier'|trans({}, 'Modules.RjMulticarrier.Admin') : 'Edit carrier'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
+
+            <form method="post" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label class="form-label">{{ 'Name'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                    <input type="text" name="name" value="{{ carrier is defined and carrier ? carrier.name : '' }}" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">{{ 'Short name'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                    <input type="text" name="shortName" value="{{ carrier is defined and carrier ? carrier.shortName : '' }}" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">{{ 'Icon'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                    {% set icon_preview = iconUrl is defined ? iconUrl : (carrier is defined and carrier ? carrier.icon : null) %}
+                    {% if icon_preview %}
+                        <div class="mb-2">
+                            <img src="{{ icon_preview }}" alt="{{ carrier is defined and carrier ? carrier.name : '' }}" style="max-height:48px; max-width:120px; object-fit:contain;" />
+                        </div>
+                    {% endif %}
+                    <input type="file" name="icon" accept="image/*" class="form-control-file" />
+                </div>
+
+                {% set configurationList = (configurationEntries is defined and configurationEntries is not empty) ? configurationEntries : [{'id': '', 'name': '', 'value': ''}] %}
+                <div class="mb-3">
+                    <label class="form-label">{{ 'Configuration fields'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                    <div id="carrier-configuration-list">
+                        {% for entry in configurationList %}
+                            <div class="input-group mb-2 carrier-configuration-row">
+                                <input type="hidden" name="configurations[id][]" value="{{ entry.id }}" />
+                                <input type="text" class="form-control" name="configurations[name][]" placeholder="{{ 'Key'|trans({}, 'Modules.RjMulticarrier.Admin') }}" value="{{ entry.name }}" />
+                                <input type="text" class="form-control" name="configurations[value][]" placeholder="{{ 'Value'|trans({}, 'Modules.RjMulticarrier.Admin') }}" value="{{ entry.value }}" />
+                                <button type="button" class="btn btn-outline-danger js-remove-configuration" title="{{ 'Remove'|trans({}, 'Admin.Actions') }}">&times;</button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm js-add-configuration">{{ 'Add configuration field'|trans({}, 'Modules.RjMulticarrier.Admin') }}</button>
+                    <small class="form-text text-muted">{{ 'Leave the key empty to delete an existing configuration.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
+                </div>
+
+                <button type="submit" class="btn btn-primary">{{ 'Save'|trans({}, 'Admin.Actions') }}</button>
+            </form>
+        </div>
+    </div>
+
+    <template id="carrier-configuration-template">
+        <div class="input-group mb-2 carrier-configuration-row">
+            <input type="hidden" name="configurations[id][]" value="" />
+            <input type="text" class="form-control" name="configurations[name][]" placeholder="{{ 'Key'|trans({}, 'Modules.RjMulticarrier.Admin') }}" />
+            <input type="text" class="form-control" name="configurations[value][]" placeholder="{{ 'Value'|trans({}, 'Modules.RjMulticarrier.Admin') }}" />
+            <button type="button" class="btn btn-outline-danger js-remove-configuration" title="{{ 'Remove'|trans({}, 'Admin.Actions') }}">&times;</button>
+        </div>
+    </template>
+    <script>
+        (function () {
+            var container = document.getElementById('carrier-configuration-list');
+            var addButton = document.querySelector('.js-add-configuration');
+            var template = document.getElementById('carrier-configuration-template');
+
+            if (!container || !addButton || !template) {
+                return;
+            }
+
+            addButton.addEventListener('click', function () {
+                var fragment = template.content.cloneNode(true);
+                container.appendChild(fragment);
+            });
+
+            container.addEventListener('click', function (event) {
+                var target = event.target;
+                if (target && target.closest('.js-remove-configuration')) {
+                    var row = target.closest('.carrier-configuration-row');
+                    if (row) {
+                        row.remove();
+                    }
+                }
+            });
+        })();
+    </script>
+{% endblock %}

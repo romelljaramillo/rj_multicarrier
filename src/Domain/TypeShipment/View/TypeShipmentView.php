@@ -12,9 +12,9 @@ final class TypeShipmentView
 {
     public function __construct(
         private readonly int $id,
-        private readonly int $companyId,
-        private readonly string $companyName,
-        private readonly ?string $companyShortName,
+        private readonly int $carrierId,
+        private readonly string $carrierName,
+        private readonly ?string $carrierShortName,
         private readonly string $name,
         private readonly string $businessCode,
         private readonly ?int $referenceCarrierId,
@@ -26,13 +26,13 @@ final class TypeShipmentView
 
     public static function fromEntity(TypeShipment $typeShipment): self
     {
-        $company = $typeShipment->getCompany();
+        $carrier = $typeShipment->getCarrier();
 
         return new self(
             $typeShipment->getId() ?? 0,
-            $company->getId() ?? 0,
-            $company->getName(),
-            $company->getShortName(),
+            $carrier->getId() ?? 0,
+            $carrier->getName(),
+            $carrier->getShortName(),
             $typeShipment->getName(),
             $typeShipment->getBusinessCode(),
             $typeShipment->getReferenceCarrierId(),
@@ -49,9 +49,10 @@ final class TypeShipmentView
     {
         return [
             'id' => $this->id,
-            'companyId' => $this->companyId,
-            'companyName' => $this->companyName,
-            'companyShortName' => $this->companyShortName,
+            'carrierId' => $this->carrierId,
+            'companyId' => $this->carrierId,
+            'companyName' => $this->carrierName,
+            'companyShortName' => $this->carrierShortName,
             'name' => $this->name,
             'businessCode' => $this->businessCode,
             'referenceCarrierId' => $this->referenceCarrierId,

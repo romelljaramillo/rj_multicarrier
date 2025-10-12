@@ -9,8 +9,8 @@ if (!defined('_PS_VERSION_')) {
 
 $sql = [];
 
-$sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_infoshop` (
-    `id_infoshop` INT(11) NOT NULL AUTO_INCREMENT,
+$sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_configuration` (
+    `id_configuration` INT(11) NOT NULL AUTO_INCREMENT,
     `firstname` VARCHAR(100) NOT NULL,
     `lastname` VARCHAR(100) NOT NULL,
     `company` VARCHAR(100) NULL DEFAULT NULL,
@@ -26,39 +26,41 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_infosho
     `email` VARCHAR(100) NULL DEFAULT NULL,
     `phone` VARCHAR(100) NOT NULL,
     `vatnumber` VARCHAR(100) NULL DEFAULT NULL,
+    `label_prefix` VARCHAR(64) NULL DEFAULT NULL,
+    `cod_module` VARCHAR(255) NULL DEFAULT NULL,
     `active` TINYINT(1) NOT NULL DEFAULT 1,
     `date_add` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `date_upd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id_infoshop`),
+    PRIMARY KEY (`id_configuration`),
     INDEX `id_country` (`id_country`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
-$sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_infoshop_shop` (
-    `id_infoshop` INT(11) NOT NULL,
+$sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_configuration_shop` (
+    `id_configuration` INT(11) NOT NULL,
     `id_shop` INT(11) NOT NULL,
-    PRIMARY KEY (`id_infoshop`, `id_shop`)
+    PRIMARY KEY (`id_configuration`, `id_shop`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
-$sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_company` (
-    `id_carrier_company` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+$sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_carrier` (
+    `id_carrier` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(50) NOT NULL,
     `shortname` VARCHAR(4) NOT NULL,
     `icon` VARCHAR(250) NULL DEFAULT NULL,
     `delete` TINYINT(1) NOT NULL DEFAULT 0,
     `date_add` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `date_upd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id_carrier_company`)
+    PRIMARY KEY (`id_carrier`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
-$sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_company_shop` (
-    `id_carrier_company` INT(10) UNSIGNED NOT NULL,
+$sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_carrier_shop` (
+    `id_carrier` INT(10) UNSIGNED NOT NULL,
     `id_shop` INT(11) NOT NULL,
-    PRIMARY KEY (`id_carrier_company`, `id_shop`)
+    PRIMARY KEY (`id_carrier`, `id_shop`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
 $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_type_shipment` (
     `id_type_shipment` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-    `id_carrier_company` INT(10) UNSIGNED NOT NULL,
+    `id_carrier` INT(10) UNSIGNED NOT NULL,
     `name` VARCHAR(100) NOT NULL,
     `id_bc` VARCHAR(100) NOT NULL,
     `id_reference_carrier` INT(10) NULL DEFAULT NULL,
@@ -67,7 +69,7 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_type_sh
     `date_add` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `date_upd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id_type_shipment`),
-    INDEX `idx_company` (`id_carrier_company`),
+    INDEX `idx_carrier` (`id_carrier`),
     INDEX `idx_reference` (`id_reference_carrier`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
@@ -108,7 +110,7 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_shipmen
     `id_order` INT(10) NOT NULL,
     `reference_order` VARCHAR(100) NULL DEFAULT NULL,
     `num_shipment` VARCHAR(100) NULL DEFAULT NULL,
-    `id_carrier_company` INT(10) UNSIGNED NULL DEFAULT NULL,
+    `id_carrier` INT(10) UNSIGNED NULL DEFAULT NULL,
     `id_infopackage` INT(10) NOT NULL,
     `account` VARCHAR(100) NULL DEFAULT NULL,
     `product` VARCHAR(100) NULL DEFAULT NULL,
@@ -120,7 +122,7 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_shipmen
     PRIMARY KEY (`id_shipment`),
     INDEX `idx_order` (`id_order`),
     INDEX `idx_package` (`id_infopackage`),
-    INDEX `idx_company` (`id_carrier_company`)
+    INDEX `idx_carrier` (`id_carrier`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
 $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_shipment_shop` (
@@ -163,43 +165,43 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_log` (
     INDEX `idx_shop` (`id_shop`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
-$sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_configuration` (
-    `id_configuration` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+$sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_carrier_configuration` (
+    `id_carrier_configuration` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
     `id_shop_group` INT(11) UNSIGNED NULL DEFAULT NULL,
     `id_shop` INT(11) UNSIGNED NULL DEFAULT NULL,
-    `id_carrier_company` INT(11) UNSIGNED NULL DEFAULT NULL,
+    `id_carrier` INT(11) UNSIGNED NULL DEFAULT NULL,
     `id_type_shipment` INT(11) UNSIGNED NULL DEFAULT NULL,
     `name` VARCHAR(254) NOT NULL,
     `value` TEXT NULL DEFAULT NULL,
     `date_add` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `date_upd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    PRIMARY KEY (`id_configuration`),
+    PRIMARY KEY (`id_carrier_configuration`),
     KEY `idx_name` (`name`),
     KEY `idx_shop` (`id_shop`),
     KEY `idx_shop_group` (`id_shop_group`),
-    KEY `idx_company` (`id_carrier_company`),
+    KEY `idx_carrier` (`id_carrier`),
     KEY `idx_type_shipment` (`id_type_shipment`),
-    UNIQUE KEY `uniq_company_config_scope` (`id_carrier_company`, `id_type_shipment`, `id_shop_group`, `id_shop`, `name`)
+    UNIQUE KEY `uniq_carrier_config_scope` (`id_carrier`, `id_type_shipment`, `id_shop_group`, `id_shop`, `name`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
-$sql[] = 'INSERT INTO `' . _DB_PREFIX_ . 'rj_multicarrier_company` (`id_carrier_company`, `name`, `shortname`, `icon`) VALUES
+$sql[] = 'INSERT INTO `' . _DB_PREFIX_ . 'rj_multicarrier_carrier` (`id_carrier`, `name`, `shortname`, `icon`) VALUES
     (1, \'Default Carrier\', \'DEF\', NULL),
     (2, \'DHL\', \'DHL\', NULL),
     (3, \'Correo Express\', \'CEX\', NULL),
     (4, \'GOI\', \'GOI\', NULL)
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `shortname` = VALUES(`shortname`), `icon` = VALUES(`icon`);';
 
-$sql[] = 'INSERT INTO `' . _DB_PREFIX_ . 'rj_multicarrier_company_shop` (`id_shop`, `id_carrier_company`)
-SELECT s.id_shop, c.id_carrier_company
+$sql[] = 'INSERT INTO `' . _DB_PREFIX_ . 'rj_multicarrier_carrier_shop` (`id_shop`, `id_carrier`)
+SELECT s.id_shop, c.id_carrier
 FROM `' . _DB_PREFIX_ . 'shop` s
-CROSS JOIN `' . _DB_PREFIX_ . 'rj_multicarrier_company` c
+CROSS JOIN `' . _DB_PREFIX_ . 'rj_multicarrier_carrier` c
 WHERE NOT EXISTS (
-    SELECT 1 FROM `' . _DB_PREFIX_ . 'rj_multicarrier_company_shop` cs
+    SELECT 1 FROM `' . _DB_PREFIX_ . 'rj_multicarrier_carrier_shop` cs
     WHERE cs.id_shop = s.id_shop
-      AND cs.id_carrier_company = c.id_carrier_company
+      AND cs.id_carrier = c.id_carrier
 );';
 
-$sql[] = 'INSERT INTO `' . _DB_PREFIX_ . 'rj_multicarrier_type_shipment` (`id_type_shipment`, `id_carrier_company`, `name`, `id_bc`, `id_reference_carrier`, `active`) VALUES
+$sql[] = 'INSERT INTO `' . _DB_PREFIX_ . 'rj_multicarrier_type_shipment` (`id_type_shipment`, `id_carrier`, `name`, `id_bc`, `id_reference_carrier`, `active`) VALUES
     (1, 3, \'PAQ 10\', \'61\', NULL, 0),
     (2, 3, \'PAQ 14\', \'62\', NULL, 0),
     (3, 3, \'PAQ 24\', \'63\', NULL, 0),

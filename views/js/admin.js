@@ -118,11 +118,11 @@ ready(() => {
     ensureGrid(gridId);
   });
 
-  // render icon images in company grid
+  // render icon images in carrier grid
   setTimeout(() => {
-    const companyGrid = document.querySelector('[data-grid-id="rj_multicarrier_company"]');
-    if (companyGrid) {
-      companyGrid.querySelectorAll('td[data-column-name="icon"]').forEach((cell) => {
+    const carrierGrid = document.querySelector('[data-grid-id="rj_multicarrier_carrier"]');
+    if (carrierGrid) {
+      carrierGrid.querySelectorAll('td[data-column-name="icon"]').forEach((cell) => {
         const text = (cell.textContent || '').trim();
         if (text && (text.startsWith('http') || text.startsWith('/'))) {
           const img = document.createElement('img');
@@ -177,7 +177,7 @@ ready(() => {
       const searchForm = grid.querySelector('form.js-grid-search-form');
       if (searchForm) {
         const inputs = searchForm.querySelectorAll('input[name], textarea[name], select[name]');
-        const debugThisGrid = gridIdAttr === 'rj_multicarrier_company' && window.console && typeof window.console.debug === 'function';
+        const debugThisGrid = gridIdAttr === 'rj_multicarrier_carrier' && window.console && typeof window.console.debug === 'function';
         if (debugThisGrid) {
           window.console.debug('[rj_multicarrier] Preparing to clone search form inputs for grid:', gridIdAttr, 'found inputs:', inputs.length);
         }

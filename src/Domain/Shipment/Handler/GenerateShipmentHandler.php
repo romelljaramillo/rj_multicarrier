@@ -49,8 +49,8 @@ final class GenerateShipmentHandler
         }
 
         $companyData = (array) ($normalizedPayload['info_company_carrier'] ?? []);
-        $companyId = isset($companyData['id_carrier_company'])
-            ? (int) $companyData['id_carrier_company']
+        $companyId = isset($companyData['id_carrier'])
+            ? (int) $companyData['id_carrier']
             : null;
 
         $createShipmentCommand = new CreateShipmentCommand(

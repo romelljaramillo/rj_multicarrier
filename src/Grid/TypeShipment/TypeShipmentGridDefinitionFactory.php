@@ -27,7 +27,7 @@ use PrestaShop\PrestaShop\Core\Grid\Filter\FilterCollection;
 use PrestaShop\PrestaShop\Core\Hook\HookDispatcherInterface;
 use PrestaShopBundle\Form\Admin\Type\SearchAndResetType;
 use Roanja\Module\RjMulticarrier\Grid\AbstractModuleGridDefinitionFactory;
-use Roanja\Module\RjMulticarrier\Repository\CompanyRepository;
+use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 
@@ -40,7 +40,7 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
 
     public function __construct(
         HookDispatcherInterface $hookDispatcher,
-        private readonly CompanyRepository $companyRepository
+        private readonly CarrierRepository $carrierRepository
     ) {
         parent::__construct($hookDispatcher);
     }
@@ -70,7 +70,7 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                     'field' => 'id_type_shipment',
                 ]))
             ->add((new DataColumn('company_name'))
-                ->setName($this->transString('Company'))
+                ->setName($this->transString('Carrier'))
                 ->setOptions([
                     'field' => 'company_name',
                 ]))
@@ -97,7 +97,7 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                     'route' => 'admin_rj_multicarrier_type_shipment_toggle',
                     'route_param_name' => 'id',
                     'extra_route_params' => [
-                        'company' => 'id_carrier_company',
+                        'company' => 'id_carrier',
                         '_token' => 'toggle_token',
                     ],
                 ]))
@@ -117,6 +117,7 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
         $filters
             ->add((new Filter('id_type_shipment', TextType::class))
                 ->setTypeOptions([
+                    'required' => false,
                     'attr' => [
                         'placeholder' => $this->transString('ID'),
                     ],
@@ -124,13 +125,15 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                 ->setAssociatedColumn('id_type_shipment'))
             ->add((new Filter('company_name', TextType::class))
                 ->setTypeOptions([
+                    'required' => false,
                     'attr' => [
-                        'placeholder' => $this->transString('Company'),
+                        'placeholder' => $this->transString('Carrier'),
                     ],
                 ])
                 ->setAssociatedColumn('company_name'))
             ->add((new Filter('name', TextType::class))
                 ->setTypeOptions([
+                    'required' => false,
                     'attr' => [
                         'placeholder' => $this->transString('Name'),
                     ],
@@ -138,6 +141,7 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                 ->setAssociatedColumn('name'))
             ->add((new Filter('id_bc', TextType::class))
                 ->setTypeOptions([
+                    'required' => false,
                     'attr' => [
                         'placeholder' => $this->transString('Business code'),
                     ],
@@ -145,6 +149,7 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                 ->setAssociatedColumn('id_bc'))
             ->add((new Filter('active', ChoiceType::class))
                 ->setTypeOptions([
+                    'required' => false,
                     'choices' => [
                         $this->transString('Yes', [], 'Admin.Global') => 1,
                         $this->transString('No', [], 'Admin.Global') => 0,
@@ -152,22 +157,13 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                     'placeholder' => $this->transString('Any', [], 'Admin.Global'),
                 ])
                 ->setAssociatedColumn('active'))
-            ->add((new Filter('company_id', ChoiceType::class))
+            ->add((new Filter('carrier_id', ChoiceType::class))
                 ->setTypeOptions([
                     'choices' => $this->getCompanyFilterChoices(),
                     'placeholder' => $this->transString('All companies'),
                     'required' => false,
                 ])
                 ->setAssociatedColumn('company_name'))
-            ->add((new Filter('limit', ChoiceType::class))
-                ->setTypeOptions([
-                    'choices' => [
-                        20 => 20,
-                        50 => 50,
-                        100 => 100,
-                    ],
-                ])
-                ->setAssociatedColumn('id_type_shipment'))
             ->add((new Filter('actions', SearchAndResetType::class))
                 ->setTypeOptions([
                     'reset_route' => 'admin_common_reset_search_by_filter_id',
@@ -257,7 +253,7 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                     'route_param_name' => 'id',
                     'route_param_field' => 'id_type_shipment',
                     'extra_route_params' => [
-                        'company' => 'id_carrier_company',
+                        'company' => 'id_carrier',
                     ],
                 ]))
             ->add($this->buildDeleteAction(
@@ -266,7 +262,7 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                 'id_type_shipment',
                 'POST',
                 [
-                    'company' => 'id_carrier_company',
+                    'company' => 'id_carrier',
                     '_token' => 'delete_token',
                 ],
                 [
@@ -281,7 +277,7 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
     {
         $choices = [];
 
-        foreach ($this->companyRepository->findAllOrdered() as $company) {
+        foreach ($this->carrierRepository->findAllOrdered() as $company) {
             if (null === $company->getId()) {
                 continue;
             }

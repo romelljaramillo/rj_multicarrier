@@ -11,21 +11,21 @@ use Roanja\Module\RjMulticarrier\Entity\Traits\TimestampableTrait;
 
 #[ORM\Entity(repositoryClass: \Roanja\Module\RjMulticarrier\Repository\CarrierConfigurationRepository::class)]
 #[ORM\Table(name: CarrierConfiguration::TABLE_NAME)]
-#[ORM\UniqueConstraint(name: 'rj_multicarrier_conf_unique', columns: ['id_carrier_company', 'id_type_shipment', 'id_shop_group', 'id_shop', 'name'])]
+#[ORM\UniqueConstraint(name: 'rj_multicarrier_carrier_conf_unique', columns: ['id_carrier', 'id_type_shipment', 'id_shop_group', 'id_shop', 'name'])]
 class CarrierConfiguration
 {
     use TimestampableTrait;
 
-    public const TABLE_NAME = _DB_PREFIX_ . 'rj_multicarrier_configuration';
+    public const TABLE_NAME = _DB_PREFIX_ . 'rj_multicarrier_carrier_configuration';
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
-    #[ORM\Column(name: 'id_configuration', type: 'integer')]
+    #[ORM\Column(name: 'id_carrier_configuration', type: 'integer')]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(targetEntity: Company::class)]
-    #[ORM\JoinColumn(name: 'id_carrier_company', referencedColumnName: 'id_carrier_company', nullable: true, onDelete: 'CASCADE')]
-    private ?Company $company = null;
+    #[ORM\ManyToOne(targetEntity: Carrier::class)]
+    #[ORM\JoinColumn(name: 'id_carrier', referencedColumnName: 'id_carrier', nullable: true, onDelete: 'CASCADE')]
+    private ?Carrier $carrier = null;
 
     #[ORM\ManyToOne(targetEntity: TypeShipment::class)]
     #[ORM\JoinColumn(name: 'id_type_shipment', referencedColumnName: 'id_type_shipment', nullable: true, onDelete: 'CASCADE')]
@@ -48,14 +48,14 @@ class CarrierConfiguration
         return $this->id;
     }
 
-    public function getCompany(): ?Company
+    public function getCarrier(): ?Carrier
     {
-        return $this->company;
+        return $this->carrier;
     }
 
-    public function setCompany(?Company $company): self
+    public function setCarrier(?Carrier $carrier): self
     {
-        $this->company = $company;
+        $this->carrier = $carrier;
 
         return $this;
     }

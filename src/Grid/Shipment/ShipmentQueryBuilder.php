@@ -42,7 +42,7 @@ final class ShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
             ->from($this->dbPrefix . 'rj_multicarrier_shipment', 'shipment')
             ->leftJoin('shipment', $this->dbPrefix . 'rj_multicarrier_shipment_shop', 'shipment_shop', 'shipment_shop.id_shipment = shipment.id_shipment')
             ->innerJoin('shipment', $this->dbPrefix . 'rj_multicarrier_infopackage', 'info', 'shipment.id_infopackage = info.id_infopackage')
-            ->innerJoin('shipment', $this->dbPrefix . 'rj_multicarrier_company', 'company', 'shipment.id_carrier_company = company.id_carrier_company')
+            ->innerJoin('shipment', $this->dbPrefix . 'rj_multicarrier_carrier', 'company', 'shipment.id_carrier = company.id_carrier')
             ->leftJoin('shipment', $this->dbPrefix . 'orders', 'order_table', 'shipment.id_order = order_table.id_order')
             ->leftJoin('order_table', $this->dbPrefix . 'shop', 'shop', 'order_table.id_shop = shop.id_shop')
             ->andWhere('shipment.`delete` = 0');
@@ -255,7 +255,7 @@ final class ShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
             ->from($this->dbPrefix . 'rj_multicarrier_shipment', 'shipment')
             ->leftJoin('shipment', $this->dbPrefix . 'rj_multicarrier_shipment_shop', 'shipment_shop', 'shipment_shop.id_shipment = shipment.id_shipment')
             ->innerJoin('shipment', $this->dbPrefix . 'rj_multicarrier_infopackage', 'info', 'shipment.id_infopackage = info.id_infopackage')
-            ->innerJoin('shipment', $this->dbPrefix . 'rj_multicarrier_company', 'company', 'shipment.id_carrier_company = company.id_carrier_company')
+            ->innerJoin('shipment', $this->dbPrefix . 'rj_multicarrier_carrier', 'company', 'shipment.id_carrier = company.id_carrier')
             ->leftJoin('shipment', $this->dbPrefix . 'orders', 'order_table', 'shipment.id_order = order_table.id_order')
             ->leftJoin('order_table', $this->dbPrefix . 'shop', 'shop', 'order_table.id_shop = shop.id_shop')
             ->andWhere('shipment.`delete` = 0');

@@ -39,7 +39,7 @@ final class UpsertTypeShipmentConfigurationHandler
         if (null === $configuration) {
             $configuration = new CarrierConfiguration();
             $configuration
-                ->setCompany($typeShipment->getCompany())
+                ->setCarrier($typeShipment->getCarrier())
                 ->setTypeShipment($typeShipment)
                 ->setName($command->getName())
                 ->setCreatedAt(new DateTimeImmutable());

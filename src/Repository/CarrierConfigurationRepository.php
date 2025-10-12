@@ -10,7 +10,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Roanja\Module\RjMulticarrier\Entity\CarrierConfiguration;
-use Roanja\Module\RjMulticarrier\Entity\Company;
+use Roanja\Module\RjMulticarrier\Entity\Carrier;
 use Roanja\Module\RjMulticarrier\Entity\TypeShipment;
 
 final class CarrierConfigurationRepository
@@ -33,10 +33,10 @@ final class CarrierConfigurationRepository
     /**
      * @return CarrierConfiguration[]
      */
-    public function findByCompany(Company $company): array
+    public function findByCarrier(Carrier $carrier): array
     {
         return $this->repository->findBy(
-            ['company' => $company, 'typeShipment' => null],
+            ['carrier' => $carrier, 'typeShipment' => null],
             ['name' => 'ASC']
         );
     }
@@ -52,10 +52,10 @@ final class CarrierConfigurationRepository
         );
     }
 
-    public function findOneForCompanyByName(Company $company, string $name): ?CarrierConfiguration
+    public function findOneForCarrierByName(Carrier $carrier, string $name): ?CarrierConfiguration
     {
         return $this->repository->findOneBy([
-            'company' => $company,
+            'carrier' => $carrier,
             'typeShipment' => null,
             'name' => $name,
         ]);
@@ -89,14 +89,14 @@ final class CarrierConfigurationRepository
     /**
      * @return array<string, string|null>
      */
-    public function getKeyValueForCompany(Company $company): array
+    public function getKeyValueForCarrier(Carrier $carrier): array
     {
         $qb = $this->entityManager->createQueryBuilder()
             ->select('config.name, config.value')
             ->from(CarrierConfiguration::class, 'config')
-            ->where('config.company = :company')
+            ->where('config.carrier = :carrier')
             ->andWhere('config.typeShipment IS NULL')
-            ->setParameter('company', $company);
+            ->setParameter('carrier', $carrier);
 
         $results = $qb->getQuery()->getArrayResult();
 

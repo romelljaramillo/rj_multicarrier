@@ -16,19 +16,20 @@ use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\UpsertTypeShipmentC
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Exception\TypeShipmentException;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Query\GetTypeShipmentForView;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\View\TypeShipmentView;
-use Roanja\Module\RjMulticarrier\Entity\Company;
+use Roanja\Module\RjMulticarrier\Entity\Carrier;
 use Roanja\Module\RjMulticarrier\Entity\TypeShipment;
 use Roanja\Module\RjMulticarrier\Form\TypeShipmentType;
 use Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentFilters;
 use Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentGridDefinitionFactory;
 use Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentGridFactory;
 use Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentQueryBuilder;
-use Roanja\Module\RjMulticarrier\Repository\CompanyRepository;
+use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Shop;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -37,7 +38,7 @@ final class TypeShipmentController extends FrameworkBundleAdminController
     private const TRANSLATION_DOMAIN = 'Modules.RjMulticarrier.Admin';
 
     public function __construct(
-        private readonly CompanyRepository $companyRepository,
+        private readonly CarrierRepository $carrierRepository,
         private readonly TypeShipmentRepository $typeShipmentRepository,
         private readonly TypeShipmentGridFactory $gridFactory,
         private readonly TypeShipmentQueryBuilder $typeShipmentQueryBuilder
@@ -51,9 +52,16 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
         $filters->setNeedsToBePersisted(false);
         $currentFilters = $filters->getFilters();
-        $companyFromFilters = isset($currentFilters['company_id']) ? (int) $currentFilters['company_id'] : 0;
+        $companyFromFilters = isset($currentFilters['carrier_id']) ? (int) $currentFilters['carrier_id'] : 0;
 
-        $companies = $this->companyRepository->findAllOrdered();
+        $companies = $this->filterCarriersByContext($this->carrierRepository->findAllOrdered());
+
+        if (empty($companies)) {
+            $this->addFlash('warning', $this->translate('No hay transportistas disponibles en el contexto actual.'));
+
+            return $this->redirectToRoute('admin_rj_multicarrier_carriers_index');
+        }
+
         $activeCompanyId = $companyFromQuery > 0 ? $companyFromQuery : $companyFromFilters;
         $company = $this->resolveCompany($companies, $activeCompanyId);
         $companyId = $company?->getId() ?? 0;
@@ -63,31 +71,39 @@ final class TypeShipmentController extends FrameworkBundleAdminController
             : null;
 
         if ($editingTypeShipment instanceof TypeShipment) {
-            $company = $editingTypeShipment->getCompany();
+            $company = $editingTypeShipment->getCarrier();
             $companyId = $company->getId() ?? 0;
         }
 
         if ($companyId > 0) {
             $filters->addFilter([
-                'company_id' => $companyId,
+                'carrier_id' => $companyId,
             ]);
         }
 
         $grid = $this->gridFactory->getGrid($filters);
 
         $formData = $this->buildFormData($company, $editingTypeShipment);
-        $companyChoices = $this->buildCompanyChoices($companies);
+        $companyChoices = $this->buildCompanyChoices($companies, $companyId);
         $carrierChoices = $this->buildCarrierChoices($editingTypeShipment?->getReferenceCarrierId());
+
+        $formActionParameters = [];
+        if ($companyId > 0) {
+            $formActionParameters['company'] = $companyId;
+        }
 
         $form = $this->createForm(TypeShipmentType::class, $formData, [
             'company_choices' => $companyChoices,
             'carrier_choices' => $carrierChoices,
+            'current_carrier_id' => $companyId,
+            'action' => $this->generateUrl('admin_rj_multicarrier_type_shipment_index', $formActionParameters),
+            'method' => Request::METHOD_POST,
         ]);
 
         $form->handleRequest($request);
         if ($form->isSubmitted() && $form->isValid()) {
             $data = $form->getData();
-            $currentCompanyId = (int) ($data['company_id'] ?? 0);
+            $currentCompanyId = (int) ($data['carrier_id'] ?? 0);
             $typeShipmentUniqueId = $data['id'] ? (int) $data['id'] : null;
 
             $command = new UpsertTypeShipmentCommand(
@@ -142,7 +158,7 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
     public function deleteAction(Request $request, int $id): RedirectResponse
     {
-        // $this->validateCsrfToken('delete_type_shipment_' . $id, (string) $request->get('_token'));
+        $this->validateCsrfToken('delete_type_shipment_' . $id, (string) $request->request->get('_token'));
 
         try {
             $this->getCommandBus()->handle(new DeleteTypeShipmentCommand($id));
@@ -160,7 +176,13 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
     public function toggleAction(Request $request, int $id): RedirectResponse
     {
-        // $this->validateCsrfToken('toggle_type_shipment_' . $id, (string) $request->get('_token'));
+        if (!$this->isCsrfTokenValid('toggle_type_shipment_' . $id, (string) $request->request->get('_token'))) {
+            $this->addFlash('error', $this->translate('Token CSRF inválido.'));
+
+            return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
+                'company' => (int) $request->get('company', 0),
+            ]);
+        }
 
         try {
             /** @var TypeShipment $typeShipment */
@@ -267,7 +289,7 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
         if ($companyId > 0) {
             $filters->addFilter([
-                'company_id' => $companyId,
+                'carrier_id' => $companyId,
             ]);
         }
 
@@ -308,9 +330,9 @@ final class TypeShipmentController extends FrameworkBundleAdminController
     }
 
     /**
-     * @param Company[] $companies
+     * @param Carrier[] $companies
      */
-    private function resolveCompany(array $companies, int $companyId): ?Company
+    private function resolveCompany(array $companies, int $companyId): ?Carrier
     {
         if (empty($companies)) {
             return null;
@@ -327,11 +349,11 @@ final class TypeShipmentController extends FrameworkBundleAdminController
         return $companies[0];
     }
 
-    private function buildFormData(?Company $company, ?TypeShipment $typeShipment): array
+    private function buildFormData(?Carrier $company, ?TypeShipment $typeShipment): array
     {
         return [
             'id' => $typeShipment?->getId(),
-            'company_id' => $typeShipment?->getCompany()->getId() ?? $company?->getId(),
+            'carrier_id' => $typeShipment?->getCarrier()->getId() ?? $company?->getId(),
             'name' => $typeShipment?->getName(),
             'business_code' => $typeShipment?->getBusinessCode(),
             'reference_carrier_id' => $typeShipment?->getReferenceCarrierId(),
@@ -340,17 +362,24 @@ final class TypeShipmentController extends FrameworkBundleAdminController
     }
 
     /**
-     * @param Company[] $companies
+     * @param Carrier[] $companies
      */
-    private function buildCompanyChoices(array $companies): array
+    private function buildCompanyChoices(array $companies, ?int $currentCompanyId): array
     {
         $choices = [];
         foreach ($companies as $company) {
-            if (!$company instanceof Company || null === $company->getId()) {
+            if (!$company instanceof Carrier || null === $company->getId()) {
                 continue;
             }
 
             $choices[$company->getName()] = $company->getId();
+        }
+
+        if (null !== $currentCompanyId) {
+            $filtered = array_filter($choices, static fn (int $id): bool => $id === $currentCompanyId);
+            if (!empty($filtered)) {
+                return $filtered;
+            }
         }
 
         ksort($choices, SORT_NATURAL | SORT_FLAG_CASE);
@@ -432,7 +461,7 @@ final class TypeShipmentController extends FrameworkBundleAdminController
         ]);
 
         if ($companyId > 0) {
-            $filterValues['filters']['company_id'] = $companyId;
+            $filterValues['filters']['carrier_id'] = $companyId;
         }
 
         $filters = new TypeShipmentFilters($filterValues);
@@ -442,13 +471,13 @@ final class TypeShipmentController extends FrameworkBundleAdminController
     }
 
     /**
-     * @param Company[] $companies
+     * @param Carrier[] $companies
      */
     private function buildCompanyView(array $companies, int $currentCompanyId): array
     {
         $view = [];
         foreach ($companies as $company) {
-            if (!$company instanceof Company || null === $company->getId()) {
+            if (!$company instanceof Carrier || null === $company->getId()) {
                 continue;
             }
 
@@ -463,6 +492,84 @@ final class TypeShipmentController extends FrameworkBundleAdminController
         return $view;
     }
 
+    /**
+     * @param Carrier[] $carriers
+     *
+     * @return Carrier[]
+     */
+    private function filterCarriersByContext(array $carriers): array
+    {
+        $shopIds = $this->getContextShopIds();
+
+        if (empty($shopIds)) {
+            return array_values($carriers);
+        }
+
+        $filtered = array_filter($carriers, static function (Carrier $carrier) use ($shopIds): bool {
+            if (!$carrier instanceof Carrier || null === $carrier->getId()) {
+                return false;
+            }
+
+            $carrierShopIds = $carrier->getShopIds();
+            if (empty($carrierShopIds)) {
+                return true;
+            }
+
+            return count(array_intersect($shopIds, $carrierShopIds)) > 0;
+        });
+
+        return array_values($filtered);
+    }
+
+    /**
+     * @return int[]
+     */
+    private function getContextShopIds(): array
+    {
+        if (!Shop::isFeatureActive()) {
+            return $this->normalizeShopIds($this->resolveShopId());
+        }
+
+        $shopIds = Shop::getContextListShopID();
+
+        if (empty($shopIds)) {
+            $contextShopId = Shop::getContextShopID(true);
+            if (null !== $contextShopId) {
+                $shopIds = [$contextShopId];
+            }
+        }
+
+        return $this->normalizeShopIds($shopIds);
+    }
+
+    private function resolveShopId(): int
+    {
+        $shopId = Shop::getContextShopID(true);
+
+        return null !== $shopId ? (int) $shopId : 0;
+    }
+
+    /**
+     * @param mixed $value
+     *
+     * @return int[]
+     */
+    private function normalizeShopIds($value): array
+    {
+        if (null === $value) {
+            return [];
+        }
+
+        if (!is_array($value)) {
+            $value = [$value];
+        }
+
+        $ids = array_map('intval', $value);
+        $ids = array_filter($ids, static fn (int $id): bool => $id > 0);
+
+        return array_values(array_unique($ids));
+    }
+
     private function createTypeShipmentCsvResponse(array $rows, string $fileName): StreamedResponse
     {
         $response = new StreamedResponse(function () use ($rows): void {
@@ -470,7 +577,7 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
             fputcsv($handle, [
                 'ID',
-                'Company',
+                'Carrier',
                 'Name',
                 'Business code',
                 'Reference carrier',
@@ -576,8 +683,8 @@ final class TypeShipmentController extends FrameworkBundleAdminController
         $companyId = (int) $request->get('company', 0);
 
         $scoped = $this->extractScopedParameters($request, TypeShipmentGridDefinitionFactory::GRID_ID);
-        if (isset($scoped['filters']['company_id'])) {
-            $companyId = (int) $scoped['filters']['company_id'];
+        if (isset($scoped['filters']['carrier_id'])) {
+            $companyId = (int) $scoped['filters']['carrier_id'];
         }
 
         return $companyId;

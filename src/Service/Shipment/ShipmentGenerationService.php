@@ -12,15 +12,18 @@ use Order;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Command\GenerateShipmentCommand;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Exception\ShipmentGenerationException;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\GenerateShipmentHandler;
-use Roanja\Module\RjMulticarrier\Entity\Company;
+use Roanja\Module\RjMulticarrier\Entity\Carrier as CarrierEntity;
 use Roanja\Module\RjMulticarrier\Entity\InfoPackage;
+use Roanja\Module\RjMulticarrier\Entity\Configuration;
 use Roanja\Module\RjMulticarrier\Entity\Shipment as ShipmentEntity;
 use Roanja\Module\RjMulticarrier\Entity\TypeShipment;
-use Roanja\Module\RjMulticarrier\Repository\CompanyRepository;
+use PrestaShop\PrestaShop\Adapter\Configuration as LegacyConfiguration;
+use PrestaShop\PrestaShop\Core\Domain\Shop\ValueObject\ShopConstraint;
+use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
 use Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository;
+use Roanja\Module\RjMulticarrier\Repository\ConfigurationRepository;
 use Roanja\Module\RjMulticarrier\Repository\ShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
-use Roanja\Module\RjMulticarrier\Service\Configuration\ConfigurationManager;
 use Roanja\Module\RjMulticarrier\Support\Common;
 use State;
 use Validate;
@@ -30,9 +33,10 @@ final class ShipmentGenerationService
     public function __construct(
         private readonly InfoPackageRepository $infoPackageRepository,
         private readonly ShipmentRepository $shipmentRepository,
-        private readonly CompanyRepository $companyRepository,
+        private readonly CarrierRepository $carrierRepository,
         private readonly TypeShipmentRepository $typeShipmentRepository,
-        private readonly ConfigurationManager $configurationManager,
+        private readonly ConfigurationRepository $ConfigurationRepository,
+        private readonly LegacyConfiguration $legacyConfiguration,
         private readonly GenerateShipmentHandler $generateShipmentHandler
     ) {
     }
@@ -84,7 +88,7 @@ final class ShipmentGenerationService
         }
 
         $companyData = $this->resolveCompanyData($referenceCarrierId);
-        $companyId = (int) ($companyData['id_carrier_company'] ?? 0);
+        $companyId = (int) ($companyData['id_carrier'] ?? 0);
         if (0 === $companyId) {
             throw ShipmentGenerationException::carrierNotConfigured($referenceCarrierId);
         }
@@ -96,17 +100,21 @@ final class ShipmentGenerationService
 
         $carrierCode = (string) ($companyData['shortname'] ?? '');
 
+        $ConfigurationPayload = $this->mapConfiguration($languageId);
         $payload = [
             'id_order' => $orderId,
             'reference' => (string) $order->reference,
             'info_package' => $this->mapInfoPackage($infoPackage, $referenceCarrierId),
             'info_customer' => $this->mapCustomer($order, $languageId),
-            'info_shop' => $this->mapInfoShop($languageId),
+            'configuration_shop' => $ConfigurationPayload,
             'carriers' => Carrier::getCarriers($languageId, true, false, false, null, false),
             'carrier_name' => $this->resolveCarrierName($referenceCarrierId, $languageId),
             'info_company_carrier' => $companyData,
             'info_type_shipment' => $typeShipments,
-            'config_extra_info' => $this->configurationManager->getExtraConfigDefaults(),
+            'config_extra_info' => [
+                'RJ_ETIQUETA_TRANSP_PREFIX' => (string) ($ConfigurationPayload['RJ_ETIQUETA_TRANSP_PREFIX'] ?? ''),
+                'RJ_MODULE_CONTRAREEMBOLSO' => (string) ($ConfigurationPayload['RJ_MODULE_CONTRAREEMBOLSO'] ?? ''),
+            ],
         ];
 
         $shipmentNumber = Common::getUUID();
@@ -179,9 +187,41 @@ final class ShipmentGenerationService
     /**
      * @return array<string, mixed>
      */
-    private function mapInfoShop(int $languageId): array
+    private function mapConfiguration(int $languageId): array
     {
-        $defaults = $this->configurationManager->getInfoShopDefaults();
+        $defaults = [
+            'id_configuration' => null,
+            'firstname' => '',
+            'lastname' => '',
+            'company' => null,
+            'additionalname' => null,
+            'id_country' => null,
+            'state' => '',
+            'city' => '',
+            'street' => '',
+            'number' => '',
+            'postcode' => '',
+            'additionaladdress' => null,
+            'isbusiness' => false,
+            'email' => null,
+            'phone' => '',
+            'vatnumber' => null,
+            'RJ_ETIQUETA_TRANSP_PREFIX' => '',
+            'RJ_MODULE_CONTRAREEMBOLSO' => '',
+        ];
+
+        $Configuration = $this->findConfigurationForContext();
+        if ($Configuration instanceof Configuration) {
+            $defaults = array_merge($defaults, $this->mapConfigurationToFormData($Configuration));
+        }
+
+        $defaults['isbusiness'] = $this->normalizeBusinessFlag($defaults['isbusiness']);
+
+        $shopId = $this->resolveShopId();
+        $extraConfig = $this->getExtraConfiguration($shopId);
+        $defaults['RJ_ETIQUETA_TRANSP_PREFIX'] = $extraConfig['RJ_ETIQUETA_TRANSP_PREFIX'];
+        $defaults['RJ_MODULE_CONTRAREEMBOLSO'] = $extraConfig['RJ_MODULE_CONTRAREEMBOLSO'];
+
         $countryId = isset($defaults['id_country']) ? (int) $defaults['id_country'] : 0;
         $countryName = '';
         $countryIso = '';
@@ -272,7 +312,7 @@ final class ShipmentGenerationService
 
         $typeShipment = $this->typeShipmentRepository->findActiveByReferenceCarrier($referenceCarrierId);
         if ($typeShipment instanceof TypeShipment) {
-            return $this->mapCompany($typeShipment->getCompany());
+            return $this->mapCompany($typeShipment->getCarrier());
         }
 
         return [];
@@ -283,13 +323,13 @@ final class ShipmentGenerationService
      */
     private function resolveTypeShipments(int $companyId): array
     {
-        $company = $this->companyRepository->find($companyId);
+        $company = $this->carrierRepository->find($companyId);
 
-        if (!$company instanceof Company) {
+        if (!$company instanceof Carrier) {
             return [];
         }
 
-        $types = $this->typeShipmentRepository->findByCompany($company, true);
+        $types = $this->typeShipmentRepository->findByCarrier($company, true);
 
         $mapped = [];
         foreach ($types as $typeShipment) {
@@ -302,10 +342,10 @@ final class ShipmentGenerationService
     /**
      * @return array<string, mixed>
      */
-    private function mapCompany(Company $company): array
+    private function mapCompany(CarrierEntity $company): array
     {
         return [
-            'id_carrier_company' => (int) $company->getId(),
+            'id_carrier' => (int) $company->getId(),
             'name' => $company->getName(),
             'shortname' => $company->getShortName(),
             'icon' => $company->getIcon(),
@@ -317,11 +357,11 @@ final class ShipmentGenerationService
     /**
      * @return array<string, mixed>
      */
-    private function mapTypeShipment(TypeShipment $typeShipment, Company $company): array
+    private function mapTypeShipment(TypeShipment $typeShipment, CarrierEntity $company): array
     {
         return [
             'id_type_shipment' => (int) $typeShipment->getId(),
-            'id_carrier_company' => (int) $company->getId(),
+            'id_carrier' => (int) $company->getId(),
             'name' => $typeShipment->getName(),
             'id_bc' => $typeShipment->getBusinessCode(),
             'id_reference_carrier' => $typeShipment->getReferenceCarrierId(),
@@ -331,5 +371,93 @@ final class ShipmentGenerationService
             'date_add' => $typeShipment->getCreatedAt()?->format('Y-m-d H:i:s'),
             'date_upd' => $typeShipment->getUpdatedAt()?->format('Y-m-d H:i:s'),
         ];
+    }
+
+    private function getExtraConfiguration(?int $shopId = null): array
+    {
+        if (null === $shopId) {
+            $shopId = $this->resolveShopId();
+        }
+
+        $constraint = $shopId > 0 ? ShopConstraint::shop($shopId) : ShopConstraint::allShops();
+
+        return [
+            'RJ_ETIQUETA_TRANSP_PREFIX' => (string) $this->legacyConfiguration->get('RJ_ETIQUETA_TRANSP_PREFIX', '', $constraint),
+            'RJ_MODULE_CONTRAREEMBOLSO' => (string) $this->legacyConfiguration->get('RJ_MODULE_CONTRAREEMBOLSO', '', $constraint),
+        ];
+    }
+
+    private function resolveShopId(): int
+    {
+        $context = Context::getContext();
+
+        if (isset($context->shop->id)) {
+            return (int) $context->shop->id;
+        }
+
+        return 0;
+    }
+
+    private function findConfigurationForContext(): ?Configuration
+    {
+        $shopId = $this->resolveShopId();
+
+        if ($shopId > 0) {
+            $Configuration = $this->ConfigurationRepository->findOneByShop($shopId);
+            if ($Configuration instanceof Configuration) {
+                return $Configuration;
+            }
+        }
+
+        return $this->ConfigurationRepository->findFirst();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mapConfigurationToFormData(Configuration $Configuration): array
+    {
+        return [
+            'id_configuration' => $Configuration->getId(),
+            'firstname' => $Configuration->getFirstName(),
+            'lastname' => $Configuration->getLastName(),
+            'company' => $Configuration->getCompany(),
+            'additionalname' => $Configuration->getAdditionalName(),
+            'id_country' => $Configuration->getCountryId(),
+            'state' => $Configuration->getState(),
+            'city' => $Configuration->getCity(),
+            'street' => $Configuration->getStreet(),
+            'number' => $Configuration->getStreetNumber(),
+            'postcode' => $Configuration->getPostcode(),
+            'additionaladdress' => $Configuration->getAdditionalAddress(),
+            'isbusiness' => $Configuration->getIsBusinessFlag(),
+            'email' => $Configuration->getEmail(),
+            'phone' => $Configuration->getPhone(),
+            'vatnumber' => $Configuration->getVatNumber(),
+            'RJ_ETIQUETA_TRANSP_PREFIX' => $Configuration->getLabelPrefix(),
+            'RJ_MODULE_CONTRAREEMBOLSO' => $Configuration->getCashOnDeliveryModule(),
+        ];
+    }
+
+    private function normalizeBusinessFlag(mixed $flag): bool
+    {
+        if (is_bool($flag)) {
+            return $flag;
+        }
+
+        if (is_string($flag)) {
+            $normalized = filter_var($flag, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if (null !== $normalized) {
+                return $normalized;
+            }
+
+            return in_array(strtolower($flag), ['1', 'true', 'on', 'yes'], true);
+        }
+
+        if (is_int($flag)) {
+            return $flag > 0;
+        }
+
+        return false;
     }
 }

@@ -14,12 +14,12 @@ $sql = [
     'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_shipment`',
     'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_infopackage_shop`',
     'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_infopackage`',
-    'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_infoshop_shop`',
-    'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_infoshop`',
-    'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_company_shop`',
+    'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_configuration_shop`',
+    'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_configuration`',
+    'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_carrier_shop`',
     'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_log`',
     'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_type_shipment`',
-    'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_company`',
+    'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_carrier`',
     'DROP TABLE IF EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_configuration`',
 ];
 

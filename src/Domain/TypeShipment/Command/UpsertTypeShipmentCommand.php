@@ -10,7 +10,7 @@ final class UpsertTypeShipmentCommand
 {
     public function __construct(
         private readonly ?int $typeShipmentId,
-        private readonly int $companyId,
+        private readonly int $carrierId,
         private readonly string $name,
         private readonly string $businessCode,
         private readonly ?int $referenceCarrierId,
@@ -23,9 +23,9 @@ final class UpsertTypeShipmentCommand
         return $this->typeShipmentId;
     }
 
-    public function getCompanyId(): int
+    public function getCarrierId(): int
     {
-        return $this->companyId;
+        return $this->carrierId;
     }
 
     public function getName(): string

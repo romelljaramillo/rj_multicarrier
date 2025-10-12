@@ -64,25 +64,11 @@ El flujo legacy delega ahora directamente en el handler Doctrine sin pasar por u
 
 ### Ficha de remitente
 
-- **Comando:** `UpsertInfoShop`
-- **Handler:** `UpsertInfoShopHandler`
-- **Origen legacy:** `CarrierCompany::saveInfoShop()`
+- **Comandos (Symfony):** `CreateConfigurationCommand`, `UpdateConfigurationCommand`
+- **Handlers (Symfony):** `CreateConfigurationHandler`, `UpdateConfigurationHandler`
+- **Origen legacy:** `CarrierCompany::saveConfiguration()` *(a través de `UpsertConfigurationCommand` para compatibilidad)*
 
-El flujo legacy del formulario de remitente delega en el comando `UpsertInfoShop`, que encapsula la validación mínima y persiste los datos mediante Doctrine. El handler se encarga de:
-
-1. Crear o actualizar la entidad `InfoShop` según corresponda.
-2. Normalizar valores opcionales (empresa adicional, notas, contacto) y la bandera `is_business`.
-3. Sincronizar la relación multi-tienda insertando en `rj_multicarrier_infoshop_shop` mediante DBAL.
-
-Las lecturas se apoyan directamente en `InfoShopRepository` (por ejemplo dentro de `ConfigurationController`) para hidratar los formularios legacy con arrays compatibles.
-
-### Configuración adicional del módulo
-
-- **Formulario:** `ExtraConfigType`
-- **Controlador:** `ConfigurationController::handleExtraConfigSubmit()`
-- **Claves de configuración:** `RJ_ETIQUETA_TRANSP_PREFIX`, `RJ_MODULE_CONTRAREEMBOLSO`
-
-La vista Symfony de configuración (`templates/admin/configuration/index.html.twig`) renderiza un formulario dedicado para la configuración extra del transportista. El controlador persiste los valores mediante el servicio legacy `Configuration`, respetando el contexto de tienda y grupo. Esto sustituye al formulario heredado de `CarrierCompany`, mantiene la compatibilidad multitienda y permite añadir nuevas opciones sin depender de `HelperForm`.
+El formulario Symfony crea o edita remitentes mediante los DTO anteriores. Ambos handlers aplican validaciones, persisten la entidad `Configuration`, sincronizan la asociación multitienda y almacenan también las opciones adicionales (`label_prefix`, `cod_module`) dentro de la propia entidad. El legado continúa delegando en `UpsertConfigurationCommand`, que ahora asigna estos mismos campos para garantizar la coherencia entre capas.
 
 ### Relaciones de tipos de envío
 

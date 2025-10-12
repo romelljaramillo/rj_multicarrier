@@ -1,7 +1,7 @@
 -- Active: generate@local
 -- Fake shipments linked to the sample info packages
 INSERT INTO `ps_rj_multicarrier_shipment`
-  (`id_shipment`, `id_order`, `reference_order`, `num_shipment`, `id_carrier_company`, `id_infopackage`,
+  (`id_shipment`, `id_order`, `reference_order`, `num_shipment`, `id_carrier`, `id_infopackage`,
    `account`, `product`, `request`, `response`, `delete`, `date_add`, `date_upd`)
 VALUES
   (6001, 108001, 'WEB-108001', 'CEX-108001-01', 1, 5001,

@@ -22,9 +22,9 @@ class TypeShipment
     #[ORM\Column(name: 'id_type_shipment', type: 'integer')]
     private ?int $id = null;
 
-    #[ORM\ManyToOne(targetEntity: Company::class)]
-    #[ORM\JoinColumn(name: 'id_carrier_company', referencedColumnName: 'id_carrier_company', nullable: false, onDelete: 'CASCADE')]
-    private Company $company;
+    #[ORM\ManyToOne(targetEntity: Carrier::class)]
+    #[ORM\JoinColumn(name: 'id_carrier', referencedColumnName: 'id_carrier', nullable: false, onDelete: 'CASCADE')]
+    private Carrier $carrier;
 
     #[ORM\Column(name: 'name', type: 'string', length: 100)]
     private string $name;
@@ -41,9 +41,9 @@ class TypeShipment
     #[ORM\Column(name: 'settings', type: 'json', nullable: true)]
     private ?array $settings = null;
 
-    public function __construct(Company $company, string $name, string $businessCode)
+    public function __construct(Carrier $carrier, string $name, string $businessCode)
     {
-        $this->company = $company;
+        $this->carrier = $carrier;
         $this->name = $name;
         $this->businessCode = $businessCode;
     }
@@ -53,14 +53,14 @@ class TypeShipment
         return $this->id;
     }
 
-    public function getCompany(): Company
+    public function getCarrier(): Carrier
     {
-        return $this->company;
+        return $this->carrier;
     }
 
-    public function setCompany(Company $company): self
+    public function setCarrier(Carrier $carrier): self
     {
-        $this->company = $company;
+        $this->carrier = $carrier;
 
         return $this;
     }

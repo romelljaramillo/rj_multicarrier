@@ -11,14 +11,14 @@ namespace Roanja\Module\RjMulticarrier\Domain\Shipment\Handler;
 use Doctrine\ORM\EntityManagerInterface;
 use JsonException;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Command\CreateShipmentCommand;
-use Roanja\Module\RjMulticarrier\Entity\Company;
+use Roanja\Module\RjMulticarrier\Entity\Carrier;
 use Roanja\Module\RjMulticarrier\Entity\InfoPackage;
 use Roanja\Module\RjMulticarrier\Entity\Label;
 use Roanja\Module\RjMulticarrier\Entity\Shipment;
 use Roanja\Module\RjMulticarrier\Entity\ShipmentShop;
 use Roanja\Module\RjMulticarrier\Entity\LabelShop;
 use Roanja\Module\RjMulticarrier\Support\Common;
-use Roanja\Module\RjMulticarrier\Repository\CompanyRepository;
+use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
 use Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository;
 use Roanja\Module\RjMulticarrier\Repository\ShipmentRepository;
 use RuntimeException;
@@ -29,7 +29,7 @@ final class CreateShipmentHandler
         private readonly EntityManagerInterface $entityManager,
         private readonly ShipmentRepository $shipmentRepository,
         private readonly InfoPackageRepository $infoPackageRepository,
-        private readonly CompanyRepository $companyRepository
+        private readonly CarrierRepository $carrierRepository
     ) {}
 
     public function handle(CreateShipmentCommand $command): Shipment
@@ -51,9 +51,9 @@ final class CreateShipmentHandler
             ->setRequestPayload($this->encodePayload($command->getRequestPayload()))
             ->setResponsePayload($this->encodePayload($command->getResponsePayload()));
 
-        $companyId = $command->getCompanyId();
-        $company = null === $companyId ? null : $this->companyRepository->find($companyId);
-        $shipment->setCompany($company instanceof Company ? $company : null);
+        $carrierId = $command->getCarrierId();
+        $carrier = null === $carrierId ? null : $this->carrierRepository->find($carrierId);
+        $shipment->setCarrier($carrier instanceof Carrier ? $carrier : null);
 
         $this->entityManager->flush();
 

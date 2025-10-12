@@ -21,6 +21,7 @@ final class ShipmentView
         private readonly int $orderId,
         private readonly ?string $orderReference,
         private readonly ?string $shipmentNumber,
+        private readonly ?int $carrierId,
         private readonly ?string $carrierShortName,
         private readonly ?string $createdAt,
         private readonly ?string $updatedAt,
@@ -100,14 +101,16 @@ final class ShipmentView
         array $package,
         array $metadata
     ): self {
-        $company = $shipment->getCompany();
+        $carrier = $shipment->getCarrier();
+        $carrierId = $carrier?->getId();
 
         return new self(
             $shipment->getId() ?? 0,
             $shipment->getOrderId(),
             $shipment->getOrderReference(),
             $shipment->getShipmentNumber(),
-            $company?->getShortName(),
+            $carrierId,
+            $carrier?->getShortName(),
             $shipment->getCreatedAt()?->format('Y-m-d H:i:s'),
             $shipment->getUpdatedAt()?->format('Y-m-d H:i:s'),
             $package,
@@ -134,6 +137,8 @@ final class ShipmentView
             'orderId' => $this->orderId,
             'orderReference' => $this->orderReference,
             'shipmentNumber' => $this->shipmentNumber,
+            'carrierId' => $this->carrierId,
+            'companyId' => $this->carrierId,
             'carrierShortName' => $this->carrierShortName,
             'createdAt' => $this->createdAt,
             'updatedAt' => $this->updatedAt,

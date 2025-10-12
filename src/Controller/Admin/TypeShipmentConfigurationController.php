@@ -57,10 +57,17 @@ final class TypeShipmentConfigurationController extends FrameworkBundleAdminCont
             'value' => $configurationView?->getValue(),
         ];
 
+        $formActionParameters = ['id' => $typeShipmentId];
+        if ($configurationId > 0) {
+            $formActionParameters['configId'] = $configurationId;
+        }
+
         $form = $this->createForm(CarrierConfigurationType::class, $formData, [
             'lock_name' => null !== $configurationView,
             'label_name' => $this->l('Configuración'),
             'label_value' => $this->l('Valor'),
+            'action' => $this->generateUrl('admin_rj_multicarrier_type_shipment_configuration', $formActionParameters),
+            'method' => Request::METHOD_POST,
         ]);
         $form->handleRequest($request);
 

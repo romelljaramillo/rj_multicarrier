@@ -7,7 +7,7 @@ Resumen de tablas legacy y campos relevantes para la migración a Doctrine ORM.
 - **id_order** (`INT`, referencia a `orders`)
 - **reference_order** (`VARCHAR(100)`)
 - **num_shipment** (`VARCHAR(100)`)
-- **id_carrier_company** (`INT`, FK a `rj_multicarrier_company`)
+- **id_carrier** (`INT`, FK a `rj_multicarrier_carrier`)
 - **id_infopackage** (`INT`, FK a `rj_multicarrier_infopackage`)
 - **account** (`VARCHAR(100)`)
 - **product** (`VARCHAR(100)`)
@@ -33,24 +33,31 @@ Resumen de tablas legacy y campos relevantes para la migración a Doctrine ORM.
 - **pdf** (`TEXT`), **print** (`TINYINT(1)`)
 - **date_add**, **date_upd**
 
-## Company (`rj_multicarrier_company`)
-- **id_carrier_company** (`INT`, PK)
+## Carrier (`rj_multicarrier_carrier`)
+- **id_carrier** (`INT`, PK)
 - **name**, **shortname**, **icon** (`VARCHAR`)
 - **date_add**, **date_upd**
 
 ## TypeShipment (`rj_multicarrier_type_shipment`)
 - **id_type_shipment** (`INT`, PK)
-- **id_carrier_company** (`INT`, FK a Company)
+- **id_carrier** (`INT`, FK a Carrier)
 - **name**, **id_bc** (`VARCHAR`)
 - **id_reference_carrier** (`INT`, FK a tabla `carrier` core)
 - **active** (`TINYINT(1)`)
 - **date_add**, **date_upd**
 
-## InfoShop (`rj_multicarrier_infoshop`)
-- **id_infoshop** (`INT`, PK)
+## Configuration (`rj_multicarrier_configuration`)
+- **id_carrier_configuration** (`INT`, PK)
 - Datos de remitente: **firstname**, **lastname**, **company**, **additionalname**
 - Localización: **id_country**, **state**, **city**, **street**, **number**, **postcode**, **additionaladdress**
 - Contacto: **isbusiness**, **email**, **phone**, **vatnumber**
+- **date_add**, **date_upd**
+
+## CarrierConfiguration (`rj_multicarrier_carrier_configuration`)
+- **id_carrier_configuration** (`INT`, PK)
+- **id_carrier**, **id_type_shipment** (`INT`, FK a Carrier y TypeShipment)
+- **id_shop_group**, **id_shop** (`INT`, nullables)
+- **name** (`VARCHAR(254)`), **value** (`TEXT`)
 - **date_add**, **date_upd**
 
 ## Log (`rj_multicarrier_log`)
