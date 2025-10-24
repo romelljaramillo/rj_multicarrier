@@ -2,7 +2,7 @@
 
 {% block content %}
   <div class="row">
-    <div class="col-xl-7">
+    <div class="col-12">
       {% embed '@PrestaShop/Admin/Common/Grid/grid_panel.html.twig' with { grid: typeShipmentGrid } %}
         {% block grid_panel_header %}
           <div class="card-header js-grid-header d-flex align-items-center justify-content-between">
@@ -11,6 +11,12 @@
               <span class="badge badge-secondary ml-2">{{ grid.data.records_total }}</span>
             </div>
             <div class="d-flex align-items-center">
+              <a
+                href="{{ path('admin_rj_multicarrier_type_shipment_create') }}"
+                class="btn btn-outline-primary btn-sm mr-2"
+              >
+                {{ 'Nuevo tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+              </a>
               {{ include('@PrestaShop/Admin/Common/Grid/Blocks/grid_actions.html.twig', { grid: grid }) }}
             </div>
           </div>
@@ -20,6 +26,8 @@
           <div class="card-body">
             {% if companies|length > 1 %}
               <form method="get" action="{{ path('admin_rj_multicarrier_type_shipment_index') }}" class="form-inline mb-3">
+                <input type="hidden" name="token" value="{{ legacyToken }}">
+                <input type="hidden" name="_token" value="{{ app.request.get('_token')|default('') }}">
                 <div class="form-group mr-2">
                   <label for="type_shipment_company_filter" class="mr-2">{{ 'Compañía'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
                   <select id="type_shipment_company_filter" name="company" class="form-control" onchange="this.form.submit()">
@@ -35,40 +43,6 @@
           </div>
         {% endblock %}
       {% endembed %}
-    </div>
-
-    <div class="col-xl-5">
-      <div class="card">
-        <h3 class="card-header">
-          {% if editingTypeShipment %}
-            {{ 'Editar tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-          {% else %}
-            {{ 'Nuevo tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-          {% endif %}
-        </h3>
-        <div class="card-body">
-          {% set actionParams = { company: currentCompanyId } %}
-          {% if editingTypeShipment %}
-            {% set actionParams = actionParams|merge({ id: editingTypeShipment.id }) %}
-          {% endif %}
-
-          {{ form_start(form, {
-            action: path('admin_rj_multicarrier_type_shipment_index', actionParams),
-            attr: { novalidate: 'novalidate' }
-          }) }}
-              {{ form_errors(form) }}
-            {{ form_row(form.carrier_id) }}
-            {{ form_row(form.name) }}
-            {{ form_row(form.business_code) }}
-            {{ form_row(form.reference_carrier_id) }}
-            {{ form_row(form.active) }}
-            {{ form_widget(form.id) }}
-            <div class="mt-3">
-              {{ form_row(form.save) }}
-            </div>
-          {{ form_end(form, { render_rest: false }) }}
-        </div>
-      </div>
     </div>
   </div>
 
@@ -142,4 +116,8 @@
       </div>
     </div>
   </div>
+{% endblock %}
+
+{% block javascripts %}
+  {{ parent() }}
 {% endblock %}

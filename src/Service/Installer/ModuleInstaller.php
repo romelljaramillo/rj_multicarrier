@@ -360,16 +360,16 @@ final class ModuleInstaller
                 'es' => 'Multi-carrier',
             ],
             'Modules.RjMulticarrier.Admin.Menu.Configuration' => [
-                'en' => 'Info shop',
-                'es' => 'Remitentes',
+                'en' => 'Shop information',
+                'es' => 'Información tienda',
+            ],
+            'Modules.RjMulticarrier.Admin.Menu.Carriers' => [
+                'en' => 'Carrier companies',
+                'es' => 'Empresas de transporte',
             ],
             'Modules.RjMulticarrier.Admin.Menu.TypeShipments' => [
                 'en' => 'Shipment types',
                 'es' => 'Tipos de envío',
-            ],
-            'Modules.RjMulticarrier.Admin.Menu.Companies' => [
-                'en' => 'Carrier companies',
-                'es' => 'Empresas de transporte',
             ],
             'Modules.RjMulticarrier.Admin.Menu.Shipments' => [
                 'en' => 'Shipments',

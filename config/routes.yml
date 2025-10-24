@@ -124,6 +124,16 @@ admin_rj_multicarrier_type_shipment_index:
   options:
     expose: true
 
+admin_rj_multicarrier_type_shipment_create:
+  path: /rj-multicarrier/type-shipments/new
+  methods: [GET, POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\TypeShipmentController::createAction'
+    _legacy_controller: "AdminRjMulticarrierTypeShipment"
+    _legacy_link: "AdminRjMulticarrierTypeShipment:add"
+  options:
+    expose: true
+
 admin_rj_multicarrier_type_shipment_view:
   path: /rj-multicarrier/type-shipment/{id}/view
   methods: [GET]
@@ -131,6 +141,22 @@ admin_rj_multicarrier_type_shipment_view:
     _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\TypeShipmentController::viewAction'
     _legacy_controller: "AdminRjMulticarrierTypeShipment"
     _legacy_link: "AdminRjMulticarrierTypeShipment:view"
+    _legacy_parameters:
+      id_type_shipment: id
+  requirements:
+    id: '\d+'
+  options:
+    expose: true
+
+admin_rj_multicarrier_type_shipment_edit:
+  path: /rj-multicarrier/type-shipments/{id}/edit
+  methods: [GET, POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\TypeShipmentController::editAction'
+    _legacy_controller: "AdminRjMulticarrierTypeShipment"
+    _legacy_link: "AdminRjMulticarrierTypeShipment:update"
+    _legacy_parameters:
+      id_type_shipment: id
   requirements:
     id: '\d+'
   options:
@@ -143,6 +169,8 @@ admin_rj_multicarrier_type_shipment_delete:
     _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\TypeShipmentController::deleteAction'
     _legacy_controller: "AdminRjMulticarrierTypeShipment"
     _legacy_link: "AdminRjMulticarrierTypeShipment:delete"
+    _legacy_parameters:
+      id_type_shipment: id
   requirements:
     id: '\d+'
   options:
@@ -155,6 +183,8 @@ admin_rj_multicarrier_type_shipment_toggle:
     _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\TypeShipmentController::toggleAction'
     _legacy_controller: "AdminRjMulticarrierTypeShipment"
     _legacy_link: "AdminRjMulticarrierTypeShipment:status"
+    _legacy_parameters:
+      id_type_shipment: id
   requirements:
     id: '\d+'
   options:

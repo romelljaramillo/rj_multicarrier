@@ -225,6 +225,7 @@ class InfoPackageRepository extends ServiceEntityRepository
             'id_order' => $package->getOrderId(),
             'id_reference_carrier' => $package->getReferenceCarrierId(),
             'id_type_shipment' => $package->getTypeShipment()?->getId(),
+            'id_carrier' => $package->getTypeShipment()?->getCarrier()->getId(),
             'quantity' => $package->getQuantity(),
             'weight' => $package->getWeight(),
             'length' => $package->getLength(),

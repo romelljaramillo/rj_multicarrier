@@ -58,8 +58,11 @@ final class TypeShipmentType extends AbstractType
             ->add('reference_carrier_id', ChoiceType::class, [
                 'label' => 'Transportista asociado',
                 'choices' => $options['carrier_choices'],
-                'placeholder' => 'Selecciona un transportista',
-                'required' => false,
+                'placeholder' => false,
+                'required' => true,
+                'constraints' => [
+                    new Assert\NotBlank(),
+                ],
             ])
             ->add('active', SwitchType::class, [
                 'label' => 'Activo',

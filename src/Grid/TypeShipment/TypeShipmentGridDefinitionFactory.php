@@ -249,7 +249,7 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                 ->setName($this->transString('Edit', [], 'Admin.Actions'))
                 ->setIcon('edit')
                 ->setOptions([
-                    'route' => 'admin_rj_multicarrier_type_shipment_index',
+                    'route' => 'admin_rj_multicarrier_type_shipment_edit',
                     'route_param_name' => 'id',
                     'route_param_field' => 'id_type_shipment',
                     'extra_route_params' => [

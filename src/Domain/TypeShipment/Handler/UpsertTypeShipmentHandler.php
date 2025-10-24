@@ -42,6 +42,7 @@ final class UpsertTypeShipmentHandler
             ->setReferenceCarrierId($referenceCarrierId)
             ->setActive($command->isActive());
 
+        $this->entityManager->persist($typeShipment);
         $this->entityManager->flush();
 
         return $typeShipment;
@@ -83,7 +84,7 @@ final class UpsertTypeShipmentHandler
 
     private function assertCarrierIsAvailable(int $referenceCarrierId, ?int $currentTypeShipmentId): void
     {
-        $existing = $this->typeShipmentRepository->findActiveByReferenceCarrier($referenceCarrierId);
+        $existing = $this->typeShipmentRepository->findOneByReferenceCarrierId($referenceCarrierId);
 
         if (null === $existing) {
             return;

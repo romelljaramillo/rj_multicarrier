@@ -1,202 +1,463 @@
-<div class="card">
-	<h3 class="card-header">{{ 'RJ Multi-carrier'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
-	<div class="card-body">
-		{# If there's a shipment we show details; otherwise show a form to create/save an info package #}
-		{% if shipment is defined and shipment %}
-			<dl class="row">
-				<dt class="col-sm-4">{{ 'Número de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
-				<dd class="col-sm-8">{{ shipment.shipmentNumber ?: '-' }}</dd>
 
-				<dt class="col-sm-4">{{ 'Transportista'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
-				<dd class="col-sm-8">{{ shipment.carrierShortName ?: '-' }}</dd>
+{% set hasShipment = shipment is defined and shipment %}
 
-				<dt class="col-sm-4">{{ 'Referencia pedido'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
-				<dd class="col-sm-8">{{ shipment.orderReference ?: '-' }}</dd>
-			</dl>
+{% for message in notifications.errors %}
+	<div class="alert alert-danger" role="alert">{{ message }}</div>
+{% endfor %}
+{% for message in notifications.warning %}
+	<div class="alert alert-warning" role="alert">{{ message }}</div>
+{% endfor %}
+{% for message in notifications.success %}
+	<div class="alert alert-success" role="alert">{{ message }}</div>
+{% endfor %}
+{% for message in notifications.info %}
+	<div class="alert alert-info" role="alert">{{ message }}</div>
+{% endfor %}
 
-			{% if shipment.package is defined and shipment.package %}
-				<h4 class="h6 mt-3">{{ 'Información bulto'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h4>
-				<ul class="list-unstyled mb-3">
-					<li>
-						<strong>{{ 'Cantidad'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong>
-						{{ shipment.package.quantity }}</li>
-					<li>
-						<strong>{{ 'Peso total'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong>
-						{{ shipment.package.weight }}</li>
-					{% if shipment.package.dimensions %}
-						<li>
-							<strong>{{ 'Dimensiones'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong>
-							{{ shipment.package.dimensions.length ?: '-' }}
-							x
-							{{ shipment.package.dimensions.width ?: '-' }}
-							x
-							{{ shipment.package.dimensions.height ?: '-' }}
-						</li>
-					{% endif %}
-					{% if shipment.package.cash_on_delivery is defined and shipment.package.cash_on_delivery %}
-						<li>
-							<strong>{{ 'Contra reembolso'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong>
-							{{ shipment.package.cash_on_delivery }}</li>
-					{% endif %}
-					{% if shipment.package.message %}
-						<li>
-							<strong>{{ 'Mensaje'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong>
-							{{ shipment.package.message }}</li>
-					{% endif %}
-					{% if shipment.package.hour_from or shipment.package.hour_until %}
-						<li>
-							<strong>{{ 'Horario'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong>
-							{{ shipment.package.hour_from ?: '--:--:--' }}
-							→
-							{{ shipment.package.hour_until ?: '--:--:--' }}
-						</li>
-					{% endif %}
-					{% if shipment.package.retorno is not null %}
-						{% set retornoLabels = {
-	              0: 'Sin retorno'|trans({}, 'Modules.RjMulticarrier.Admin'),
-	              1: 'Retorno obligatorio'|trans({}, 'Modules.RjMulticarrier.Admin'),
-	              2: 'Retorno opcional'|trans({}, 'Modules.RjMulticarrier.Admin')
-	            } %}
-						<li>
-							<strong>{{ 'Retorno'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong>
-							{{ retornoLabels[shipment.package.retorno]|default(shipment.package.retorno) }}</li>
-					{% endif %}
-					{% if shipment.package.rcs is not null %}
-						<li>
-							<strong>{{ 'Retorno copia sellada'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong>
-							{{ shipment.package.rcs ? 'Sí'|trans({}, 'Modules.RjMulticarrier.Admin') : 'No'|trans({}, 'Modules.RjMulticarrier.Admin') }}</li>
-					{% endif %}
-					{% if shipment.package.vsec %}
-						<li>
-							<strong>{{ 'Valor asegurado'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong>
-							{{ shipment.package.vsec }}</li>
-					{% endif %}
-					{% if shipment.package.dorig %}
-						<li>
-							<strong>{{ 'Documento de origen'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong>
-							{{ shipment.package.dorig }}</li>
-					{% endif %}
-				</ul>
-			{% endif %}
+<div class="row g-4">
+	<div class="col-12 col-lg-7">
+		<div class="card">
+			<h3 class="card-header">{{ 'RJ Multi-carrier'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
+			<div class="card-body">
+				{% if hasShipment %}
+					<div class="mb-4">
+						<dl class="row mb-0">
+							<dt class="col-sm-4">{{ 'Número de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+							<dd class="col-sm-8">{{ shipment.shipmentNumber ?: '-' }}</dd>
 
-			<h4 class="h6">{{ 'Etiquetas'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h4>
-			{% if shipment.labels is not empty %}
-				<table class="table table-sm">
-					<thead>
-						<tr>
-							<th>{{ 'ID'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
-							<th>{{ 'Paquete'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
-							<th>{{ 'Seguimiento'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
-							<th>{{ 'Tipo'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
-							<th>{{ 'Impreso'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
-						</tr>
-					</thead>
-					<tbody>
-						{% for label in shipment.labels %}
-							<tr>
-								<td>{{ label.id }}</td>
-								<td>{{ label.package_id ?: '-' }}</td>
-								<td>{{ label.tracker_code ?: '-' }}</td>
-								<td>{{ label.label_type ?: '-' }}</td>
-								<td>
-									{% if label.printed %}
-										<span class="badge bg-success">{{ 'Sí'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
-									{% else %}
-										<span class="badge bg-secondary">{{ 'No'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
-									{% endif %}
-								</td>
-							</tr>
-						{% endfor %}
-					</tbody>
-				</table>
-			{% else %}
-				<p class="text-muted">{{ 'No se han generado etiquetas para este envío.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
-			{% endif %}
-		{% else %}
-			{# Show modern form to create/save an info package when no shipment exists #}
-			<form method="post" class="rj-multicarrier-admin-order mb-3">
-				<input type="hidden" name="id_order" value="{{ id_order|default(orderId)|default(0) }}" />
-				<input type="hidden" name="id_infopackage" value="{{ info_package.id_infopackage|default('') }}" />
+							<dt class="col-sm-4">{{ 'Transportista'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+							<dd class="col-sm-8">{{ shipment.carrierShortName ?: '-' }}</dd>
 
-				<div class="row mb-3">
-					<div class="col-md-6">
-						<label class="form-label">{{ 'Compañía'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-						<select name="carrier_id" class="form-select">
-							<option value="">{{ 'Selecciona compañía'|trans({}, 'Modules.RjMulticarrier.Admin') }}</option>
-							{% for company in companies %}
-								<option value="{{ company.id|default(company.getId()|default('')) }}">{{ company.name|default(company.getName()|default('')) }}</option>
-							{% endfor %}
-						</select>
-					</div>
+							<dt class="col-sm-4">{{ 'Referencia pedido'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+							<dd class="col-sm-8">{{ shipment.orderReference ?: '-' }}</dd>
+						</dl>
 
-					<div class="col-md-6">
-						<label class="form-label">{{ 'Tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-						<select name="id_type_shipment" class="form-select">
-							<option value="">{{ 'Selecciona tipo'|trans({}, 'Modules.RjMulticarrier.Admin') }}</option>
-							{% for type in type_shipments %}
-								<option value="{{ type.id|default(type.getId()|default('')) }}">{{ type.name|default(type.getName()|default('')) }}</option>
-							{% endfor %}
-						</select>
-					</div>
-				</div>
-
-				<div class="row mb-3">
-					<div class="col-md-3">
-						<label class="form-label">{{ 'Cantidad'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-						<input type="number" name="rj_quantity" value="{{ info_package.quantity|default(1) }}" class="form-control"/>
-					</div>
-					<div class="col-md-3">
-						<label class="form-label">{{ 'Peso'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-						<input type="text" name="rj_weight" value="{{ info_package.weight|default(0) }}" class="form-control"/>
-					</div>
-					<div class="col-md-2">
-						<label class="form-label">{{ 'Largo'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-						<input type="text" name="rj_length" value="{{ info_package.length|default(0) }}" class="form-control"/>
-					</div>
-					<div class="col-md-2">
-						<label class="form-label">{{ 'Ancho'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-						<input type="text" name="rj_width" value="{{ info_package.width|default(0) }}" class="form-control"/>
-					</div>
-					<div class="col-md-2">
-						<label class="form-label">{{ 'Alto'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-						<input type="text" name="rj_height" value="{{ info_package.height|default(0) }}" class="form-control"/>
-					</div>
-				</div>
-
-				<div class="mb-3">
-					<label class="form-label">{{ 'Mensaje'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-					<textarea name="rj_message" class="form-control">{{ info_package.message|default('') }}</textarea>
-				</div>
-
-				{% if config_extra_info.company is not empty or config_extra_info.type_shipment is not empty %}
-					<div class="mb-3">
-						<h5 class="h6">{{ 'Configuraciones guardadas'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h5>
-						{% if config_extra_info.company is not empty %}
-							<p class="text-muted mb-1">{{ 'Compañía'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
-							<ul class="list-unstyled small mb-2">
-								{% for key, value in config_extra_info.company %}
-									<li><strong>{{ key }}</strong>: {{ value is not empty ? value : '-' }}</li>
-								{% endfor %}
+						{% if shipment.package is defined and shipment.package %}
+							<h4 class="h6 mt-3">{{ 'Información del bulto'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h4>
+							<ul class="list-unstyled mb-3">
+								<li><strong>{{ 'Cantidad'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.quantity }}</li>
+								<li><strong>{{ 'Peso total'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.weight }}</li>
+								{% if shipment.package.length is defined %}
+									<li>
+										<strong>{{ 'Dimensiones'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong>
+										{{ shipment.package.length ?: '-' }}
+										x
+										{{ shipment.package.width ?: '-' }}
+										x
+										{{ shipment.package.height ?: '-' }}
+									</li>
+								{% endif %}
+								{% if shipment.package.cash_ondelivery is defined and shipment.package.cash_ondelivery %}
+									<li><strong>{{ 'Contra reembolso'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.cash_ondelivery }}</li>
+								{% endif %}
+								{% if shipment.package.message %}
+									<li><strong>{{ 'Mensaje'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.message }}</li>
+								{% endif %}
+								{% if shipment.package.hour_from or shipment.package.hour_until %}
+									<li>
+										<strong>{{ 'Horario'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong>
+										{{ shipment.package.hour_from ?: '--:--:--' }} → {{ shipment.package.hour_until ?: '--:--:--' }}
+									</li>
+								{% endif %}
+								{% if shipment.package.retorno is not null %}
+									{% set retornoLabels = {
+										0: 'Sin retorno'|trans({}, 'Modules.RjMulticarrier.Admin'),
+										1: 'Retorno obligatorio'|trans({}, 'Modules.RjMulticarrier.Admin'),
+										2: 'Retorno opcional'|trans({}, 'Modules.RjMulticarrier.Admin')
+									} %}
+									<li><strong>{{ 'Retorno'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ retornoLabels[shipment.package.retorno]|default(shipment.package.retorno) }}</li>
+								{% endif %}
+								{% if shipment.package.rcs is not null %}
+									<li><strong>{{ 'Retorno copia sellada'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.rcs ? 'Sí'|trans({}, 'Modules.RjMulticarrier.Admin') : 'No'|trans({}, 'Modules.RjMulticarrier.Admin') }}</li>
+								{% endif %}
+								{% if shipment.package.vsec %}
+									<li><strong>{{ 'Valor asegurado'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.vsec }}</li>
+								{% endif %}
+								{% if shipment.package.dorig %}
+									<li><strong>{{ 'Documento de origen'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.dorig }}</li>
+								{% endif %}
 							</ul>
 						{% endif %}
 
-						{% if config_extra_info.type_shipment is not empty %}
-							<p class="text-muted mb-1">{{ 'Tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
-							<ul class="list-unstyled small mb-0">
-								{% for key, value in config_extra_info.type_shipment %}
-									<li><strong>{{ key }}</strong>: {{ value is not empty ? value : '-' }}</li>
-								{% endfor %}
-							</ul>
+						<div class="d-flex justify-content-between align-items-center mb-3">
+							<h4 class="h6 mb-0">{{ 'Etiquetas'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h4>
+							<form method="post" class="mb-0">
+								<input type="hidden" name="id_order" value="{{ orderId }}" />
+								<input type="hidden" name="id_shipment" value="{{ shipment.id }}" />
+								<button type="submit" name="submitDeleteShipment" class="btn btn-outline-danger btn-sm">
+									{{ 'Eliminar envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+								</button>
+							</form>
+						</div>
+
+						{% if shipment.labels is not empty %}
+							<table class="table table-sm">
+								<thead>
+									<tr>
+										<th>{{ 'ID'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+										<th>{{ 'Paquete'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+										<th>{{ 'Seguimiento'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+										<th>{{ 'Tipo'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+										<th>{{ 'Impreso'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+									</tr>
+								</thead>
+								<tbody>
+									{% for label in shipment.labels %}
+										<tr>
+											<td>{{ label.id }}</td>
+											<td>{{ label.package_id ?: '-' }}</td>
+											<td>{{ label.tracker_code ?: '-' }}</td>
+											<td>{{ label.label_type ?: '-' }}</td>
+											<td>
+												{% if label.printed %}
+													<span class="badge bg-success">{{ 'Sí'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
+												{% else %}
+													<span class="badge bg-secondary">{{ 'No'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
+												{% endif %}
+											</td>
+										</tr>
+									{% endfor %}
+								</tbody>
+							</table>
+						{% else %}
+							<p class="text-muted mb-0">{{ 'No se han generado etiquetas para este envío.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
 						{% endif %}
 					</div>
 				{% endif %}
 
-				<div class="d-flex gap-2">
-					<button type="submit" name="submitShipment" class="btn btn-primary">{{ 'Generar envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</button>
-					<button type="submit" name="submitSavePackSend" class="btn btn-secondary">{{ 'Guardar bulto'|trans({}, 'Modules.RjMulticarrier.Admin') }}</button>
-				</div>
-			</form>
-		{% endif %}
-		{% endif %}
+				<form method="post" class="rj-multicarrier-admin-order">
+					<input type="hidden" name="id_order" value="{{ orderId }}" />
+					<input type="hidden" name="id_infopackage" value="{{ request_values.id_infopackage|default(info_package.id_infopackage|default('')) }}" />
+					<input type="hidden" name="id_shipment" value="{{ request_values.id_shipment|default(info_shipment.id_shipment|default('')) }}" />
+					<input type="hidden" name="id_reference_carrier" id="rj-reference-carrier" value="{{ request_values.id_reference_carrier|default(info_package.id_reference_carrier|default('')) }}" />
+
+					<div class="row mb-3">
+						<div class="col-md-6">
+							<label class="form-label">{{ 'Compañía'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+							<select name="carrier_id" class="form-select form-control" id="rj-carrier-select">
+								<option value="">{{ 'Selecciona compañía'|trans({}, 'Modules.RjMulticarrier.Admin') }}</option>
+								{% set selectedCarrier = request_values.carrier_id|default(selected_carrier_id|default('')) %}
+								{% for company in companies %}
+									<option value="{{ company.id }}" {% if company.id == selectedCarrier %}selected{% endif %}>{{ company.name }}</option>
+								{% endfor %}
+							</select>
+						</div>
+						<div class="col-md-6">
+							<label class="form-label">{{ 'Tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+							<select name="id_type_shipment" class="form-select form-control" id="rj-type-select">
+								<option value="">{{ 'Selecciona tipo'|trans({}, 'Modules.RjMulticarrier.Admin') }}</option>
+								{% set selectedType = request_values.id_type_shipment|default(selected_type_shipment_id|default('')) %}
+								{% for type in type_shipments %}
+									<option
+										value="{{ type.id }}"
+										data-carrier-id="{{ type.carrier_id }}"
+										data-reference-carrier="{{ type.reference_carrier_id }}"
+										{% if type.id == selectedType %}selected{% endif %}
+									>
+										{{ type.name }}
+									</option>
+								{% endfor %}
+							</select>
+						</div>
+					</div>
+
+					<div class="row mb-3">
+						<div class="col-md-2">
+							<label class="form-label">{{ 'Cantidad'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+							<input type="number" name="rj_quantity" value="{{ request_values.rj_quantity|default(info_package.quantity|default(1)) }}" class="form-control" min="1"/>
+						</div>
+						<div class="col-md-2">
+							<label class="form-label">{{ 'Peso'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+							<input type="text" name="rj_weight" value="{{ request_values.rj_weight|default(info_package.weight|default(0)) }}" class="form-control"/>
+						</div>
+						<div class="col-md-2">
+							<label class="form-label">{{ 'Largo'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+							<input type="text" name="rj_length" value="{{ request_values.rj_length|default(info_package.length|default('')) }}" class="form-control"/>
+						</div>
+						<div class="col-md-2">
+							<label class="form-label">{{ 'Ancho'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+							<input type="text" name="rj_width" value="{{ request_values.rj_width|default(info_package.width|default('')) }}" class="form-control"/>
+						</div>
+						<div class="col-md-2">
+							<label class="form-label">{{ 'Alto'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+							<input type="text" name="rj_height" value="{{ request_values.rj_height|default(info_package.height|default('')) }}" class="form-control"/>
+						</div>
+						<div class="col-md-2">
+							<label class="form-label">{{ 'Valor asegurado'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+							<input type="text" name="rj_vsec" value="{{ request_values.rj_vsec|default(info_package.vsec|default('')) }}" class="form-control"/>
+						</div>
+					</div>
+
+					<div class="row mb-3">
+						<div class="col-md-3">
+							<label class="form-label">{{ 'Contra reembolso'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+							<input type="text" name="rj_cash_ondelivery" value="{{ request_values.rj_cash_ondelivery|default(info_package.cash_ondelivery|default('')) }}" class="form-control"/>
+						</div>
+						<div class="col-md-3">
+							<label class="form-label">{{ 'Hora desde'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+							<input type="time" name="rj_hour_from" value="{{ request_values.rj_hour_from|default(info_package.hour_from|default('')) }}" class="form-control"/>
+						</div>
+						<div class="col-md-3">
+							<label class="form-label">{{ 'Hora hasta'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+							<input type="time" name="rj_hour_until" value="{{ request_values.rj_hour_until|default(info_package.hour_until|default('')) }}" class="form-control"/>
+						</div>
+						<div class="col-md-3">
+							<label class="form-label">{{ 'Documento de origen'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+							<input type="text" name="rj_dorig" value="{{ request_values.rj_dorig|default(info_package.dorig|default('')) }}" class="form-control"/>
+						</div>
+					</div>
+
+					<div class="row mb-3">
+						<div class="col-md-4">
+							<label class="form-label">{{ 'Retorno'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+							{% set retornoValue = request_values.rj_retorno|default(info_package.retorno|default(0)) %}
+							<select name="rj_retorno" class="form-select form-control">
+								<option value="0" {% if retornoValue == 0 %}selected{% endif %}>{{ 'Sin retorno'|trans({}, 'Modules.RjMulticarrier.Admin') }}</option>
+								<option value="1" {% if retornoValue == 1 %}selected{% endif %}>{{ 'Retorno obligatorio'|trans({}, 'Modules.RjMulticarrier.Admin') }}</option>
+								<option value="2" {% if retornoValue == 2 %}selected{% endif %}>{{ 'Retorno opcional'|trans({}, 'Modules.RjMulticarrier.Admin') }}</option>
+							</select>
+						</div>
+						<div class="col-md-4 d-flex align-items-end">
+							<div class="form-check">
+								<input class="form-check-input" type="checkbox" name="rj_rcs" id="rj_rcs_checkbox" {% if request_values.rj_rcs is defined %}checked{% elseif info_package.rcs %}checked{% endif %}>
+								<label class="form-check-label" for="rj_rcs_checkbox">
+									{{ 'Retorno copia sellada'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+								</label>
+							</div>
+						</div>
+					</div>
+
+					<div class="mb-3">
+						<label class="form-label">{{ 'Mensaje'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+						<textarea name="rj_message" class="form-control" rows="2">{{ request_values.rj_message|default(info_package.message|default('')) }}</textarea>
+					</div>
+
+					{% if config_extra_info.company is not empty or config_extra_info.type_shipment is not empty %}
+						<div class="mb-4">
+							<h5 class="h6">{{ 'Configuraciones guardadas'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h5>
+							{% if config_extra_info.company is not empty %}
+								<p class="text-muted mb-1">{{ 'Compañía'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+								<ul class="list-unstyled small mb-2">
+									{% for key, value in config_extra_info.company %}
+										<li><strong>{{ key }}</strong>: {{ value is not empty ? value : '-' }}</li>
+									{% endfor %}
+								</ul>
+							{% endif %}
+							{% if config_extra_info.type_shipment is not empty %}
+								<p class="text-muted mb-1">{{ 'Tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+								<ul class="list-unstyled small mb-0">
+									{% for key, value in config_extra_info.type_shipment %}
+										<li><strong>{{ key }}</strong>: {{ value is not empty ? value : '-' }}</li>
+									{% endfor %}
+								</ul>
+							{% endif %}
+						</div>
+					{% endif %}
+
+					<div class="d-flex flex-column flex-md-row gap-2 align-items-md-center">
+						<div class="btn-group" role="group">
+							<button type="submit" name="submitSavePackSend" class="btn btn-secondary">
+								{{ 'Guardar bulto'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+							</button>
+							<button type="submit" name="submitShipment" class="btn btn-primary" {% if hasShipment %}disabled{% endif %}>
+								{{ 'Generar envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+							</button>
+						</div>
+						{% if hasShipment %}
+							<span class="small text-muted">{{ 'Elimina el envío actual para poder generar uno nuevo.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
+						{% endif %}
+					</div>
+				</form>
+
+				{% if hasShipment %}
+					<p class="text-muted small mt-3 mb-0">
+						{{ 'Puedes actualizar los datos del bulto y guardarlos; para generar un nuevo envío elimina el existente primero.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+					</p>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+
+	<div class="col-12 col-lg-5">
+		<div class="card h-100">
+			<div class="card-header">{{ 'Vista previa de etiqueta'|trans({}, 'Modules.RjMulticarrier.Admin') }}</div>
+			<div class="card-body">
+				{% if info_customer is empty or configuration_shop is empty %}
+					<p class="text-muted mb-0">
+						{{ 'Configura los datos de remitente y la dirección del cliente para ver la vista previa de la etiqueta.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+					</p>
+				{% else %}
+					{% set shop = configuration_shop %}
+					{% set customer = info_customer %}
+					{% set pkg = info_package %}
+					{% set codAmount = pkg.cash_ondelivery|default(0) %}
+					{% set currencySymbol = order_currency.symbol|default('') %}
+					{% set retornoLabels = {
+						0: 'Sin retorno'|trans({}, 'Modules.RjMulticarrier.Admin'),
+						1: 'Retorno obligatorio'|trans({}, 'Modules.RjMulticarrier.Admin'),
+						2: 'Retorno opcional'|trans({}, 'Modules.RjMulticarrier.Admin')
+					} %}
+
+					<div class="rj-label-carrier">
+						<div class="rj-data-carrier mb-3">
+							<h4 class="mb-0">{{ carrier_name|default('') }}</h4>
+							<p class="text-muted mb-0">{{ 'Transportista'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+						</div>
+
+						<h5 class="text-muted text-uppercase small">{{ 'Remitente'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h5>
+						<div class="mb-3">
+							<p class="mb-1 fw-semibold">{{ shop.company|default(shop.firstname ~ ' ' ~ shop.lastname)|upper }}</p>
+							<p class="mb-1 text-muted">{{ 'Empresa'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+							<p class="mb-1 fw-semibold">{{ shop.street }}</p>
+							<p class="mb-1 text-muted">{{ 'Dirección'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+							<p class="mb-1 fw-semibold">{{ shop.phone }}</p>
+							<p class="mb-1 text-muted">{{ 'Teléfono'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+							{% if shop.email %}
+								<p class="mb-1 fw-semibold">{{ shop.email }}</p>
+								<p class="mb-0 text-muted">{{ 'Email'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+							{% endif %}
+						</div>
+
+						<h5 class="text-muted text-uppercase small mt-4">{{ 'Destinatario'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h5>
+						<div class="mb-3">
+							<p class="mb-1 fw-semibold">{{ customer.firstname }} {{ customer.lastname }}</p>
+							<p class="mb-1 text-muted">{{ 'Cliente'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+							<p class="mb-1 fw-semibold">
+								{{ customer.address1 }}
+							</p>
+							<p class="mb-1 fw-semibold">
+								{{ customer.postcode }}
+								{% if customer.city %} - {{ customer.city }}{% endif %}
+								{% if customer.state %} - {{ customer.state }}{% endif %}
+								{% if customer.country %} - {{ customer.country }}{% endif %}
+							</p>
+							<p class="mb-1 text-muted">{{ 'Dirección'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+							<p class="mb-1 fw-semibold">{{ customer.phone }}
+								{% if customer.phone_mobile %}
+									<br/>{{ customer.phone_mobile }}
+								{% endif %}
+							</p>
+							<p class="mb-1 text-muted">{{ 'Teléfonos'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+							{% if pkg.message %}
+								<p class="mb-1 fw-semibold">{{ pkg.message }}</p>
+								<p class="mb-0 text-muted">{{ 'Mensaje'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+							{% endif %}
+						</div>
+
+						<div class="border-top pt-3">
+							<div class="row text-center">
+								<div class="col-6 col-md-3 mb-3 mb-md-0">
+									<p class="text-muted mb-1">{{ 'Nº pedido'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+									<p class="fw-semibold mb-0">{{ orderId }}</p>
+								</div>
+								<div class="col-6 col-md-3 mb-3 mb-md-0">
+									<p class="text-muted mb-1">{{ 'Peso'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+									<p class="fw-semibold mb-0">{{ pkg.weight|default(0)|number_format(2, '.', ',') }}</p>
+								</div>
+								<div class="col-6 col-md-3">
+									<p class="text-muted mb-1">{{ 'Paquetes'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+									<p class="fw-semibold mb-0">{{ pkg.quantity|default(1) }}</p>
+								</div>
+								<div class="col-6 col-md-3">
+									<p class="text-muted mb-1">{{ 'Contra reembolso'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+									<p class="fw-semibold mb-0">
+										{% if codAmount %}
+											{{ currencySymbol }} {{ codAmount|number_format(2, '.', ',') }}
+										{% else %}
+											-
+										{% endif %}
+									</p>
+								</div>
+							</div>
+						</div>
+
+						<div class="border-top pt-3 mt-3">
+							<div class="row text-center">
+								<div class="col-6 col-md-3 mb-3 mb-md-0">
+									<p class="text-muted mb-1">{{ 'Retorno'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+									<p class="fw-semibold mb-0">{{ retornoLabels[pkg.retorno|default(0)]|default('-') }}</p>
+								</div>
+								<div class="col-6 col-md-3 mb-3 mb-md-0">
+									<p class="text-muted mb-1">{{ 'RCS'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+									<p class="fw-semibold mb-0">{{ pkg.rcs ? 'Sí'|trans({}, 'Modules.RjMulticarrier.Admin') : 'No'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+								</div>
+								<div class="col-6 col-md-3 mb-3 mb-md-0">
+									<p class="text-muted mb-1">{{ 'Valor asegurado'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+									<p class="fw-semibold mb-0">{{ pkg.vsec ? 'Sí'|trans({}, 'Modules.RjMulticarrier.Admin') : 'No'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+								</div>
+								<div class="col-6 col-md-3">
+									<p class="text-muted mb-1">{{ 'Departamento'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+									<p class="fw-semibold mb-0">{{ pkg.dorig ?: '-' }}</p>
+								</div>
+							</div>
+						</div>
+					</div>
+				{% endif %}
+			</div>
+		</div>
 	</div>
 </div>
+<script>
+	document.addEventListener('DOMContentLoaded', () => {
+		const carrierSelect = document.getElementById('rj-carrier-select');
+		const typeSelect = document.getElementById('rj-type-select');
+		const referenceInput = document.getElementById('rj-reference-carrier');
+
+		const updateTypeOptions = () => {
+			if (!carrierSelect || !typeSelect) {
+				return;
+			}
+
+			const carrierId = carrierSelect.value;
+			let hasSelected = false;
+
+			Array.from(typeSelect.options).forEach((option) => {
+				if (!option.value) {
+					return;
+				}
+
+				const optionCarrier = option.dataset.carrierId || '';
+				const matchesCarrier = !carrierId || carrierId === optionCarrier;
+
+				option.hidden = !matchesCarrier;
+				if (!matchesCarrier && option.selected) {
+					option.selected = false;
+				}
+
+				if (matchesCarrier && option.selected) {
+					hasSelected = true;
+				}
+			});
+
+			if (!hasSelected) {
+				typeSelect.selectedIndex = 0;
+			}
+
+			updateReferenceCarrier();
+		};
+
+		const updateReferenceCarrier = () => {
+			if (!typeSelect || !referenceInput) {
+				return;
+			}
+
+			const selectedOption = typeSelect.options[typeSelect.selectedIndex];
+			if (selectedOption && selectedOption.dataset.referenceCarrier) {
+				referenceInput.value = selectedOption.dataset.referenceCarrier;
+			} else if (!selectedOption || !selectedOption.value) {
+				referenceInput.value = '';
+			}
+		};
+
+		if (carrierSelect) {
+			carrierSelect.addEventListener('change', updateTypeOptions);
+		}
+
+		if (typeSelect) {
+			typeSelect.addEventListener('change', updateReferenceCarrier);
+		}
+
+		updateTypeOptions();
+		updateReferenceCarrier();
+	});
+</script>

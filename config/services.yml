@@ -49,7 +49,10 @@ services:
     arguments:
       $registry: "@doctrine"
       $shopContext: "@prestashop.adapter.shop.context"
-    public: false
+    public: true
+
+  Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository:
+    public: true
 
   Roanja\Module\RjMulticarrier\Repository\CarrierConfigurationRepository:
     arguments:
@@ -100,6 +103,16 @@ services:
       - {
           name: "tactician.handler",
           command: 'Roanja\Module\RjMulticarrier\Domain\TypeShipment\Query\GetTypeShipmentForView',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\GetTypeShipmentFormOptionsHandler:
+    arguments:
+      $formOptionsProvider: '@Roanja\Module\RjMulticarrier\Form\TypeShipment\TypeShipmentFormOptionsProvider'
+      $typeShipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\TypeShipment\Query\GetTypeShipmentFormOptions',
         }
 
   Roanja\Module\RjMulticarrier\Domain\Carrier\Handler\DeleteCarrierHandler:
@@ -556,6 +569,7 @@ services:
       - '@?Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository'
       - '@?Roanja\Module\RjMulticarrier\Repository\CarrierRepository'
       - '@?Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository'
+      - '@?Roanja\Module\RjMulticarrier\Repository\ConfigurationRepository'
       - '@prestashop.core.query_bus'
     public: true
 
@@ -653,7 +667,7 @@ services:
   Roanja\Module\RjMulticarrier\Repository\ShipmentRepository:
     arguments:
       $registry: "@doctrine"
-    public: false
+    public: true
 
   # Shipment CommandHandlers
   Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\BulkDeleteShipmentHandler:

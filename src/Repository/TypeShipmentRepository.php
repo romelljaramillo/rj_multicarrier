@@ -51,16 +51,21 @@ class TypeShipmentRepository
     }
 
     /**
+     * @param bool $onlyActive
+     *
      * @return int[]
      */
-    public function findAllActiveReferenceCarrierIds(): array
+    public function findAllReferenceCarrierIds(bool $onlyActive = false): array
     {
-        $results = $this->createQueryBuilder('type')
+        $qb = $this->createQueryBuilder('type')
             ->select('DISTINCT type.referenceCarrierId AS referenceCarrierId')
-            ->andWhere('type.active = true')
-            ->andWhere('type.referenceCarrierId IS NOT NULL')
-            ->getQuery()
-            ->getScalarResult();
+            ->andWhere('type.referenceCarrierId IS NOT NULL');
+
+        if ($onlyActive) {
+            $qb->andWhere('type.active = true');
+        }
+
+        $results = $qb->getQuery()->getScalarResult();
 
         return array_map(static fn (array $row): int => (int) $row['referenceCarrierId'], $results);
     }
@@ -73,6 +78,23 @@ class TypeShipmentRepository
             ->setMaxResults(1)
             ->getQuery()
             ->getOneOrNullResult();
+    }
+
+    public function findOneByReferenceCarrierId(int $referenceId): ?TypeShipment
+    {
+        return $this->createQueryBuilder('type')
+            ->andWhere('type.referenceCarrierId = :reference')
+            ->setParameter('reference', $referenceId)
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
+    public function find(int $id): ?TypeShipment
+    {
+        $entity = $this->entityManager->find(TypeShipment::class, $id);
+
+        return $entity instanceof TypeShipment ? $entity : null;
     }
 
     private function createQueryBuilder(string $alias): QueryBuilder

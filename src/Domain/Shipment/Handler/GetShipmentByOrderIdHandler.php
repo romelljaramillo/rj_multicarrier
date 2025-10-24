@@ -62,6 +62,8 @@ final class GetShipmentByOrderIdHandler
                 $package = [
                     'id' => $infoPackage->getId(),
                     'id_reference_carrier' => $infoPackage->getReferenceCarrierId(),
+                    'id_type_shipment' => $infoPackage->getTypeShipment()?->getId(),
+                    'id_carrier' => $infoPackage->getTypeShipment()?->getCarrier()->getId(),
                     'quantity' => $infoPackage->getQuantity(),
                     'weight' => $infoPackage->getWeight(),
                     // Legacy template expects key "cash_ondelivery" (without second underscore)

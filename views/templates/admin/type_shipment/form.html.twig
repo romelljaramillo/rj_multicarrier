@@ -1,0 +1,52 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h3 class="mb-0">
+        {{ isEdit ? 'Editar tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') : 'Nuevo tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+      </h3>
+      <a
+        class="btn btn-outline-secondary btn-sm"
+        href="{{ path('admin_rj_multicarrier_type_shipment_index', returnParams|default({})) }}"
+      >
+        {{ 'Volver al listado'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+      </a>
+    </div>
+    <div class="card-body">
+      {{ form_start(form, {
+        action: path(isEdit ? 'admin_rj_multicarrier_type_shipment_edit' : 'admin_rj_multicarrier_type_shipment_create', actionParams|default({})),
+        attr: { novalidate: 'novalidate' }
+      }) }}
+        {{ form_errors(form) }}
+
+        <div class="form-group">
+          {{ form_row(form.carrier_id) }}
+        </div>
+
+        <div class="form-group">
+          {{ form_row(form.name) }}
+        </div>
+
+        <div class="form-group">
+          {{ form_row(form.business_code) }}
+        </div>
+
+        <div class="form-group">
+          {{ form_row(form.reference_carrier_id) }}
+        </div>
+
+        <div class="form-group">
+          {{ form_row(form.active) }}
+        </div>
+
+        {{ form_widget(form.id) }}
+        <div class="d-flex justify-content-end mt-3">
+          <button type="submit" class="btn btn-primary">
+            {{ isEdit ? 'Guardar cambios'|trans({}, 'Modules.RjMulticarrier.Admin') : 'Crear tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+          </button>
+        </div>
+      {{ form_end(form, { render_rest: false }) }}
+    </div>
+  </div>
+{% endblock %}
