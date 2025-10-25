@@ -26,11 +26,9 @@
           <div class="card-body">
             {% if companies|length > 1 %}
               <form method="get" action="{{ path('admin_rj_multicarrier_type_shipment_index') }}" class="form-inline mb-3">
-                <input type="hidden" name="token" value="{{ legacyToken }}">
-                <input type="hidden" name="_token" value="{{ app.request.get('_token')|default('') }}">
                 <div class="form-group mr-2">
                   <label for="type_shipment_company_filter" class="mr-2">{{ 'Compañía'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-                  <select id="type_shipment_company_filter" name="company" class="form-control" onchange="this.form.submit()">
+                  <select id="type_shipment_company_filter" name="company" class="form-control" onchange="RoanjaTypeShipment.changeCompany(this)">
                     {% for company in companies %}
                       <option value="{{ company.id }}" {% if company.selected %}selected{% endif %}>{{ company.name }}</option>
                     {% endfor %}
@@ -120,4 +118,24 @@
 
 {% block javascripts %}
   {{ parent() }}
+  <script>
+    window.RoanjaTypeShipment = window.RoanjaTypeShipment || {};
+    (function (ns) {
+      ns.changeCompany = function (select) {
+        try {
+          var company = encodeURIComponent(select.value || '');
+          var url = new URL(window.location.href);
+          url.searchParams.set('company', company);
+          // Keep any existing token query parameter if present
+          window.location.href = url.toString();
+        } catch (e) {
+          // Fallback: submit the nearest form
+          var form = select && select.form;
+          if (form) {
+            form.submit();
+          }
+        }
+      };
+    })(window.RoanjaTypeShipment);
+  </script>
 {% endblock %}

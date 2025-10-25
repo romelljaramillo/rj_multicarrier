@@ -535,6 +535,50 @@ admin_rj_multicarrier_ajax:
 
 
 ###############################################################################
+# ORDER ACTIONS FROM BACK OFFICE ORDER VIEW
+###############################################################################
+admin_rj_multicarrier_order_upsert_package:
+  path: /rj-multicarrier/order/{orderId}/package/upsert
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\AdminOrderActionController::upsertPackageAction'
+    _legacy_controller: "AdminRjMulticarrier"
+    _legacy_link: "AdminRjMulticarrier"
+    orderId: 0
+  requirements:
+    orderId: '\d+'
+  # not exposed to the global JS router to avoid server-side URL generation without parameters
+
+admin_rj_multicarrier_order_generate_shipment:
+  path: /rj-multicarrier/order/{orderId}/package/{infoPackageId}/generate
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\AdminOrderActionController::generateShipmentAction'
+    _legacy_controller: "AdminRjMulticarrier"
+    _legacy_link: "AdminRjMulticarrier"
+    orderId: 0
+    infoPackageId: 0
+  requirements:
+    orderId: '\d+'
+    infoPackageId: '\d+'
+  # not exposed to the global JS router to avoid server-side URL generation without parameters
+
+admin_rj_multicarrier_order_delete_shipment:
+  path: /rj-multicarrier/order/{orderId}/shipment/{shipmentId}/delete
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\AdminOrderActionController::deleteShipmentAction'
+    _legacy_controller: "AdminRjMulticarrier"
+    _legacy_link: "AdminRjMulticarrier"
+    orderId: 0
+    shipmentId: 0
+  requirements:
+    orderId: '\d+'
+    shipmentId: '\d+'
+  # not exposed to the global JS router to avoid server-side URL generation without parameters
+
+
+###############################################################################
 # COMPANY CONTROLLER
 ###############################################################################
 admin_rj_multicarrier_carriers_index:

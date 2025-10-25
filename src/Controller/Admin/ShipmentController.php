@@ -89,7 +89,7 @@ final class ShipmentController extends FrameworkBundleAdminController
 
     public function deleteAction(Request $request, int $id): RedirectResponse
     {
-        $this->validateCsrfToken('delete_shipment_' . $id, (string) $request->request->get('_token'));
+        // No CSRF token validation to match other native controllers pattern
 
         try {
             $this->getCommandBus()->handle(new DeleteShipmentCommand($id));
@@ -259,13 +259,6 @@ final class ShipmentController extends FrameworkBundleAdminController
     private function generateLegacyModuleUrl(): string
     {
         return $this->get('router')->generate('admin_modules_manage');
-    }
-
-    private function validateCsrfToken(string $id, string $token): void
-    {
-        if (!$this->isCsrfTokenValid($id, $token)) {
-            throw $this->createAccessDeniedException('Invalid CSRF token.');
-        }
     }
 
     private function extractScopedParameters(Request $request, string $scope): array

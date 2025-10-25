@@ -306,7 +306,7 @@ services:
     class: Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentGridDataFactoryDecorator
     arguments:
       $typeShipmentDoctrineGridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentDoctrineGridDataFactory'
-      $csrfTokenManager: "@security.csrf.token_manager"
+
 
   Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentGridFactory:
     arguments:
@@ -436,7 +436,7 @@ services:
   Roanja\Module\RjMulticarrier\Grid\Configuration\ConfigurationGridDataFactory:
     arguments:
       $dataFactory: '@Roanja\Module\RjMulticarrier\Grid\Configuration\ConfigurationDoctrineGridDataFactory'
-      $csrfTokenManager: '@security.csrf.token_manager'
+
 
   Roanja\Module\RjMulticarrier\Grid\Configuration\ConfigurationGridFactory:
     arguments:

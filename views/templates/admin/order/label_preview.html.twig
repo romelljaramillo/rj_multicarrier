@@ -1,0 +1,128 @@
+<div class="col-12 col-lg-5">
+    <div class="card h-100">
+        <div class="card-header">{{ 'Vista previa de etiqueta'|trans({}, 'Modules.RjMulticarrier.Admin') }}</div>
+        <div class="card-body">
+            {% if info_customer is empty or configuration_shop is empty %}
+                <p class="text-muted mb-0">
+                    {{ 'Configura los datos de remitente y la dirección del cliente para ver la vista previa de la etiqueta.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                </p>
+            {% else %}
+                {% set shop = configuration_shop %}
+                {% set customer = info_customer %}
+                {% set pkg = info_package %}
+                {% set codAmount = pkg.cash_ondelivery|default(0) %}
+                {% set currencySymbol = order_currency.symbol|default('') %}
+                {% set retornoLabels = {
+                    0: 'Sin retorno'|trans({}, 'Modules.RjMulticarrier.Admin'),
+                    1: 'Retorno obligatorio'|trans({}, 'Modules.RjMulticarrier.Admin'),
+                    2: 'Retorno opcional'|trans({}, 'Modules.RjMulticarrier.Admin')
+                } %}
+
+                <div class="rj-label-carrier">
+                    <div class="rj-data-carrier mb-3">
+                        <h4 class="mb-0">{{ carrier_name|default('') }}</h4>
+                        <p class="text-muted mb-0">{{ 'Transportista'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                    </div>
+
+                    <h5 class="fw-bold text-uppercase">{{ 'Remitente'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h5>
+                    <div class="mb-3">
+                        <div class="row">
+                            <div class="col-12 col-md-6">
+                                <p class="mb-1 fw-semibold">{{ shop.company|default(shop.firstname ~ ' ' ~ shop.lastname)|upper }}</p>
+                                <p class="mb-1 text-muted">{{ 'Empresa'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                <p class="mb-1 fw-semibold">{{ shop.street }}</p>
+                                <p class="mb-1 text-muted">{{ 'Dirección'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <p class="mb-1 fw-semibold">{{ shop.phone }}</p>
+                                <p class="mb-1 text-muted">{{ 'Teléfono'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                {% if shop.email %}
+                                    <p class="mb-1 fw-semibold">{{ shop.email }}</p>
+                                    <p class="mb-0 text-muted">{{ 'Email'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold text-uppercase mt-4">{{ 'Destinatario'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h5>
+                    <div class="mb-3">
+                        <div class="row">
+                            <div class="col-12 col-md-6">
+                                <p class="mb-1 fw-semibold">{{ customer.firstname }} {{ customer.lastname }}</p>
+                                <p class="mb-1 text-muted">{{ 'Cliente'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                <p class="mb-1 fw-semibold">{{ customer.address1 }}</p>
+                                <p class="mb-1 fw-semibold">
+                                    {{ customer.postcode }}
+                                    {% if customer.city %} - {{ customer.city }}{% endif %}
+                                    {% if customer.state %} - {{ customer.state }}{% endif %}
+                                    {% if customer.country %} - {{ customer.country }}{% endif %}
+                                </p>
+                                <p class="mb-1 text-muted">{{ 'Dirección'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <p class="mb-1 fw-semibold">{{ customer.phone }}
+                                    {% if customer.phone_mobile %}
+                                        <br/>{{ customer.phone_mobile }}
+                                    {% endif %}
+                                </p>
+                                <p class="mb-1 text-muted">{{ 'Teléfonos'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                {% if pkg.message %}
+                                    <p class="mb-1 fw-semibold">{{ pkg.message }}</p>
+                                    <p class="mb-0 text-muted">{{ 'Mensaje'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-top pt-3">
+                        <div class="row text-center">
+                            <div class="col-6 col-md-3 mb-3 mb-md-0">
+                                <p class="text-muted mb-1">{{ 'Nº pedido'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                <p class="fw-semibold mb-0">{{ currentOrderId }}</p>
+                            </div>
+                            <div class="col-6 col-md-3 mb-3 mb-md-0">
+                                <p class="text-muted mb-1">{{ 'Peso'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                <p class="fw-semibold mb-0">{{ pkg.weight|default(0)|number_format(2, '.', ',') }}</p>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <p class="text-muted mb-1">{{ 'Paquetes'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                <p class="fw-semibold mb-0">{{ pkg.quantity|default(1) }}</p>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <p class="text-muted mb-1">{{ 'Contra reembolso'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                <p class="fw-semibold mb-0">
+                                    {% if codAmount %}
+                                        {{ currencySymbol }} {{ codAmount|number_format(2, '.', ',') }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-top pt-3 mt-3">
+                        <div class="row text-center">
+                            <div class="col-6 col-md-3 mb-3 mb-md-0">
+                                <p class="text-muted mb-1">{{ 'Retorno'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                <p class="fw-semibold mb-0">{{ retornoLabels[pkg.retorno|default(0)]|default('-') }}</p>
+                            </div>
+                            <div class="col-6 col-md-3 mb-3 mb-md-0">
+                                <p class="text-muted mb-1">{{ 'RCS'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                <p class="fw-semibold mb-0">{{ pkg.rcs ? 'Sí'|trans({}, 'Modules.RjMulticarrier.Admin') : 'No'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                            </div>
+                            <div class="col-6 col-md-3 mb-3 mb-md-0">
+                                <p class="text-muted mb-1">{{ 'Valor asegurado'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                <p class="fw-semibold mb-0">{{ pkg.vsec ? 'Sí'|trans({}, 'Modules.RjMulticarrier.Admin') : 'No'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <p class="text-muted mb-1">{{ 'Departamento'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                <p class="fw-semibold mb-0">{{ pkg.dorig ?: '-' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>

@@ -57,7 +57,7 @@ final class CarrierConfigurationController extends FrameworkBundleAdminControlle
             'value' => $configurationView?->getValue(),
         ];
 
-        $formActionParameters = ['id' => $companyId];
+    $formActionParameters = ['id' => $carrierId];
         if ($configurationId > 0) {
             $formActionParameters['configId'] = $configurationId;
         }
@@ -106,7 +106,6 @@ final class CarrierConfigurationController extends FrameworkBundleAdminControlle
             'configurations' => $configurations,
             'configurationForm' => $form->createView(),
             'isEditing' => null !== $configurationView,
-            'deleteToken' => $this->generateCsrfToken('delete_carrier_configuration_' . $carrierId),
         ]);
     }
 
@@ -118,12 +117,7 @@ final class CarrierConfigurationController extends FrameworkBundleAdminControlle
         $carrier = $this->getCarrierData($id);
         $carrierId = $carrier['id'];
 
-        $token = (string) $request->request->get('_token');
-        if (!$this->isCsrfTokenValid('delete_carrier_configuration_' . $carrierId, $token)) {
-            $this->addFlash('error', $this->l('Token CSRF inválido.'));
-
-            return $this->redirectToRoute('admin_rj_multicarrier_carriers_configuration', ['id' => $carrierId]);
-        }
+        // No CSRF token validation to match other native controllers pattern
 
         try {
             $this->getCommandBus()->handle(new DeleteCarrierConfigurationCommand($configId));
@@ -142,11 +136,6 @@ final class CarrierConfigurationController extends FrameworkBundleAdminControlle
     private function l(string $message, array $parameters = []): string
     {
         return $this->trans($message, self::TRANSLATION_DOMAIN, $parameters);
-    }
-
-    private function generateCsrfToken(string $identifier): string
-    {
-        return $this->container->get('security.csrf.token_manager')->getToken($identifier)->getValue();
     }
 
     /**

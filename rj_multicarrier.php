@@ -277,6 +277,29 @@ class Rj_Multicarrier extends Module implements WidgetInterface
         $shopId = (int) ($context->shop->id ?? 0);
         $submittedValues = Tools::getAllValues();
 
+        // If the Symfony routes for order actions are registered, delegate actions
+        // to the new admin controller and only provide data for rendering.
+        try {
+            $router = $this->get('router');
+            if ($this->isRouteRegistered($router, 'admin_rj_multicarrier_order_upsert_package')) {
+                try {
+                    /** @var InfoPackageRepository $infoPackageRepository */
+                    $infoPackageRepository = $this->get(InfoPackageRepository::class);
+                    $lastPackage = $infoPackageRepository->getPackageByOrder($orderId, $shopId);
+                } catch (\Throwable $e) {
+                    // ignore, rendering will show no package
+                }
+
+                return [
+                    'notifications' => $messages,
+                    'package' => $lastPackage,
+                    'submitted' => $submittedValues,
+                ];
+            }
+        } catch (\Throwable $e) {
+            // Router not available or other error: fall back to legacy handling below.
+        }
+
         if (Tools::isSubmit('submitDeleteShipment')) {
             $shipmentId = (int) Tools::getValue('id_shipment');
 

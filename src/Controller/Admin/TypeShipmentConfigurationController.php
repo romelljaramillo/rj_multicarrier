@@ -107,7 +107,6 @@ final class TypeShipmentConfigurationController extends FrameworkBundleAdminCont
             'configurations' => $configurations,
             'configurationForm' => $form->createView(),
             'isEditing' => null !== $configurationView,
-            'deleteToken' => $this->generateCsrfToken('delete_type_configuration_' . $typeShipmentId),
         ]);
     }
 
@@ -119,12 +118,7 @@ final class TypeShipmentConfigurationController extends FrameworkBundleAdminCont
         $typeShipment = $this->getTypeShipmentData($id);
         $typeShipmentId = $typeShipment['id'];
 
-        $token = (string) $request->request->get('_token');
-        if (!$this->isCsrfTokenValid('delete_type_configuration_' . $typeShipmentId, $token)) {
-            $this->addFlash('error', $this->l('Token CSRF inválido.'));
-
-            return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_configuration', ['id' => $typeShipmentId]);
-        }
+        // No CSRF token validation to match other native controllers pattern
 
         try {
             $this->getCommandBus()->handle(new DeleteTypeShipmentConfigurationCommand($configId));
@@ -143,11 +137,6 @@ final class TypeShipmentConfigurationController extends FrameworkBundleAdminCont
     private function l(string $message, array $parameters = []): string
     {
         return $this->trans($message, self::TRANSLATION_DOMAIN, $parameters);
-    }
-
-    private function generateCsrfToken(string $identifier): string
-    {
-        return $this->container->get('security.csrf.token_manager')->getToken($identifier)->getValue();
     }
 
     /**

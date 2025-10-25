@@ -79,14 +79,12 @@ final class TypeShipmentController extends FrameworkBundleAdminController
         }
 
         $grid = $this->gridFactory->getGrid($filters);
-        $legacyToken = $this->getLegacyToken();
 
         return $this->render('@Modules/rj_multicarrier/views/templates/admin/type_shipment/index.html.twig', [
             'typeShipmentGrid' => $this->presentGrid($grid),
             'layoutTitle' => $this->l('Shipment types'),
             'companies' => $this->buildCompanyView($companies, $companyId),
             'currentCompanyId' => $companyId,
-            'legacyToken' => $legacyToken,
         ]);
     }
 
@@ -352,7 +350,6 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
             return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
                 'company' => $companyId,
-                'token' => $this->getLegacyToken(),
             ]);
         }
 
@@ -374,7 +371,6 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
             return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
                 'company' => $companyId,
-                'token' => $this->getLegacyToken(),
             ]);
         }
 
@@ -396,7 +392,6 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
             return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
                 'company' => $companyId,
-                'token' => $this->getLegacyToken(),
             ]);
         }
 
@@ -477,9 +472,7 @@ final class TypeShipmentController extends FrameworkBundleAdminController
      */
     private function buildReturnParams(?int $companyId): array
     {
-        $params = [
-            'token' => $this->getLegacyToken(),
-        ];
+        $params = [];
 
         if (null !== $companyId && $companyId > 0) {
             $params['company'] = $companyId;
@@ -819,10 +812,5 @@ final class TypeShipmentController extends FrameworkBundleAdminController
         $normalized = (int) $value;
 
         return $normalized > 0 ? $normalized : null;
-    }
-
-    private function getLegacyToken(): string
-    {
-        return \Tools::getAdminTokenLite('AdminRjMulticarrierTypeShipment');
     }
 }

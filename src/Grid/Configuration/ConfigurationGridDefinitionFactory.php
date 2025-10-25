@@ -99,8 +99,7 @@ final class ConfigurationGridDefinitionFactory extends AbstractModuleGridDefinit
                     'route' => 'admin_rj_multicarrier_configuration_shop_toggle',
                     'route_param_name' => 'id',
                     'extra_route_params' => [
-                        '_token' => 'toggle_token',
-                    ],
+                        ],
                 ]))
             ->add((new DateTimeColumn('date_add'))
                 ->setName($this->transString('Creado'))
@@ -234,7 +233,7 @@ final class ConfigurationGridDefinitionFactory extends AbstractModuleGridDefinit
                 'admin_rj_multicarrier_configuration_shop_delete',
                 'id',
                 'id_configuration',
-                Request::METHOD_POST
+                Request::METHOD_DELETE
             )
         );
 

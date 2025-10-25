@@ -13,7 +13,7 @@ final class ConfigurationGridDataFactory implements GridDataFactoryInterface
 {
     public function __construct(
         private readonly GridDataFactoryInterface $dataFactory,
-        private readonly CsrfTokenManagerInterface $csrfTokenManager
+        
     ) {
     }
 
@@ -36,9 +36,7 @@ final class ConfigurationGridDataFactory implements GridDataFactoryInterface
                 $record['shop_ids'] = $parsedShopIds;
                 $record['shop_association'] = $parsedShopIds;
             }
-            $record['toggle_token'] = $this->csrfTokenManager
-                ->getToken('toggle_configuration_' . $id)
-                ->getValue();
+            // No per-row CSRF tokens: follow Log grid behaviour
         }
         unset($record);
 

@@ -51,7 +51,6 @@
                             action="{{ path('admin_rj_multicarrier_carriers_configuration_delete', { id: carrier.id, configId: configuration.id }) }}"
                             onsubmit="return confirm('{{ '¿Eliminar esta configuración?'|trans({}, 'Modules.RjMulticarrier.Admin')|escape('js') }}');"
                           >
-                            <input type="hidden" name="_token" value="{{ deleteToken }}">
                             <button type="submit" class="btn btn-outline-danger">
                               {{ 'Eliminar'|trans({}, 'Admin.Actions') }}
                             </button>

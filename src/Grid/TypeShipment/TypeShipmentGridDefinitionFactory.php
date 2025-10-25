@@ -30,6 +30,7 @@ use Roanja\Module\RjMulticarrier\Grid\AbstractModuleGridDefinitionFactory;
 use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\HttpFoundation\Request;
 
 final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefinitionFactory
 {
@@ -97,9 +98,8 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                     'route' => 'admin_rj_multicarrier_type_shipment_toggle',
                     'route_param_name' => 'id',
                     'extra_route_params' => [
-                        'company' => 'id_carrier',
-                        '_token' => 'toggle_token',
-                    ],
+                            'company' => 'id_carrier',
+                        ],
                 ]))
             ->add((new ActionColumn('actions'))
                 ->setName($this->transString('Actions', [], 'Admin.Global'))
@@ -260,10 +260,9 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                 'admin_rj_multicarrier_type_shipment_delete',
                 'id',
                 'id_type_shipment',
-                'POST',
+                Request::METHOD_DELETE,
                 [
                     'company' => 'id_carrier',
-                    '_token' => 'delete_token',
                 ],
                 [
                     'confirm_message' => $this->transString('Delete this shipment type?'),

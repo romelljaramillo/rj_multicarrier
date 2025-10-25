@@ -16,7 +16,7 @@ final class TypeShipmentGridDataFactoryDecorator implements GridDataFactoryInter
 {
     public function __construct(
         private readonly GridDataFactoryInterface $typeShipmentDoctrineGridDataFactory,
-        private readonly CsrfTokenManagerInterface $csrfTokenManager
+        
     ) {
     }
 
@@ -24,25 +24,19 @@ final class TypeShipmentGridDataFactoryDecorator implements GridDataFactoryInter
     {
         $gridData = $this->typeShipmentDoctrineGridDataFactory->getData($searchCriteria);
 
-        $recordsWithTokens = [];
+        $records = [];
         foreach ($gridData->getRecords() as $record) {
             $id = (int) ($record['id_type_shipment'] ?? 0);
             $companyId = (int) ($record['id_carrier'] ?? 0);
 
             $record['id_type_shipment'] = $id;
             $record['id_carrier'] = $companyId;
-            $record['toggle_token'] = $this->csrfTokenManager
-                ->getToken('toggle_type_shipment_' . $id)
-                ->getValue();
-            $record['delete_token'] = $this->csrfTokenManager
-                ->getToken('delete_type_shipment_' . $id)
-                ->getValue();
 
-            $recordsWithTokens[] = $record;
+            $records[] = $record;
         }
 
         return new GridData(
-            new RecordCollection($recordsWithTokens),
+            new RecordCollection($records),
             $gridData->getRecordsTotal(),
             $gridData->getQuery()
         );
