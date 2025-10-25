@@ -123,9 +123,7 @@ final class TypeShipmentController extends FrameworkBundleAdminController
         if (empty($companies)) {
             $this->addFlash('warning', $this->l('No hay transportistas disponibles en el contexto actual.'));
 
-            return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
-                'token' => $this->getLegacyToken(),
-            ]);
+            return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index');
         }
 
         $requestedCompanyId = $request->query->getInt('company', 0);
@@ -173,7 +171,6 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
                 return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
                     'company' => $currentCompanyId,
-                    'token' => $this->getLegacyToken(),
                 ]);
             } catch (TypeShipmentException $exception) {
                 $this->addFlash('error', $exception->getMessage());
@@ -198,9 +195,7 @@ final class TypeShipmentController extends FrameworkBundleAdminController
         if (null === $typeShipmentView) {
             $this->addFlash('error', $this->l('El tipo de envío solicitado ya no existe.'));
 
-            return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
-                'token' => $this->getLegacyToken(),
-            ]);
+            return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index');
         }
 
         $formOptionsView = $this->getTypeShipmentFormOptions($id);
@@ -212,9 +207,7 @@ final class TypeShipmentController extends FrameworkBundleAdminController
         if (empty($optionsPayload['companies'])) {
             $this->addFlash('error', $this->l('No hay transportistas disponibles en el contexto actual.'));
 
-            return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
-                'token' => $this->getLegacyToken(),
-            ]);
+            return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index');
         }
 
         $formData = $this->buildFormDataFromView($typeShipmentView);
@@ -247,7 +240,6 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
                 return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
                     'company' => $currentCompanyId,
-                    'token' => $this->getLegacyToken(),
                 ]);
             } catch (TypeShipmentException $exception) {
                 $this->addFlash('error', $exception->getMessage());
@@ -278,7 +270,6 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
         return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
             'company' => $companyId,
-            'token' => $this->getLegacyToken(),
         ]);
     }
 
@@ -300,7 +291,6 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
         return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
             'company' => (int) $request->get('company', 0),
-            'token' => $this->getLegacyToken(),
         ]);
     }
 
@@ -317,7 +307,6 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
             return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
                 'company' => $companyId,
-                'token' => $this->getLegacyToken(),
             ]);
         }
 
@@ -343,7 +332,6 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
         return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
             'company' => $companyId,
-            'token' => $this->getLegacyToken(),
         ]);
     }
 
@@ -505,10 +493,6 @@ final class TypeShipmentController extends FrameworkBundleAdminController
      */
     private function buildActionParams(?int $id, Request $request, ?int $defaultCompanyId = null): array
     {
-        $params = [
-            'token' => $this->getLegacyToken(),
-        ];
-
         if (null !== $id) {
             $params['id'] = $id;
         }

@@ -41,12 +41,12 @@
         </div>
 
         {{ form_widget(form.id) }}
-        <div class="d-flex justify-content-end mt-3">
-          <button type="submit" class="btn btn-primary">
-            {{ isEdit ? 'Guardar cambios'|trans({}, 'Modules.RjMulticarrier.Admin') : 'Crear tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-          </button>
-        </div>
-      {{ form_end(form, { render_rest: false }) }}
+
+        {# render remaining hidden fields (CSRF token, etc.) #}
+        {{ form_rest(form) }}
+
+
+      {{ form_end(form) }}
     </div>
   </div>
 {% endblock %}
