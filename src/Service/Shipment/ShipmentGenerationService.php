@@ -13,14 +13,14 @@ use Roanja\Module\RjMulticarrier\Domain\Shipment\Command\GenerateShipmentCommand
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Exception\ShipmentGenerationException;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\GenerateShipmentHandler;
 use Roanja\Module\RjMulticarrier\Entity\Carrier as CarrierEntity;
-use Roanja\Module\RjMulticarrier\Entity\InfoPackage;
+use Roanja\Module\RjMulticarrier\Entity\InfoShipment;
 use Roanja\Module\RjMulticarrier\Entity\Configuration;
 use Roanja\Module\RjMulticarrier\Entity\Shipment as ShipmentEntity;
 use Roanja\Module\RjMulticarrier\Entity\TypeShipment;
 use PrestaShop\PrestaShop\Adapter\Configuration as LegacyConfiguration;
 use PrestaShop\PrestaShop\Core\Domain\Shop\ValueObject\ShopConstraint;
 use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
-use Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository;
+use Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\ConfigurationRepository;
 use Roanja\Module\RjMulticarrier\Repository\ShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
@@ -31,7 +31,7 @@ use Validate;
 final class ShipmentGenerationService
 {
     public function __construct(
-        private readonly InfoPackageRepository $infoPackageRepository,
+        private readonly InfoShipmentRepository $infoShipmentRepository,
         private readonly ShipmentRepository $shipmentRepository,
         private readonly CarrierRepository $carrierRepository,
         private readonly TypeShipmentRepository $typeShipmentRepository,
@@ -44,11 +44,11 @@ final class ShipmentGenerationService
     /**
      * @throws ShipmentGenerationException
      */
-    public function generateForInfoPackage(int $infoPackageId): ShipmentEntity
+    public function generateForInfoShipment(int $infoPackageId): ShipmentEntity
     {
-        $infoPackage = $this->infoPackageRepository->find($infoPackageId);
+        $infoPackage = $this->infoShipmentRepository->find($infoPackageId);
 
-        if (!$infoPackage instanceof InfoPackage) {
+        if (!$infoPackage instanceof InfoShipment) {
             throw ShipmentGenerationException::infoPackageNotFound($infoPackageId);
         }
 
@@ -62,13 +62,13 @@ final class ShipmentGenerationService
         $context = Context::getContext();
         $shopId = (int) $context->shop->id;
         if ($shopId > 0) {
-            $packageRow = $this->infoPackageRepository->getPackageByOrder($orderId, $shopId);
-            if (null === $packageRow || (int) ($packageRow['id_infopackage'] ?? 0) !== $infoPackageId) {
+            $packageRow = $this->infoShipmentRepository->getPackageByOrder($orderId, $shopId);
+            if (null === $packageRow || (int) ($packageRow['id_info_shipment'] ?? 0) !== $infoPackageId) {
                 throw ShipmentGenerationException::infoPackageNotFound($infoPackageId);
             }
         }
 
-        $existingShipmentId = $this->shipmentRepository->shipmentExistsByInfoPackage($infoPackageId);
+        $existingShipmentId = $this->shipmentRepository->shipmentExistsByInfoShipment($infoPackageId);
         if (null !== $existingShipmentId) {
             throw ShipmentGenerationException::shipmentAlreadyExists($infoPackageId);
         }
@@ -104,7 +104,7 @@ final class ShipmentGenerationService
         $payload = [
             'id_order' => $orderId,
             'reference' => (string) $order->reference,
-            'info_package' => $this->mapInfoPackage($infoPackage, $referenceCarrierId),
+            'info_package' => $this->mapInfoShipment($infoPackage, $referenceCarrierId),
             'info_customer' => $this->mapCustomer($order, $languageId),
             'configuration_shop' => $ConfigurationPayload,
             'carriers' => Carrier::getCarriers($languageId, true, false, false, null, false),
@@ -153,7 +153,7 @@ final class ShipmentGenerationService
             }
 
             try {
-                $this->generateForInfoPackage($infoPackageId);
+                $this->generateForInfoShipment($infoPackageId);
                 $results['generated'][] = $infoPackageId;
             } catch (ShipmentGenerationException $exception) {
                 $results['errors'][$infoPackageId] = $exception->getMessage();
@@ -275,13 +275,13 @@ final class ShipmentGenerationService
     /**
      * @return array<string, mixed>
      */
-    private function mapInfoPackage(InfoPackage $infoPackage, int $referenceCarrierId): array
+    private function mapInfoShipment(InfoShipment $infoPackage, int $referenceCarrierId): array
     {
         $hourFrom = $infoPackage->getHourFrom();
         $hourUntil = $infoPackage->getHourUntil();
 
         return [
-            'id_infopackage' => $infoPackage->getId(),
+            'id_info_shipment' => $infoPackage->getId(),
             'id_order' => $infoPackage->getOrderId(),
             'id_reference_carrier' => $referenceCarrierId,
             'id_type_shipment' => $infoPackage->getTypeShipment()->getId(),

@@ -11,4 +11,16 @@ interface CarrierAdapterInterface
     public function getCode(): string;
 
     public function generateShipment(CarrierContext $context): CarrierGenerationResult;
+
+    /**
+     * @return array<int, array{
+     *     name: string,
+     *     label?: string,
+     *     value?: ?string,
+     *     required?: bool,
+     *     description?: string,
+     *     legacy?: array<int, string>
+     * }>
+     */
+    public static function getDefaultConfiguration(): array;
 }

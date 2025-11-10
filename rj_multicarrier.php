@@ -39,12 +39,12 @@ if (!defined('RJ_MULTICARRIER_LABEL_DIR')) {
 use PrestaShop\PrestaShop\Adapter\SymfonyContainer;
 use PrestaShop\PrestaShop\Core\Module\WidgetInterface;
 use Roanja\Module\RjMulticarrier\Carrier\CarrierCompany;
-use Roanja\Module\RjMulticarrier\Domain\InfoPackage\Command\UpsertInfoPackageCommand;
-use Roanja\Module\RjMulticarrier\Domain\InfoPackage\Handler\UpsertInfoPackageHandler;
+use Roanja\Module\RjMulticarrier\Domain\InfoShipment\Command\UpsertInfoShipmentCommand;
+use Roanja\Module\RjMulticarrier\Domain\InfoShipment\Handler\UpsertInfoShipmentHandler;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Command\DeleteShipmentCommand;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Exception\ShipmentGenerationException;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\DeleteShipmentHandler;
-use Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository;
+use Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\ShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
 use Roanja\Module\RjMulticarrier\Service\Installer\ModuleInstaller;
@@ -272,9 +272,8 @@ class Rj_Multicarrier extends Module implements WidgetInterface
             'info' => [],
         ];
 
-        $lastPackage = null;
-        $context = \Context::getContext();
-        $shopId = (int) ($context->shop->id ?? 0);
+    $lastPackage = null;
+    $shopId = (int) ($this->context->shop->id ?? 0);
         $submittedValues = Tools::getAllValues();
 
         // If the Symfony routes for order actions are registered, delegate actions
@@ -283,8 +282,8 @@ class Rj_Multicarrier extends Module implements WidgetInterface
             $router = $this->get('router');
             if ($this->isRouteRegistered($router, 'admin_rj_multicarrier_order_upsert_package')) {
                 try {
-                    /** @var InfoPackageRepository $infoPackageRepository */
-                    $infoPackageRepository = $this->get(InfoPackageRepository::class);
+                    /** @var InfoShipmentRepository $infoPackageRepository */
+                    $infoPackageRepository = $this->get(InfoShipmentRepository::class);
                     $lastPackage = $infoPackageRepository->getPackageByOrder($orderId, $shopId);
                 } catch (\Throwable $e) {
                     // ignore, rendering will show no package
@@ -329,12 +328,12 @@ class Rj_Multicarrier extends Module implements WidgetInterface
             try {
                 /** @var TypeShipmentRepository $typeShipmentRepository */
                 $typeShipmentRepository = $this->get(TypeShipmentRepository::class);
-                /** @var InfoPackageRepository $infoPackageRepository */
-                $infoPackageRepository = $this->get(InfoPackageRepository::class);
+                /** @var InfoShipmentRepository $infoPackageRepository */
+                $infoPackageRepository = $this->get(InfoShipmentRepository::class);
                 /** @var ShipmentRepository $shipmentRepository */
                 $shipmentRepository = $this->get(ShipmentRepository::class);
 
-                $lastPackage = $this->persistInfoPackageFromRequest(
+                $lastPackage = $this->persistInfoShipmentFromRequest(
                     $orderId,
                     $typeShipmentRepository,
                     $infoPackageRepository,
@@ -356,21 +355,21 @@ class Rj_Multicarrier extends Module implements WidgetInterface
         }
 
         if (Tools::isSubmit('submitShipment') && empty($messages['errors'])) {
-            $infoPackageId = isset($lastPackage['id_infopackage']) ? (int) $lastPackage['id_infopackage'] : 0;
+            $infoPackageId = isset($lastPackage['id_info_shipment']) ? (int) $lastPackage['id_info_shipment'] : 0;
 
             if ($infoPackageId <= 0) {
                 try {
-                    /** @var InfoPackageRepository $infoPackageRepository */
-                    $infoPackageRepository = $this->get(InfoPackageRepository::class);
+                    /** @var InfoShipmentRepository $infoPackageRepository */
+                    $infoPackageRepository = $this->get(InfoShipmentRepository::class);
                     $packageRow = $infoPackageRepository->getPackageByOrder($orderId, $shopId);
-                    $infoPackageId = (int) ($packageRow['id_infopackage'] ?? 0);
+                    $infoPackageId = (int) ($packageRow['id_info_shipment'] ?? 0);
                 } catch (\Throwable $exception) {
                     $messages['errors'][] = $exception->getMessage();
                 }
             }
 
             if ($infoPackageId > 0 && empty($messages['errors'])) {
-                $this->generateShipmentForInfoPackage($infoPackageId, $messages);
+                $this->generateShipmentForInfoShipment($infoPackageId, $messages);
             } elseif ($infoPackageId <= 0) {
                 $messages['errors'][] = $this->trans(
                     'No package information available to generate the shipment.',
@@ -392,10 +391,10 @@ class Rj_Multicarrier extends Module implements WidgetInterface
      *
      * @return array<string, mixed>|null
      */
-    private function persistInfoPackageFromRequest(
+    private function persistInfoShipmentFromRequest(
         int $orderId,
         TypeShipmentRepository $typeShipmentRepository,
-        InfoPackageRepository $infoPackageRepository,
+        InfoShipmentRepository $infoPackageRepository,
         ShipmentRepository $shipmentRepository,
         array &$messages,
         int $shopId
@@ -422,7 +421,7 @@ class Rj_Multicarrier extends Module implements WidgetInterface
             throw new \RuntimeException($this->trans('The selected shipment type is not linked to a carrier reference.', [], 'Modules.RjMulticarrier.Admin'));
         }
 
-        $infoPackageIdRaw = Tools::getValue('id_infopackage');
+        $infoPackageIdRaw = Tools::getValue('id_info_shipment');
         $infoPackageId = ($infoPackageIdRaw !== null && '' !== trim((string) $infoPackageIdRaw))
             ? (int) $infoPackageIdRaw
             : null;
@@ -442,10 +441,10 @@ class Rj_Multicarrier extends Module implements WidgetInterface
         $vsec = $this->normalizeStringValue(Tools::getValue('rj_vsec'));
         $dorig = $this->normalizeStringValue(Tools::getValue('rj_dorig'));
 
-        /** @var UpsertInfoPackageHandler $handler */
-        $handler = $this->get(UpsertInfoPackageHandler::class);
+        /** @var UpsertInfoShipmentHandler $handler */
+        $handler = $this->get(UpsertInfoShipmentHandler::class);
         $handler->handle(
-            new UpsertInfoPackageCommand(
+            new UpsertInfoShipmentCommand(
                 $infoPackageId,
                 $orderId,
                 $referenceCarrierId,
@@ -498,12 +497,12 @@ class Rj_Multicarrier extends Module implements WidgetInterface
         return $package;
     }
 
-    private function generateShipmentForInfoPackage(int $infoPackageId, array &$messages): void
+    private function generateShipmentForInfoShipment(int $infoPackageId, array &$messages): void
     {
         try {
             /** @var ShipmentGenerationService $generationService */
             $generationService = $this->get(ShipmentGenerationService::class);
-            $generationService->generateForInfoPackage($infoPackageId);
+            $generationService->generateForInfoShipment($infoPackageId);
             $messages['success'][] = $this->trans('Shipment generated successfully.', [], 'Modules.RjMulticarrier.Admin');
         } catch (ShipmentGenerationException $exception) {
             $messages['errors'][] = $exception->getMessage();

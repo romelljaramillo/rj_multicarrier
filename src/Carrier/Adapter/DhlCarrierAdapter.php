@@ -58,7 +58,92 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
         );
     }
 
-    /**
+    public static function getDefaultConfiguration(): array
+    {
+        return [
+            [
+                'name' => 'DHL_ACCOUNID',
+                'label' => 'Account ID',
+                'required' => true,
+                'legacy' => ['RJ_DHL_ACCOUNID'],
+            ],
+            [
+                'name' => 'DHL_USERID',
+                'label' => 'User ID',
+                'required' => true,
+                'legacy' => ['RJ_DHL_USERID'],
+            ],
+            [
+                'name' => 'DHL_KEY',
+                'label' => 'Key',
+                'required' => true,
+                'legacy' => ['RJ_DHL_KEY'],
+            ],
+            [
+                'name' => 'DHL_URL',
+                'label' => 'URL Production',
+                'description' => 'Formato http:// o https://',
+                'required' => true,
+                'legacy' => ['RJ_DHL_URL'],
+            ],
+            [
+                'name' => 'DHL_USERID_DEV',
+                'label' => 'User ID DEV',
+                'required' => true,
+                'legacy' => ['RJ_DHL_USERID_DEV'],
+            ],
+            [
+                'name' => 'DHL_KEY_DEV',
+                'label' => 'Key DEV',
+                'required' => true,
+                'legacy' => ['RJ_DHL_KEY_DEV'],
+            ],
+            [
+                'name' => 'DHL_URL_DEV',
+                'label' => 'URL Develop',
+                'description' => 'Formato http:// o https://',
+                'required' => true,
+                'legacy' => ['RJ_DHL_URL_DEV'],
+            ],
+            [
+                'name' => 'DHL_ENDPOINT_LOGIN',
+                'label' => 'Endpoint login',
+                'description' => 'Ejemplo: /authenticate/api-key',
+                'required' => true,
+                'legacy' => ['RJ_DHL_ENDPOINT_LOGIN'],
+            ],
+            [
+                'name' => 'DHL_ENDPOINT_REFRESH_TOKEN',
+                'label' => 'Endpoint refresh token',
+                'description' => 'Ejemplo: /authenticate/refresh-token',
+                'required' => true,
+                'legacy' => ['RJ_DHL_ENDPOINT_REFRESH_TOKEN'],
+            ],
+            [
+                'name' => 'DHL_ENDPOINT_SHIPMENT',
+                'label' => 'Endpoint shipment',
+                'description' => 'Ejemplo: /shipments',
+                'required' => true,
+                'legacy' => ['RJ_DHL_ENDPOINT_SHIPMENT'],
+            ],
+            [
+                'name' => 'DHL_ENDPOINT_LABEL',
+                'label' => 'Endpoint label',
+                'description' => 'Ejemplo: /labels',
+                'required' => true,
+                'legacy' => ['RJ_DHL_ENDPOINT_LABEL'],
+            ],
+            [
+                'name' => 'DHL_ENV',
+                'label' => 'Production Mode',
+                'value' => '0',
+                'required' => true,
+                'legacy' => ['RJ_DHL_ENV'],
+            ],
+        ];
+    }
+    
+    /*
      * @return array<string, mixed>
      */
     private function resolveConfiguration(): array

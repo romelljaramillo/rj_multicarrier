@@ -10,12 +10,14 @@ use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Query\GetCarrierCon
 use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\View\CarrierConfigurationView;
 use Roanja\Module\RjMulticarrier\Repository\CarrierConfigurationRepository;
 use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
+use Roanja\Module\RjMulticarrier\Service\Configuration\DefaultCarrierConfigurationSeeder;
 
 final class GetCarrierConfigurationsForCarrierHandler
 {
     public function __construct(
         private readonly CarrierRepository $carrierRepository,
         private readonly CarrierConfigurationRepository $configurationRepository,
+        private readonly DefaultCarrierConfigurationSeeder $configurationSeeder,
     ) {
     }
 
@@ -30,15 +32,37 @@ final class GetCarrierConfigurationsForCarrierHandler
             return [];
         }
 
+        $this->configurationSeeder->seedForCarrier($carrier);
+
+        $definitionsMap = [];
+        foreach ($this->configurationSeeder->getDefaultDefinitionsForCarrier($carrier) as $definition) {
+            if (!is_array($definition)) {
+                continue;
+            }
+
+            $name = isset($definition['name']) ? (string) $definition['name'] : '';
+            if ('' === $name) {
+                continue;
+            }
+
+            $definitionsMap[$name] = $definition;
+        }
+
         $entries = $this->configurationRepository->findByCarrier($carrier);
         $views = [];
 
         foreach ($entries as $entry) {
+            $definition = $definitionsMap[$entry->getName()] ?? [];
+            $isRequired = $definition['required'] ?? $entry->isRequired();
+
             $views[] = new CarrierConfigurationView(
-                $entry->getId(),
-                $carrier->getId() ?? 0,
+                $entry->getId() ?? 0,
+                (int) ($carrier->getId() ?? 0),
                 $entry->getName(),
                 $entry->getValue(),
+                (bool) $isRequired,
+                $definition['label'] ?? null,
+                $definition['description'] ?? null,
                 $entry->getCreatedAt()?->format('Y-m-d H:i:s'),
                 $entry->getUpdatedAt()?->format('Y-m-d H:i:s')
             );

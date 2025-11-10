@@ -12,12 +12,9 @@ use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Command\DeleteCarri
 use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Command\UpsertCarrierConfigurationCommand;
 use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Exception\CarrierConfigurationException;
 use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Exception\CarrierConfigurationNotFoundException;
-use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Query\GetCarrierConfigurationForView;
 use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Query\GetCarrierConfigurationsForCarrier;
-use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\View\CarrierConfigurationView;
 use Roanja\Module\RjMulticarrier\Domain\Carrier\Query\GetCarrierForView;
 use Roanja\Module\RjMulticarrier\Domain\Carrier\View\CarrierDetailView;
-use Roanja\Module\RjMulticarrier\Form\Configuration\CarrierConfigurationType;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,78 +31,37 @@ final class CarrierConfigurationController extends FrameworkBundleAdminControlle
         $carrier = $this->getCarrierData($id);
         $carrierId = $carrier['id'];
 
-        $configurationId = $request->query->getInt('configId', 0);
-        $configurationView = null;
+        if ($request->isMethod(Request::METHOD_POST)) {
+            $token = (string) $request->request->get('_token', '');
 
-        if ($configurationId > 0) {
-            try {
-                /** @var CarrierConfigurationView $view */
-                $view = $this->getQueryBus()->handle(new GetCarrierConfigurationForView($configurationId));
-
-                if ($view->getCarrierId() === $carrierId) {
-                    $configurationView = $view;
-                }
-            } catch (CarrierConfigurationNotFoundException $exception) {
-                $this->addFlash('warning', $this->l('La configuración solicitada ya no existe.'));
-            } catch (\Throwable $exception) {
-                $this->addFlash('error', $this->l('No se pudo cargar la configuración seleccionada.'));
+            if (!$this->isCsrfTokenValid('carrier_configurations_' . $carrierId, $token)) {
+                $this->addFlash('error', $this->l('La sesión ha caducado, vuelve a intentarlo.'));
+            } else {
+                $this->processConfigurationSubmission($carrierId, $request);
             }
-        }
 
-        $formData = [
-            'name' => $configurationView?->getName(),
-            'value' => $configurationView?->getValue(),
-        ];
-
-    $formActionParameters = ['id' => $carrierId];
-        if ($configurationId > 0) {
-            $formActionParameters['configId'] = $configurationId;
-        }
-
-        $form = $this->createForm(CarrierConfigurationType::class, $formData, [
-            'lock_name' => null !== $configurationView,
-            'label_name' => $this->l('Configuración'),
-            'label_value' => $this->l('Valor'),
-            'help_value' => $this->l('Puedes usar variables específicas del transportista si están disponibles.'),
-            'action' => $this->generateUrl('admin_rj_multicarrier_carriers_configuration', $formActionParameters),
-            'method' => Request::METHOD_POST,
-        ]);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $data = $form->getData();
-
-            try {
-                $this->getCommandBus()->handle(new UpsertCarrierConfigurationCommand(
-                    $carrierId,
-                    (string) ($data['name'] ?? ''),
-                    $data['value'] ?? null,
-                    $configurationView?->getId()
-                ));
-
-                $message = null === $configurationView
-                    ? $this->l('Configuración creada correctamente.')
-                    : $this->l('Configuración actualizada correctamente.');
-                $this->addFlash('success', $message);
-
-                return $this->redirectToRoute('admin_rj_multicarrier_carriers_configuration', [
-                    'id' => $carrierId,
-                ]);
-            } catch (CarrierConfigurationException $exception) {
-                $this->addFlash('error', $exception->getMessage());
-            } catch (\Throwable $exception) {
-                $this->addFlash('error', $this->l('No se pudo guardar la configuración.'));
-            }
+            return $this->redirectToRoute('admin_rj_multicarrier_carriers_configuration', ['id' => $carrierId]);
         }
 
         $configurationViews = $this->getQueryBus()->handle(new GetCarrierConfigurationsForCarrier($carrierId));
-        $configurations = array_map(static fn (CarrierConfigurationView $view): array => $view->toArray(), $configurationViews);
+        $defaultConfigurations = [];
+        $extraConfigurations = [];
+
+        foreach ($configurationViews as $view) {
+            $entry = $view->toArray();
+
+            if ($view->isRequired()) {
+                $defaultConfigurations[] = $entry;
+                continue;
+            }
+
+            $extraConfigurations[] = $entry;
+        }
 
         return $this->render('@Modules/rj_multicarrier/views/templates/admin/carrier/configuration.html.twig', [
             'carrier' => $carrier,
-            'configurations' => $configurations,
-            'configurationForm' => $form->createView(),
-            'isEditing' => null !== $configurationView,
+            'defaultConfigurations' => $defaultConfigurations,
+            'extraConfigurations' => $extraConfigurations,
         ]);
     }
 
@@ -131,6 +87,124 @@ final class CarrierConfigurationController extends FrameworkBundleAdminControlle
         }
 
         return $this->redirectToRoute('admin_rj_multicarrier_carriers_configuration', ['id' => $carrierId]);
+    }
+
+    private function processConfigurationSubmission(int $carrierId, Request $request): void
+    {
+        $created = 0;
+        $updated = 0;
+        $deleted = 0;
+
+        $defaults = $request->request->get('defaults', []);
+        if (!is_array($defaults)) {
+            $defaults = [];
+        }
+
+        foreach ($defaults as $entry) {
+            $name = trim((string) ($entry['name'] ?? ''));
+            if ('' === $name) {
+                continue;
+            }
+
+            $value = $this->normaliseValue($entry['value'] ?? null);
+            $id = isset($entry['id']) ? (int) $entry['id'] : null;
+
+            try {
+                $this->getCommandBus()->handle(new UpsertCarrierConfigurationCommand(
+                    $carrierId,
+                    $name,
+                    $value,
+                    $id && $id > 0 ? $id : null
+                ));
+
+                ++$updated;
+            } catch (CarrierConfigurationException $exception) {
+                $this->addFlash('error', $exception->getMessage());
+            } catch (\Throwable $exception) {
+                $this->addFlash('error', $this->l('No se pudo guardar la configuración por defecto "%name%".', ['%name%' => $name]));
+            }
+        }
+
+        $extras = $request->request->get('extras', []);
+        if (!is_array($extras)) {
+            $extras = [];
+        }
+
+        foreach ($extras as $entry) {
+            $id = isset($entry['id']) ? (int) $entry['id'] : 0;
+            $removeFlag = (string) ($entry['_delete'] ?? '0');
+            $markedForRemoval = in_array($removeFlag, ['1', 'true', 'on'], true);
+            $name = trim((string) ($entry['name'] ?? ''));
+            $value = $this->normaliseValue($entry['value'] ?? null);
+
+            if ($markedForRemoval) {
+                if ($id > 0) {
+                    try {
+                        $this->getCommandBus()->handle(new DeleteCarrierConfigurationCommand($id));
+                        ++$deleted;
+                    } catch (CarrierConfigurationNotFoundException) {
+                        ++$deleted;
+                    } catch (\Throwable $exception) {
+                        $this->addFlash('error', $this->l('No se pudo eliminar la configuración "%name%".', ['%name%' => $name ?: (string) $id]));
+                    }
+                }
+
+                continue;
+            }
+
+            if ('' === $name) {
+                continue;
+            }
+
+            try {
+                $this->getCommandBus()->handle(new UpsertCarrierConfigurationCommand(
+                    $carrierId,
+                    $name,
+                    $value,
+                    $id > 0 ? $id : null
+                ));
+
+                if ($id > 0) {
+                    ++$updated;
+                } else {
+                    ++$created;
+                }
+            } catch (CarrierConfigurationException $exception) {
+                $this->addFlash('error', $exception->getMessage());
+            } catch (\Throwable $exception) {
+                $this->addFlash('error', $this->l('No se pudo guardar la configuración "%name%".', ['%name%' => $name]));
+            }
+        }
+
+        if (0 === ($created + $updated + $deleted)) {
+            $this->addFlash('info', $this->l('No se detectaron cambios en la configuración.'));
+
+            return;
+        }
+
+        $messages = [];
+        if ($updated > 0) {
+            $messages[] = $this->l('%count% configuraciones actualizadas.', ['%count%' => $updated]);
+        }
+        if ($created > 0) {
+            $messages[] = $this->l('%count% configuraciones creadas.', ['%count%' => $created]);
+        }
+        if ($deleted > 0) {
+            $messages[] = $this->l('%count% configuraciones eliminadas.', ['%count%' => $deleted]);
+        }
+
+        $this->addFlash('success', implode(' ', $messages));
+    }
+
+    private function normaliseValue($value): ?string
+    {
+        if (null === $value) {
+            return null;
+        }
+
+        $stringValue = (string) $value;
+
+        return '' === trim($stringValue) ? null : $stringValue;
     }
 
     private function l(string $message, array $parameters = []): string

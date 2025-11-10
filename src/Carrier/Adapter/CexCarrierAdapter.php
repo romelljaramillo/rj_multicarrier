@@ -323,6 +323,130 @@ final class CexCarrierAdapter implements CarrierAdapterInterface
         return $labels;
     }
 
+    public static function getDefaultConfiguration(): array
+    {
+        return [
+            [
+                'name' => 'CEX_COD_CLIENT',
+                'label' => 'Código cliente',
+                'required' => true,
+                'legacy' => ['RJ_CEX_COD_CLIENT'],
+            ],
+            [
+                'name' => 'CEX_USER',
+                'label' => 'User',
+                'required' => true,
+                'legacy' => ['RJ_CEX_USER'],
+            ],
+            [
+                'name' => 'CEX_PASS',
+                'label' => 'Password',
+                'required' => true,
+                'legacy' => ['RJ_CEX_PASS'],
+            ],
+            [
+                'name' => 'CEX_URL',
+                'label' => 'Url servicio web',
+                'description' => 'Formato http:// o https://. Por defecto: https://www.cexpr.es/wspsc',
+                'required' => true,
+                'legacy' => ['RJ_CEX_URL'],
+            ],
+            [
+                'name' => 'CEX_WSURL',
+                'label' => 'Endpoint grabacionEnvio',
+                'description' => 'Ejemplo: /apiRestGrabacionEnviok8s/json/grabacionEnvio',
+                'required' => true,
+                'legacy' => ['RJ_CEX_WSURL'],
+            ],
+            [
+                'name' => 'CEX_WSURLSEG',
+                'label' => 'Endpoint listaEnvios',
+                'description' => 'Ejemplo: /apiRestListaEnvios/json/listaEnvios',
+                'required' => true,
+                'legacy' => ['RJ_CEX_WSURLSEG'],
+            ],
+            [
+                'name' => 'CEX_WSURLMOD',
+                'label' => 'Endpoint modificarRecogida',
+                'description' => 'Ejemplo: /apiRestGrabacionRecogidaEnviok8s/json/modificarRecogida',
+                'required' => true,
+                'legacy' => ['RJ_CEX_WSURLMOD'],
+            ],
+            [
+                'name' => 'CEX_WSURLANUL',
+                'label' => 'Endpoint anularRecogida',
+                'description' => 'Ejemplo: /apiRestGrabacionRecogidaEnviok8s/json/anularRecogida',
+                'required' => true,
+                'legacy' => ['RJ_CEX_WSURLANUL'],
+            ],
+            [
+                'name' => 'CEX_ENABLESHIPPINGTRACK',
+                'label' => 'Activar shipping track',
+                'value' => '0',
+                'required' => true,
+                'legacy' => ['RJ_CEX_ENABLESHIPPINGTRACK'],
+            ],
+            [
+                'name' => 'CEX_LABELSENDER',
+                'label' => 'Activar quitar remitente',
+                'value' => '0',
+                'required' => true,
+                'legacy' => ['RJ_CEX_LABELSENDER'],
+            ],
+            [
+                'name' => 'CEX_LABELSENDER_TEXT',
+                'label' => 'Remitente alternativo',
+                'value' => null,
+                'required' => true,
+                'legacy' => ['RJ_CEX_LABELSENDER_TEXT'],
+            ],
+            [
+                'name' => 'CEX_ENABLEWEIGHT',
+                'label' => 'Activar peso',
+                'value' => '0',
+                'required' => true,
+                'legacy' => ['RJ_CEX_ENABLEWEIGHT'],
+            ],
+            [
+                'name' => 'CEX_QUANTITY',
+                'label' => 'Nº Paquetes por defecto',
+                'value' => null,
+                'required' => true,
+                'legacy' => ['RJ_CEX_QUANTITY'],
+            ],
+            [
+                'name' => 'CEX_WEIGHT',
+                'label' => 'Peso por defecto',
+                'value' => null,
+                'required' => true,
+                'legacy' => ['RJ_CEX_WEIGHT'],
+            ],
+            [
+                'name' => 'CEX_HOUR_FROM',
+                'label' => 'Hour from',
+                'description' => 'Formato 09:00',
+                'value' => null,
+                'required' => true,
+                'legacy' => ['RJ_CEX_HOUR_FROM'],
+            ],
+            [
+                'name' => 'CEX_HOUR_UNTIL',
+                'label' => 'Hour until',
+                'description' => 'Formato 18:00',
+                'value' => null,
+                'required' => true,
+                'legacy' => ['RJ_CEX_HOUR_UNTIL'],
+            ],
+            [
+                'name' => 'CEX_ENV',
+                'label' => 'Production Mode',
+                'value' => '0',
+                'required' => true,
+                'legacy' => ['RJ_CEX_ENV'],
+            ],
+        ];
+    }
+
     /**
      * @return array<string, string|null>
      */

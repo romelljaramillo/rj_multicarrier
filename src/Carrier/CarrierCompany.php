@@ -19,8 +19,8 @@ use Language;
 use Module;
 use Order;
 use PrestaShop\PrestaShop\Adapter\SymfonyContainer;
-use Roanja\Module\RjMulticarrier\Domain\InfoPackage\Command\UpsertInfoPackageCommand;
-use Roanja\Module\RjMulticarrier\Domain\InfoPackage\Handler\UpsertInfoPackageHandler;
+use Roanja\Module\RjMulticarrier\Domain\InfoShipment\Command\UpsertInfoShipmentCommand;
+use Roanja\Module\RjMulticarrier\Domain\InfoShipment\Handler\UpsertInfoShipmentHandler;
 use Roanja\Module\RjMulticarrier\Domain\Configuration\Command\UpsertConfigurationCommand;
 use Roanja\Module\RjMulticarrier\Domain\Configuration\Handler\UpsertConfigurationHandler;
 use Roanja\Module\RjMulticarrier\Domain\Log\Command\CreateLogEntryCommand;
@@ -37,7 +37,7 @@ use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\DeleteTypeShipmentH
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\ToggleTypeShipmentStatusHandler;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\UpsertTypeShipmentHandler as UpsertTypeShipmentHandlerDomain;
 use Roanja\Module\RjMulticarrier\Entity\Carrier as CarrierEntity;
-use Roanja\Module\RjMulticarrier\Entity\InfoPackage as InfoPackageEntity;
+use Roanja\Module\RjMulticarrier\Entity\InfoShipment as InfoShipmentEntity;
 use Roanja\Module\RjMulticarrier\Entity\Label as LabelEntity;
 use Roanja\Module\RjMulticarrier\Entity\LogEntry as LogEntryEntity;
 use Roanja\Module\RjMulticarrier\Entity\Shipment as ShipmentEntity;
@@ -89,7 +89,7 @@ class CarrierCompany extends Module
     public $context;
     public $_html;
 
-    private static ?UpsertInfoPackageHandler $upsertInfoPackageHandler = null;
+    private static ?UpsertInfoShipmentHandler $upsertInfoShipmentHandler = null;
 
     private ?CreateShipmentHandler $createShipmentHandler = null;
 
@@ -839,7 +839,7 @@ class CarrierCompany extends Module
     ): ShipmentEntity {
         $infoPackage = (array) ($shipmentData['info_package'] ?? []);
         $companyData = (array) ($shipmentData['info_company_carrier'] ?? []);
-        $infoPackageId = (int) ($infoPackage['id_infopackage'] ?? 0);
+        $infoPackageId = (int) ($infoPackage['id_info_shipment'] ?? 0);
 
         if ($infoPackageId <= 0) {
             throw new RuntimeException('Missing info package identifier to persist shipment');
@@ -980,24 +980,24 @@ class CarrierCompany extends Module
         return self::$deleteTypeShipmentHandler;
     }
 
-    private static function getUpsertInfoPackageHandler(): UpsertInfoPackageHandler
+    private static function getUpsertInfoShipmentHandler(): UpsertInfoShipmentHandler
     {
-        if (!self::$upsertInfoPackageHandler instanceof UpsertInfoPackageHandler) {
+        if (!self::$upsertInfoShipmentHandler instanceof UpsertInfoShipmentHandler) {
             $container = SymfonyContainer::getInstance();
             if (null === $container) {
                 throw new RuntimeException('Symfony container is not available');
             }
 
-            $handler = $container->get(UpsertInfoPackageHandler::class);
+            $handler = $container->get(UpsertInfoShipmentHandler::class);
 
-            if (!$handler instanceof UpsertInfoPackageHandler) {
-                throw new RuntimeException('Unable to resolve UpsertInfoPackageHandler service');
+            if (!$handler instanceof UpsertInfoShipmentHandler) {
+                throw new RuntimeException('Unable to resolve UpsertInfoShipmentHandler service');
             }
 
-            self::$upsertInfoPackageHandler = $handler;
+            self::$upsertInfoShipmentHandler = $handler;
         }
 
-        return self::$upsertInfoPackageHandler;
+        return self::$upsertInfoShipmentHandler;
     }
 
     private static function getCreateLogEntryHandler(): CreateLogEntryHandler
@@ -1252,14 +1252,14 @@ class CarrierCompany extends Module
         return (float) $value;
     }
 
-    private static function normalizeInfoPackageResponse(InfoPackageEntity $infoPackage): array
+    private static function normalizeInfoShipmentResponse(InfoShipmentEntity $infoPackage): array
     {
         $retorno = $infoPackage->getRetorno();
         $vsec = $infoPackage->getVsec();
         $dorig = $infoPackage->getDorig();
 
         return [
-            'id_infopackage' => $infoPackage->getId(),
+            'id_info_shipment' => $infoPackage->getId(),
             'id_order' => $infoPackage->getOrderId(),
             'id_reference_carrier' => $infoPackage->getReferenceCarrierId(),
             'id_type_shipment' => $infoPackage->getTypeShipment()->getId(),
@@ -1280,14 +1280,14 @@ class CarrierCompany extends Module
     }
 
     /**
-     * save data db table rj_multicarrier_infopackage - data del paquete order.
+     * save data db table rj_multicarrier_info_shipment - data del paquete order.
      */
-    public static function saveInfoPackage()
+    public static function saveInfoShipment()
     {
         $shopGroupId = (int) Shop::getContextShopGroupID();
         $shopId = (int) Shop::getContextShopID();
 
-        $infoPackageIdRaw = Tools::getValue('id_infopackage');
+        $infoPackageIdRaw = Tools::getValue('id_info_shipment');
         $infoPackageId = $infoPackageIdRaw ? (int) $infoPackageIdRaw : null;
 
         $hourFromCandidate = Tools::getValue('rj_hour_from');
@@ -1328,8 +1328,8 @@ class CarrierCompany extends Module
         $dorig = ($dorigRaw === null) ? '' : (string) $dorigRaw;
 
         try {
-            $infoPackage = self::getUpsertInfoPackageHandler()->handle(
-                new UpsertInfoPackageCommand(
+            $infoPackage = self::getUpsertInfoShipmentHandler()->handle(
+                new UpsertInfoShipmentCommand(
                     $infoPackageId,
                     (int) Tools::getValue('id_order'),
                     (int) Tools::getValue('id_reference_carrier'),
@@ -1354,7 +1354,7 @@ class CarrierCompany extends Module
             return false;
         }
 
-        return self::normalizeInfoPackageResponse($infoPackage);
+        return self::normalizeInfoShipmentResponse($infoPackage);
     }
 
     public static function saveInfoShop(): bool

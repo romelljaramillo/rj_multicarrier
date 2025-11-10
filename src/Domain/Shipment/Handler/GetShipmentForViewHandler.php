@@ -8,7 +8,7 @@ namespace Roanja\Module\RjMulticarrier\Domain\Shipment\Handler;
 
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetShipmentForView;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\View\ShipmentView;
-use Roanja\Module\RjMulticarrier\Entity\InfoPackage;
+use Roanja\Module\RjMulticarrier\Entity\InfoShipment;
 use Roanja\Module\RjMulticarrier\Repository\LabelRepository;
 use Roanja\Module\RjMulticarrier\Repository\ShipmentRepository;
 
@@ -28,7 +28,7 @@ final class GetShipmentForViewHandler
             return null;
         }
 
-        $package = $this->buildPackageView($shipment->getInfoPackage());
+        $package = $this->buildPackageView($shipment->getInfoShipment());
 
         $labels = $this->labelRepository->findBy(['shipment' => $shipment]);
 
@@ -48,7 +48,7 @@ final class GetShipmentForViewHandler
         );
     }
 
-        private function buildPackageView(?InfoPackage $infoPackage): array
+        private function buildPackageView(?InfoShipment $infoPackage): array
         {
             if (!$infoPackage) {
                 return [];

@@ -8,6 +8,7 @@ namespace Roanja\Module\RjMulticarrier\Service\Installer;
 
 use Doctrine\DBAL\Connection;
 use Roanja\Module\RjMulticarrier\Service\Doctrine\DoctrineMappingConfigurator;
+use Doctrine\DBAL\Schema\AbstractSchemaManager;
 
 if (!class_exists('\\Tab') && class_exists('\\TabCore')) {
     class_alias('\\TabCore', '\\Tab');
@@ -79,9 +80,9 @@ final class ModuleInstaller
             'translation_key' => 'Modules.RjMulticarrier.Admin.Menu.Shipments',
         ],
         [
-            'class_name' => 'AdminRjMulticarrierInfoPackages',
+            'class_name' => 'AdminRjMulticarrierInfoShipments',
             'parent_class_name' => 'AdminRjMulticarrier',
-            'route_name' => 'admin_rj_multicarrier_info_packages_index',
+            'route_name' => 'admin_rj_multicarrier_info_shipments_index',
             'icon' => 'play_circle',
             'active' => true,
             'wording' => 'Generate shipment',
@@ -154,8 +155,9 @@ final class ModuleInstaller
         }
 
         try {
+            /** @var AbstractSchemaManager $schemaManager */
             $schemaManager = method_exists($this->connection, 'createSchemaManager')
-                ? $this->connection->createSchemaManager()
+                ? call_user_func([$this->connection, 'createSchemaManager'])
                 : $this->connection->getSchemaManager();
 
             $tableName = _DB_PREFIX_ . 'rj_multicarrier_configuration';

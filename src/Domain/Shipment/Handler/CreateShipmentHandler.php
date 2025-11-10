@@ -12,14 +12,14 @@ use Doctrine\ORM\EntityManagerInterface;
 use JsonException;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Command\CreateShipmentCommand;
 use Roanja\Module\RjMulticarrier\Entity\Carrier;
-use Roanja\Module\RjMulticarrier\Entity\InfoPackage;
+use Roanja\Module\RjMulticarrier\Entity\InfoShipment;
 use Roanja\Module\RjMulticarrier\Entity\Label;
 use Roanja\Module\RjMulticarrier\Entity\Shipment;
 use Roanja\Module\RjMulticarrier\Entity\ShipmentShop;
 use Roanja\Module\RjMulticarrier\Entity\LabelShop;
 use Roanja\Module\RjMulticarrier\Support\Common;
 use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
-use Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository;
+use Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\ShipmentRepository;
 use RuntimeException;
 
@@ -28,20 +28,20 @@ final class CreateShipmentHandler
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly ShipmentRepository $shipmentRepository,
-        private readonly InfoPackageRepository $infoPackageRepository,
+        private readonly InfoShipmentRepository $infoShipmentRepository,
         private readonly CarrierRepository $carrierRepository
     ) {}
 
     public function handle(CreateShipmentCommand $command): Shipment
     {
-        $infoPackage = $this->getInfoPackage($command->getInfoPackageId());
+        $infoPackage = $this->getInfoShipment($command->getInfoShipmentId());
         $shipment = $this->shipmentRepository->findOneByOrderId($command->getOrderId());
 
         if (null === $shipment) {
             $shipment = new Shipment($command->getOrderId(), $infoPackage);
             $this->entityManager->persist($shipment);
         } else {
-            $shipment->setInfoPackage($infoPackage);
+            $shipment->setInfoShipment($infoPackage);
         }
 
         $shipment
@@ -119,12 +119,12 @@ final class CreateShipmentHandler
         $this->entityManager->flush();
     }
 
-    private function getInfoPackage(int $infoPackageId): InfoPackage
+    private function getInfoShipment(int $infoPackageId): InfoShipment
     {
-        $infoPackage = $this->infoPackageRepository->find($infoPackageId);
+        $infoPackage = $this->infoShipmentRepository->find($infoPackageId);
 
-        if (!$infoPackage instanceof InfoPackage) {
-            throw new RuntimeException(sprintf('InfoPackage with id %d not found', $infoPackageId));
+        if (!$infoPackage instanceof InfoShipment) {
+            throw new RuntimeException(sprintf('InfoShipment with id %d not found', $infoPackageId));
         }
 
         return $infoPackage;

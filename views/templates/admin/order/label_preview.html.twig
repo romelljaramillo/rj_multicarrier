@@ -1,7 +1,23 @@
-<div class="col-12 col-lg-5">
+{% set previewOnly = mode|default('form') == 'preview' %}
+{% set infoShipmentId = info_package.id_info_shipment|default(0)|intCast %}
+{% set generateShipmentUrl = infoShipmentId ? path('admin_rj_multicarrier_info_shipments_generate', {'infoShipmentId': infoShipmentId}) : '' %}
+
+<div class="{{ previewOnly ? 'col-12' : 'col-12 col-lg-5' }}">
     <div class="card h-100">
         <div class="card-header">{{ 'Vista previa de etiqueta'|trans({}, 'Modules.RjMulticarrier.Admin') }}</div>
         <div class="card-body">
+            {% if previewOnly and infoShipmentId <= 0 %}
+                <div class="alert alert-warning" role="alert">
+                    {{ 'Primero debes completar y guardar la información del bulto para poder generar el envío.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                </div>
+            {% endif %}
+
+            {% if previewOnly and hasShipment %}
+                <div class="alert alert-info" role="alert">
+                    {{ 'Este pedido ya cuenta con un envío generado. Elimina el envío actual antes de crear uno nuevo.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                </div>
+            {% endif %}
+
             {% if info_customer is empty or configuration_shop is empty %}
                 <p class="text-muted mb-0">
                     {{ 'Configura los datos de remitente y la dirección del cliente para ver la vista previa de la etiqueta.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
@@ -66,8 +82,8 @@
                                     {% endif %}
                                 </p>
                                 <p class="mb-1 text-muted">{{ 'Teléfonos'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
-                                {% if pkg.message %}
-                                    <p class="mb-1 fw-semibold">{{ pkg.message }}</p>
+                                {% if pkg.message|default('') %}
+                                    <p class="mb-1 fw-semibold">{{ pkg.message|default('') }}</p>
                                     <p class="mb-0 text-muted">{{ 'Mensaje'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
                                 {% endif %}
                             </div>
@@ -109,18 +125,39 @@
                             </div>
                             <div class="col-6 col-md-3 mb-3 mb-md-0">
                                 <p class="text-muted mb-1">{{ 'RCS'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
-                                <p class="fw-semibold mb-0">{{ pkg.rcs ? 'Sí'|trans({}, 'Modules.RjMulticarrier.Admin') : 'No'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                <p class="fw-semibold mb-0">{{ (pkg.rcs|default(false)) ? 'Sí'|trans({}, 'Modules.RjMulticarrier.Admin') : 'No'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
                             </div>
                             <div class="col-6 col-md-3 mb-3 mb-md-0">
                                 <p class="text-muted mb-1">{{ 'Valor asegurado'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
-                                <p class="fw-semibold mb-0">{{ pkg.vsec ? 'Sí'|trans({}, 'Modules.RjMulticarrier.Admin') : 'No'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                <p class="fw-semibold mb-0">{{ (pkg.vsec|default(null)) ? 'Sí'|trans({}, 'Modules.RjMulticarrier.Admin') : 'No'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
                             </div>
                             <div class="col-6 col-md-3">
                                 <p class="text-muted mb-1">{{ 'Departamento'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
-                                <p class="fw-semibold mb-0">{{ pkg.dorig ?: '-' }}</p>
+                                <p class="fw-semibold mb-0">{{ pkg.dorig|default('-') ?: '-' }}</p>
                             </div>
                         </div>
                     </div>
+                </div>
+            {% endif %}
+
+            {% if previewOnly %}
+                <div class="border-top pt-3 mt-3">
+                    {% if infoShipmentId > 0 %}
+                        <form method="post" action="{{ generateShipmentUrl }}" class="d-inline-block mb-2">
+                            <button type="submit" class="btn btn-primary" {% if hasShipment %}disabled{% endif %}>
+                                {{ 'Generar envío ahora'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                            </button>
+                        </form>
+                        {% if hasShipment %}
+                            <p class="small text-muted mb-0">
+                                {{ 'Elimina el envío existente para habilitar la generación de uno nuevo.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                            </p>
+                        {% endif %}
+                    {% else %}
+                        <p class="text-muted mb-0">
+                            {{ 'Guarda la información del bulto y vuelve a esta vista para generar el envío.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                        </p>
+                    {% endif %}
                 </div>
             {% endif %}
         </div>

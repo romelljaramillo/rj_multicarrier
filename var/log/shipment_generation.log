@@ -1,0 +1,55 @@
+2025-10-31T17:34:41+01:00 GenerateShipmentHandler invoked for orderId=5, carrierCode=GOI, shipmentNumber=277e3ff4-3ed7-43ba-a587-8e34ca47424b
+2025-10-31T17:36:21+01:00 GenerateShipmentHandler invoked for orderId=5, carrierCode=GOI, shipmentNumber=699df0d8-e9b6-46de-8afa-d1c8b7bc893c
+2025-10-31T17:36:53+01:00 Resolved adapter: Roanja\Module\RjMulticarrier\Carrier\Adapter\GoiCarrierAdapter
+2025-10-31T17:36:55+01:00 Calling adapter->generateShipment
+2025-10-31T17:37:01+01:00 Adapter generateShipment failed: Missing GOI configuration value for key USERID_DEV.
+2025-10-31T17:37:53+01:00 GenerateShipmentHandler invoked for orderId=5, carrierCode=GOI, shipmentNumber=cdc9c6de-87ea-459d-bbda-408aad7e7104
+2025-10-31T17:37:54+01:00 Resolved adapter: Roanja\Module\RjMulticarrier\Carrier\Adapter\GoiCarrierAdapter
+2025-10-31T17:37:54+01:00 Calling adapter->generateShipment
+2025-10-31T17:38:10+01:00 Adapter generateShipment failed: Missing GOI configuration value for key USERID_DEV.
+2025-11-02T11:53:05+01:00 GenerateShipmentHandler invoked for orderId=5, carrierCode=DEF, shipmentNumber=8dbf835e-e32c-47cf-8913-a4db8d92b6bd
+2025-11-02T11:53:05+01:00 Resolved adapter: Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter
+2025-11-02T11:53:05+01:00 Calling adapter->generateShipment
+2025-11-02T11:53:05+01:00 Adapter generateShipment failed: Warning: Undefined array key "name_carrier"
+2025-11-02T11:56:29+01:00 GenerateShipmentHandler invoked for orderId=5, carrierCode=DEF, shipmentNumber=e482e23f-1cf3-4452-9109-dfe87c1bbb02
+2025-11-02T11:56:29+01:00 Resolved adapter: Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter
+2025-11-02T11:56:29+01:00 Calling adapter->generateShipment
+2025-11-02T11:56:29+01:00 Adapter generateShipment failed: Warning: Undefined array key "name_carrier"
+2025-11-02T11:57:00+01:00 GenerateShipmentHandler invoked for orderId=5, carrierCode=DEF, shipmentNumber=da569546-1567-41e4-8853-2c97d329347b
+2025-11-02T11:57:00+01:00 Resolved adapter: Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter
+2025-11-02T11:57:00+01:00 Calling adapter->generateShipment
+2025-11-02T11:57:00+01:00 Adapter generateShipment failed: Warning: Undefined array key "name_carrier"
+2025-11-02T12:00:03+01:00 GenerateShipmentHandler invoked for orderId=5, carrierCode=DEF, shipmentNumber=408808d0-c60c-4aa2-a3b3-e4e67937baff
+2025-11-02T12:00:03+01:00 Resolved adapter: Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter
+2025-11-02T12:00:03+01:00 Calling adapter->generateShipment
+2025-11-02T12:00:03+01:00 Adapter generateShipment failed: Warning: Undefined array key "name_carrier"
+2025-11-02T12:00:37+01:00 GenerateShipmentHandler invoked for orderId=5, carrierCode=DEF, shipmentNumber=fee98f9c-109a-4d05-85ac-3c2409c2da5d
+2025-11-02T12:00:37+01:00 Resolved adapter: Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter
+2025-11-02T12:00:37+01:00 Calling adapter->generateShipment
+2025-11-02T12:00:37+01:00 Adapter generateShipment failed: Warning: Undefined array key "name_carrier"
+2025-11-02T12:02:19+01:00 GenerateShipmentHandler invoked for orderId=5, carrierCode=DEF, shipmentNumber=03bc74a4-efe7-47e2-9092-6d040f64fc58
+2025-11-02T12:02:19+01:00 Resolved adapter: Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter
+2025-11-02T12:02:19+01:00 Calling adapter->generateShipment
+2025-11-02T12:02:19+01:00 Adapter generateShipment failed: Roanja\Module\RjMulticarrier\Support\Common::convertAndFormatPrice(): Argument #1 ($price) must be of type float, string given, called in /shared/httpd/gcromo/htdocs/modules/rj_multicarrier/src/Pdf/TemplateLabel.php on line 169
+2025-11-02T12:03:50+01:00 GenerateShipmentHandler invoked for orderId=5, carrierCode=DEF, shipmentNumber=23d2938d-33ab-434a-b297-fd75f0a09cc3
+2025-11-02T12:03:50+01:00 Resolved adapter: Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter
+2025-11-02T12:03:50+01:00 Calling adapter->generateShipment
+2025-11-02T12:03:50+01:00 Adapter returned CarrierGenerationResult
+2025-11-02T12:03:50+01:00 CreateShipmentHandler invoked for orderId=5, infoPackageId=5040
+2025-11-02T12:03:50+01:00 InfoPackage loaded: id=5040, orderId=5
+2025-11-02T12:07:50+01:00 GenerateShipmentHandler invoked for orderId=5, carrierCode=DEF, shipmentNumber=f8b30cbd-bb4c-4f9c-946c-7f37baca30bb
+2025-11-02T12:07:50+01:00 Resolved adapter: Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter
+2025-11-02T12:07:50+01:00 Calling adapter->generateShipment
+2025-11-02T12:07:50+01:00 Adapter returned CarrierGenerationResult
+2025-11-02T12:07:50+01:00 CreateShipmentHandler invoked for orderId=5, infoPackageId=5040
+2025-11-02T12:07:50+01:00 InfoPackage loaded: id=5040, orderId=5
+2025-11-02T12:07:50+01:00 Shipment persisted for orderId=5, shipmentId=6011
+2025-11-02T12:07:50+01:00 Labels processed for shipmentId=6011, labelsCount=1
+2025-11-02T12:12:03+01:00 GenerateShipmentHandler invoked for orderId=5, carrierCode=DEF, shipmentNumber=8d43d118-bbcc-4ab1-bc99-bb1b7994bd3a
+2025-11-02T12:12:03+01:00 Resolved adapter: Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter
+2025-11-02T12:12:03+01:00 Calling adapter->generateShipment
+2025-11-02T12:12:03+01:00 Adapter returned CarrierGenerationResult
+2025-11-02T12:12:03+01:00 CreateShipmentHandler invoked for orderId=5, infoPackageId=5040
+2025-11-02T12:12:03+01:00 InfoPackage loaded: id=5040, orderId=5
+2025-11-02T12:12:03+01:00 Shipment persisted for orderId=5, shipmentId=6012
+2025-11-02T12:12:03+01:00 Labels processed for shipmentId=6012, labelsCount=1

@@ -14,7 +14,7 @@ use Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\GetShipmentByOrderIdHan
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetShipmentByOrderId;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipmentConfiguration\Query\GetTypeShipmentConfigurations;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipmentConfiguration\View\TypeShipmentConfigurationView;
-use Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository;
+use Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\View\ShipmentView;
@@ -30,7 +30,7 @@ final class OrderViewPresenter
     public function __construct(
         private readonly Environment $twig,
         private readonly GetShipmentByOrderIdHandler $getShipmentByOrderIdHandler,
-        private readonly ?InfoPackageRepository $infoPackageRepository = null,
+        private readonly ?InfoShipmentRepository $infoShipmentRepository = null,
         private readonly ?CarrierRepository $carrierRepository = null,
         private readonly ?TypeShipmentRepository $typeShipmentRepository = null,
         private readonly ?ConfigurationRepository $configurationRepository = null,
@@ -57,6 +57,14 @@ final class OrderViewPresenter
             ],
             array_intersect_key($notifications, array_flip(['success', 'errors', 'warning', 'info']))
         );
+
+        $mode = 'form';
+        if (isset($context['mode']) && is_string($context['mode'])) {
+            $candidateMode = strtolower($context['mode']);
+            if (in_array($candidateMode, ['form', 'preview'], true)) {
+                $mode = $candidateMode;
+            }
+        }
 
         $submittedValues = [];
         if (isset($context['submitted']) && is_array($context['submitted'])) {
@@ -110,14 +118,14 @@ final class OrderViewPresenter
             $infoPackage = array_merge($infoPackage, $packageOverride);
         }
 
-        if ((empty($infoPackage) || !isset($infoPackage['id_infopackage'])) && $this->infoPackageRepository instanceof InfoPackageRepository) {
+        if ((empty($infoPackage) || !isset($infoPackage['id_info_shipment'])) && $this->infoShipmentRepository instanceof InfoShipmentRepository) {
             try {
                 $shopId = Shop::getContextShopID();
                 if ($shopId <= 0) {
                     $shopId = (int) (Context::getContext()->shop->id ?? 0);
                 }
                 if ($shopId > 0) {
-                    $packageRow = $this->infoPackageRepository->getPackageByOrder($orderId, $shopId);
+                    $packageRow = $this->infoShipmentRepository->getPackageByOrder($orderId, $shopId);
                     if (is_array($packageRow)) {
                         $infoPackage = array_merge($infoPackage, $packageRow);
                     }
@@ -236,6 +244,8 @@ final class OrderViewPresenter
             'notifications' => $notifications,
             'request_values' => $submittedValues,
             'order_currency' => $currencyData,
+            'mode' => $mode,
+            'info_shipment_id' => $context['infoShipmentId'] ?? ($infoPackage['id_info_shipment'] ?? null),
         ]);
     }
 

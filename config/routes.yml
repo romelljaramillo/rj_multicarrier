@@ -351,91 +351,103 @@ admin_rj_multicarrier_shipments_export_selected_csv:
 
 
 ###############################################################################
-# INFO PACKAGE CONTROLLER
+# INFO SHIPMENT CONTROLLER
 ###############################################################################
-admin_rj_multicarrier_info_packages_index:
-  path: /rj-multicarrier/info-packages
+admin_rj_multicarrier_info_shipments_index:
+  path: /rj-multicarrier/shipment-generates
   methods: [GET, POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoPackageController::indexAction'
-    _legacy_controller: "AdminRjMulticarrierInfoPackages"
-    _legacy_link: "AdminRjMulticarrierInfoPackages:index"
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShipmentController::indexAction'
+    _legacy_controller: "AdminRjMulticarrierInfoShipments"
+    _legacy_link: "AdminRjMulticarrierInfoShipments:index"
   options:
     expose: true
 
-admin_rj_multicarrier_info_packages_view:
-  path: /rj-multicarrier/info-packages/{id}/view
+admin_rj_multicarrier_info_shipments_view:
+  path: /rj-multicarrier/shipment-generates/{id}/view
   methods: [GET]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoPackageController::viewAction'
-    _legacy_controller: "AdminRjMulticarrierInfoPackages"
-    _legacy_link: "AdminRjMulticarrierInfoPackages:view"
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShipmentController::viewAction'
+    _legacy_controller: "AdminRjMulticarrierInfoShipments"
+    _legacy_link: "AdminRjMulticarrierInfoShipments:view"
   requirements:
     id: '\d+'
   options:
     expose: true
 
-admin_rj_multicarrier_info_packages_generate:
-  path: /rj-multicarrier/info-packages/{infoPackageId}/generate
-  methods: [POST]
+admin_rj_multicarrier_info_shipments_panel:
+  path: /rj-multicarrier/shipment-generates/{orderId}/panel
+  methods: [GET]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoPackageController::generateAction'
-    _legacy_controller: "AdminRjMulticarrierInfoPackages"
-    _legacy_link: "AdminRjMulticarrierInfoPackages:generate"
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShipmentController::panelAction'
+    _legacy_controller: "AdminRjMulticarrierInfoShipments"
+    _legacy_link: "AdminRjMulticarrierInfoShipments:panel"
   requirements:
-    infoPackageId: '\d+'
+    orderId: '\d+'
   options:
     expose: true
 
-admin_rj_multicarrier_info_packages_bulk_generate:
-  path: /rj-multicarrier/info-packages/bulk-generate
+admin_rj_multicarrier_info_shipments_generate:
+  path: /rj-multicarrier/shipment-generates/{infoShipmentId}/generate
   methods: [POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoPackageController::bulkGenerateAction'
-    _legacy_controller: "AdminRjMulticarrierInfoPackages"
-    _legacy_link: "AdminRjMulticarrierInfoPackages:bulkGenerate"
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShipmentController::generateAction'
+    _legacy_controller: "AdminRjMulticarrierInfoShipments"
+    _legacy_link: "AdminRjMulticarrierInfoShipments:generate"
+  requirements:
+    infoShipmentId: '\d+'
   options:
     expose: true
 
-admin_rj_multicarrier_info_packages_search:
-  path: /rj-multicarrier/info-packages/search
+admin_rj_multicarrier_info_shipments_bulk_generate:
+  path: /rj-multicarrier/shipment-generates/bulk-generate
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShipmentController::bulkGenerateAction'
+    _legacy_controller: "AdminRjMulticarrierInfoShipments"
+    _legacy_link: "AdminRjMulticarrierInfoShipments:bulkGenerate"
+  options:
+    expose: true
+
+admin_rj_multicarrier_info_shipments_search:
+  path: /rj-multicarrier/shipment-generates/search
   methods: [POST]
   defaults:
     _controller: "PrestaShopBundle:Admin/Common:searchGrid"
-    gridDefinitionFactoryServiceId: "rj_multicarrier.grid.definition.factory.info_package"
-    redirectRoute: admin_rj_multicarrier_info_packages_index
-    _legacy_controller: "AdminRjMulticarrierInfoPackages"
-    _legacy_link: "AdminRjMulticarrierInfoPackages:submitFilterrj_multicarrier_info_package"
+    gridDefinitionFactoryServiceId: "rj_multicarrier.grid.definition.factory.info_shipment"
+    redirectRoute: admin_rj_multicarrier_info_shipments_index
+    _legacy_controller: "AdminRjMulticarrierInfoShipments"
+    _legacy_link: "AdminRjMulticarrierInfoShipments:submitFilterrj_multicarrier_info_shipment"
   options:
     expose: true
 
-admin_rj_multicarrier_info_packages_delete_bulk:
-  path: /rj-multicarrier/info-packages/bulk-delete
+admin_rj_multicarrier_info_shipments_delete_bulk:
+  path: /rj-multicarrier/shipment-generates/bulk-delete
   methods: [POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoPackageController::deleteBulkAction'
-    _legacy_controller: "AdminRjMulticarrierInfoPackages"
-    _legacy_link: "AdminRjMulticarrierInfoPackages:bulkdelete"
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShipmentController::deleteBulkAction'
+    _legacy_controller: "AdminRjMulticarrierInfoShipments"
+    _legacy_link: "AdminRjMulticarrierInfoShipments:bulkdelete"
   options:
     expose: true
 
-admin_rj_multicarrier_info_packages_export_csv:
-  path: /rj-multicarrier/info-packages/export
+admin_rj_multicarrier_info_shipments_export_csv:
+  path: /rj-multicarrier/shipment-generates/export
   methods: [POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoPackageController::exportCsvAction'
-    _legacy_controller: "AdminRjMulticarrierInfoPackages"
-    _legacy_link: "AdminRjMulticarrierInfoPackages:export"
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShipmentController::exportCsvAction'
+    _legacy_controller: "AdminRjMulticarrierInfoShipments"
+    _legacy_link: "AdminRjMulticarrierInfoShipments:export"
   options:
     expose: true
 
-admin_rj_multicarrier_info_packages_export_selected_csv:
-  path: /rj-multicarrier/info-packages/export-selected
+admin_rj_multicarrier_info_shipments_export_selected_csv:
+  path: /rj-multicarrier/shipment-generates/export-selected
   methods: [POST]
   defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoPackageController::exportSelectedCsvAction'
-    _legacy_controller: "AdminRjMulticarrierInfoPackages"
-    _legacy_link: "AdminRjMulticarrierInfoPackages:exportSelected"
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\InfoShipmentController::exportSelectedCsvAction'
+    _legacy_controller: "AdminRjMulticarrierInfoShipments"
+    _legacy_link: "AdminRjMulticarrierInfoShipments:exportSelected"
   options:
     expose: true
 

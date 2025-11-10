@@ -8,7 +8,7 @@ namespace Roanja\Module\RjMulticarrier\Domain\Shipment\Handler;
 
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetShipmentByOrderId;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\View\ShipmentView;
-use Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository;
+use Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\LabelRepository;
 use Roanja\Module\RjMulticarrier\Repository\ShipmentRepository;
 
@@ -16,7 +16,7 @@ final class GetShipmentByOrderIdHandler
 {
     public function __construct(
         private readonly ShipmentRepository $shipmentRepository,
-        private readonly InfoPackageRepository $infoPackageRepository,
+        private readonly InfoShipmentRepository $infoShipmentRepository,
         private readonly LabelRepository $labelRepository
     ) {
     }
@@ -37,10 +37,10 @@ final class GetShipmentByOrderIdHandler
             'responsePayload' => $shipment->getResponsePayload(),
             'deleted' => $shipment->isDeleted(),
         ];
-        $infoPackageId = $this->shipmentRepository->getInfoPackageIdByOrderId($query->getOrderId());
+        $infoPackageId = $this->shipmentRepository->getInfoShipmentIdByOrderId($query->getOrderId());
 
         if ($infoPackageId !== null) {
-            $infoPackage = $this->infoPackageRepository->find($infoPackageId);
+            $infoPackage = $this->infoShipmentRepository->find($infoPackageId);
             if ($infoPackage !== null) {
                 $hourFrom = $infoPackage->getHourFrom()?->format('H:i:s');
                 $hourUntil = $infoPackage->getHourUntil()?->format('H:i:s');

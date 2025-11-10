@@ -42,7 +42,7 @@ class ShipmentRepository extends ServiceEntityRepository
         return $result['shipmentNumber'] ?? null;
     }
 
-    public function shipmentExistsByInfoPackage(int $infoPackageId): ?int
+    public function shipmentExistsByInfoShipment(int $infoPackageId): ?int
     {
         $result = $this->createQueryBuilder('shipment')
             ->select('shipment.id')
@@ -56,7 +56,7 @@ class ShipmentRepository extends ServiceEntityRepository
         return $result['id'] ?? null;
     }
 
-    public function getInfoPackageIdByOrderId(int $orderId): ?int
+    public function getInfoShipmentIdByOrderId(int $orderId): ?int
     {
         $result = $this->createQueryBuilder('shipment')
             ->select('IDENTITY(shipment.infoPackage) AS infoPackageId')

@@ -35,8 +35,8 @@ services:
     resource: "../src/Domain/Shipment/Handler"
     public: true
 
-  Roanja\Module\RjMulticarrier\Domain\InfoPackage\Handler\:
-    resource: "../src/Domain/InfoPackage/Handler"
+  Roanja\Module\RjMulticarrier\Domain\InfoShipment\Handler\:
+    resource: "../src/Domain/InfoShipment/Handler"
     public: true
 
   Roanja\Module\RjMulticarrier\Repository\LogEntryRepository:
@@ -45,7 +45,7 @@ services:
       $shopContext: "@prestashop.adapter.shop.context"
     public: false
 
-  Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository:
+  Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository:
     arguments:
       $registry: "@doctrine"
       $shopContext: "@prestashop.adapter.shop.context"
@@ -143,19 +143,20 @@ services:
           command: 'Roanja\Module\RjMulticarrier\Domain\Carrier\Command\UpdateCarrierCommand',
         }
 
-  Roanja\Module\RjMulticarrier\Domain\InfoPackage\Handler\GetInfoPackageForViewHandler:
+  Roanja\Module\RjMulticarrier\Domain\InfoShipment\Handler\GetInfoShipmentForViewHandler:
     arguments:
-      $infoPackageRepository: '@Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository'
+      $infoShipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository'
     tags:
       - {
           name: "tactician.handler",
-          command: 'Roanja\Module\RjMulticarrier\Domain\InfoPackage\Query\GetInfoPackageForView',
+          command: 'Roanja\Module\RjMulticarrier\Domain\InfoShipment\Query\GetInfoShipmentForView',
         }
 
   Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Handler\GetCarrierConfigurationsForCarrierHandler:
     arguments:
       $carrierRepository: '@Roanja\Module\RjMulticarrier\Repository\CarrierRepository'
       $configurationRepository: '@Roanja\Module\RjMulticarrier\Repository\CarrierConfigurationRepository'
+      $configurationSeeder: '@Roanja\Module\RjMulticarrier\Service\Configuration\DefaultCarrierConfigurationSeeder'
     tags:
       - {
           name: "tactician.handler",
@@ -379,35 +380,35 @@ services:
       $gridFilterFormFactory: "@prestashop.core.grid.filter.form_factory"
       $hookDispatcher: "@prestashop.core.hook.dispatcher"
 
-  Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageQueryBuilder:
+  Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentQueryBuilder:
     arguments:
       $connection: "@doctrine.dbal.default_connection"
       $dbPrefix: "%database_prefix%"
       $shopContext: "@prestashop.adapter.shop.context"
       $searchCriteriaApplicator: "@prestashop.core.query.doctrine_search_criteria_applicator"
 
-  Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridDefinitionFactory:
+  Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentGridDefinitionFactory:
     public: true
     arguments:
       $hookDispatcher: "@prestashop.core.hook.dispatcher"
     calls:
       - [setTranslator, ["@translator"]]
 
-  Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageDoctrineGridDataFactory:
+  Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentDoctrineGridDataFactory:
     class: PrestaShop\PrestaShop\Core\Grid\Data\Factory\DoctrineGridDataFactory
     arguments:
-      $gridQueryBuilder: '@Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageQueryBuilder'
+      $gridQueryBuilder: '@Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentQueryBuilder'
       $hookDispatcher: "@prestashop.core.hook.dispatcher"
       $queryParser: "@prestashop.core.grid.query.doctrine_query_parser"
-      $gridId: "rj_multicarrier_info_package"
+      $gridId: "rj_multicarrier_info_shipment"
 
-  Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridDataFactory:
-    alias: 'Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageDoctrineGridDataFactory'
+  Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentGridDataFactory:
+    alias: 'Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentDoctrineGridDataFactory'
 
-  Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridFactory:
+  Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentGridFactory:
     arguments:
-      $gridDefinitionFactory: '@Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridDefinitionFactory'
-      $gridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridDataFactory'
+      $gridDefinitionFactory: '@Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentGridDefinitionFactory'
+      $gridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentGridDataFactory'
       $gridFilterFormFactory: "@prestashop.core.grid.filter.form_factory"
       $hookDispatcher: "@prestashop.core.hook.dispatcher"
 
@@ -491,6 +492,15 @@ services:
       $labelRepository: '@Roanja\Module\RjMulticarrier\Repository\LabelRepository'
       $entityManager: "@doctrine.orm.entity_manager"
 
+  Roanja\Module\RjMulticarrier\Service\Configuration\DefaultCarrierConfigurationSeeder:
+    arguments:
+      $carrierAdapters:
+        - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter'
+        - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\CexCarrierAdapter'
+        - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\GoiCarrierAdapter'
+        - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\DhlCarrierAdapter'
+        - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\GlsCarrierAdapter'
+
   Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter:
     tags:
       - { name: "roanja.module.rj_multicarrier.carrier_adapter" }
@@ -550,8 +560,8 @@ services:
     alias: 'Roanja\Module\RjMulticarrier\Grid\Shipment\ShipmentGridDefinitionFactory'
     public: true
 
-  rj_multicarrier.grid.definition.factory.info_package:
-    alias: 'Roanja\Module\RjMulticarrier\Grid\InfoPackage\InfoPackageGridDefinitionFactory'
+  rj_multicarrier.grid.definition.factory.info_shipment:
+    alias: 'Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentGridDefinitionFactory'
     public: true
 
   roanja.module.rj_multicarrier.installer:
@@ -566,7 +576,7 @@ services:
     arguments:
       - "@twig"
       - '@Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\GetShipmentByOrderIdHandler'
-      - '@?Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository'
+      - '@?Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository'
       - '@?Roanja\Module\RjMulticarrier\Repository\CarrierRepository'
       - '@?Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository'
       - '@?Roanja\Module\RjMulticarrier\Repository\ConfigurationRepository'
@@ -700,20 +710,20 @@ services:
           command: 'Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetShipmentsByIds',
         }
 
-  Roanja\Module\RjMulticarrier\Domain\InfoPackage\Handler\GetInfoPackagesByIdsHandler:
+  Roanja\Module\RjMulticarrier\Domain\InfoShipment\Handler\GetInfoShipmentsByIdsHandler:
     arguments:
-      $infoPackageRepository: '@Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository'
+      $infoShipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository'
     tags:
       - {
           name: "tactician.handler",
-          command: 'Roanja\Module\RjMulticarrier\Domain\InfoPackage\Query\GetInfoPackagesByIds',
+          command: 'Roanja\Module\RjMulticarrier\Domain\InfoShipment\Query\GetInfoShipmentsByIds',
         }
 
-  Roanja\Module\RjMulticarrier\Domain\InfoPackage\Handler\GetInfoPackagesForExportHandler:
+  Roanja\Module\RjMulticarrier\Domain\InfoShipment\Handler\GetInfoShipmentsForExportHandler:
     arguments:
-      $infoPackageRepository: '@Roanja\Module\RjMulticarrier\Repository\InfoPackageRepository'
+      $infoShipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository'
     tags:
       - {
           name: "tactician.handler",
-          command: 'Roanja\Module\RjMulticarrier\Domain\InfoPackage\Query\GetInfoPackagesForExport',
+          command: 'Roanja\Module\RjMulticarrier\Domain\InfoShipment\Query\GetInfoShipmentsForExport',
         }

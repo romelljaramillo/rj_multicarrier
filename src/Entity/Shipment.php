@@ -35,9 +35,9 @@ class Shipment
     #[ORM\JoinColumn(name: 'id_carrier', referencedColumnName: 'id_carrier', nullable: true, onDelete: 'SET NULL')]
     private ?Carrier $carrier = null;
 
-    #[ORM\ManyToOne(targetEntity: InfoPackage::class)]
-    #[ORM\JoinColumn(name: 'id_infopackage', referencedColumnName: 'id_infopackage', nullable: false, onDelete: 'CASCADE')]
-    private InfoPackage $infoPackage;
+    #[ORM\ManyToOne(targetEntity: InfoShipment::class)]
+    #[ORM\JoinColumn(name: 'id_info_shipment', referencedColumnName: 'id_info_shipment', nullable: false, onDelete: 'CASCADE')]
+    private InfoShipment $infoPackage;
 
     #[ORM\Column(name: 'account', type: 'string', length: 100, nullable: true)]
     private ?string $account = null;
@@ -60,7 +60,7 @@ class Shipment
     #[ORM\OneToMany(targetEntity: ShipmentShop::class, mappedBy: 'shipment')]
     private Collection $shops;
 
-    public function __construct(int $orderId, InfoPackage $infoPackage)
+    public function __construct(int $orderId, InfoShipment $infoPackage)
     {
         $this->orderId = $orderId;
         $this->infoPackage = $infoPackage;
@@ -120,12 +120,12 @@ class Shipment
         return $this;
     }
 
-    public function getInfoPackage(): InfoPackage
+    public function getInfoShipment(): InfoShipment
     {
         return $this->infoPackage;
     }
 
-    public function setInfoPackage(InfoPackage $infoPackage): self
+    public function setInfoShipment(InfoShipment $infoPackage): self
     {
         $this->infoPackage = $infoPackage;
 

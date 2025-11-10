@@ -27,60 +27,8 @@
                     <input type="file" name="icon" accept="image/*" class="form-control-file" />
                 </div>
 
-                {% set configurationList = (configurationEntries is defined and configurationEntries is not empty) ? configurationEntries : [{'id': '', 'name': '', 'value': ''}] %}
-                <div class="mb-3">
-                    <label class="form-label">{{ 'Configuration fields'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-                    <div id="carrier-configuration-list">
-                        {% for entry in configurationList %}
-                            <div class="input-group mb-2 carrier-configuration-row">
-                                <input type="hidden" name="configurations[id][]" value="{{ entry.id }}" />
-                                <input type="text" class="form-control" name="configurations[name][]" placeholder="{{ 'Key'|trans({}, 'Modules.RjMulticarrier.Admin') }}" value="{{ entry.name }}" />
-                                <input type="text" class="form-control" name="configurations[value][]" placeholder="{{ 'Value'|trans({}, 'Modules.RjMulticarrier.Admin') }}" value="{{ entry.value }}" />
-                                <button type="button" class="btn btn-outline-danger js-remove-configuration" title="{{ 'Remove'|trans({}, 'Admin.Actions') }}">&times;</button>
-                            </div>
-                        {% endfor %}
-                    </div>
-                    <button type="button" class="btn btn-outline-secondary btn-sm js-add-configuration">{{ 'Add configuration field'|trans({}, 'Modules.RjMulticarrier.Admin') }}</button>
-                    <small class="form-text text-muted">{{ 'Leave the key empty to delete an existing configuration.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
-                </div>
-
                 <button type="submit" class="btn btn-primary">{{ 'Save'|trans({}, 'Admin.Actions') }}</button>
             </form>
         </div>
     </div>
-
-    <template id="carrier-configuration-template">
-        <div class="input-group mb-2 carrier-configuration-row">
-            <input type="hidden" name="configurations[id][]" value="" />
-            <input type="text" class="form-control" name="configurations[name][]" placeholder="{{ 'Key'|trans({}, 'Modules.RjMulticarrier.Admin') }}" />
-            <input type="text" class="form-control" name="configurations[value][]" placeholder="{{ 'Value'|trans({}, 'Modules.RjMulticarrier.Admin') }}" />
-            <button type="button" class="btn btn-outline-danger js-remove-configuration" title="{{ 'Remove'|trans({}, 'Admin.Actions') }}">&times;</button>
-        </div>
-    </template>
-    <script>
-        (function () {
-            var container = document.getElementById('carrier-configuration-list');
-            var addButton = document.querySelector('.js-add-configuration');
-            var template = document.getElementById('carrier-configuration-template');
-
-            if (!container || !addButton || !template) {
-                return;
-            }
-
-            addButton.addEventListener('click', function () {
-                var fragment = template.content.cloneNode(true);
-                container.appendChild(fragment);
-            });
-
-            container.addEventListener('click', function (event) {
-                var target = event.target;
-                if (target && target.closest('.js-remove-configuration')) {
-                    var row = target.closest('.carrier-configuration-row');
-                    if (row) {
-                        row.remove();
-                    }
-                }
-            });
-        })();
-    </script>
 {% endblock %}

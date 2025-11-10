@@ -53,7 +53,7 @@ final class GetShipmentsForExportHandler
 
         $views = [];
         foreach ($shipments as $shipment) {
-            $package = $this->buildPackageView($shipment->getInfoPackage());
+            $package = $this->buildPackageView($shipment->getInfoShipment());
             $labels = $this->labelRepository->findBy(['shipment' => $shipment]);
 
             $metadata = [

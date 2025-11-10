@@ -60,7 +60,7 @@ final class GetShipmentsByIdsHandler
                 continue;
             }
 
-            $package = $this->buildPackageView($shipment->getInfoPackage());
+            $package = $this->buildPackageView($shipment->getInfoShipment());
             $labels = $this->labelRepository->findBy(['shipment' => $shipment]);
 
             $metadata = [

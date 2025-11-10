@@ -67,6 +67,87 @@ final class GlsCarrierAdapter implements CarrierAdapterInterface
         );
     }
 
+    public static function getDefaultConfiguration(): array
+    {
+        return [
+            [
+                'name' => 'GLS_ENV',
+                'label' => 'Modo producción',
+                'value' => '0',
+                'required' => true,
+                'legacy' => ['RJ_GLS_ENV'],
+            ],
+            [
+                'name' => 'GLS_GUID',
+                'label' => 'GUID producción',
+                'required' => true,
+                'legacy' => ['RJ_GLS_GUID'],
+            ],
+            [
+                'name' => 'GLS_GUID_DEV',
+                'label' => 'GUID pruebas',
+                'required' => true,
+                'legacy' => ['RJ_GLS_GUID_DEV'],
+            ],
+            [
+                'name' => 'GLS_URL',
+                'label' => 'Endpoint SOAP',
+                'description' => 'URL base del servicio ASM/GLS.',
+                'required' => true,
+                'legacy' => ['RJ_GLS_URL'],
+            ],
+            [
+                'name' => 'GLS_WEIGHT',
+                'label' => 'Peso por defecto',
+                'value' => null,
+                'required' => true,
+                'legacy' => ['RJ_GLS_WEIGHT'],
+            ],
+            [
+                'name' => 'GLS_QUANTITY',
+                'label' => 'Bultos por defecto',
+                'value' => '1',
+                'required' => true,
+                'legacy' => ['RJ_GLS_QUANTITY'],
+            ],
+            [
+                'name' => 'GLS_RETORNO',
+                'label' => 'Retorno por defecto',
+                'value' => '0',
+                'required' => true,
+                'legacy' => ['RJ_GLS_RETORNO'],
+            ],
+            [
+                'name' => 'GLS_RCS',
+                'label' => 'POD por defecto',
+                'value' => '0',
+                'required' => true,
+                'legacy' => ['RJ_GLS_RCS'],
+            ],
+            [
+                'name' => 'GLS_INCOTERM',
+                'label' => 'Incoterm por defecto',
+                'value' => '0',
+                'required' => true,
+                'legacy' => ['RJ_GLS_INCOTERM'],
+            ],
+            [
+                'name' => 'GLS_VSEC',
+                'label' => 'Valor asegurado por defecto',
+                'value' => '0',
+                'required' => true,
+                'legacy' => ['RJ_GLS_VSEC'],
+            ],
+            [
+                'name' => 'GLS_DORIG',
+                'label' => 'Departamento origen',
+                'value' => null,
+                'required' => true,
+                'legacy' => ['RJ_GLS_DORIG'],
+            ],
+        ];
+    }
+
     /**
      * @return array<string, mixed>
      */

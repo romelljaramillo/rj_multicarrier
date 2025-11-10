@@ -13,7 +13,7 @@ final class DefaultCarrierAdapter implements CarrierAdapterInterface
 {
     public function getCode(): string
     {
-        return 'DEFAULT';
+        return 'DEF';
     }
 
     public function generateShipment(CarrierContext $context): CarrierGenerationResult
@@ -55,5 +55,29 @@ final class DefaultCarrierAdapter implements CarrierAdapterInterface
             isset($payload['response']) && is_array($payload['response']) ? $payload['response'] : null,
             $labels
         );
+    }
+
+    public static function getDefaultConfiguration(): array
+    {
+        return [
+            [
+                'name' => 'DEF_ACCOUNTID',
+                'label' => 'Account ID',
+                'required' => true,
+                'value' => null,
+            ],
+            [
+                'name' => 'DEF_USERID',
+                'label' => 'User ID',
+                'required' => true,
+                'value' => null,
+            ],
+            [
+                'name' => 'DEF_PASSWORD',
+                'label' => 'Password',
+                'required' => true,
+                'value' => null,
+            ],
+        ];
     }
 }

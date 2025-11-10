@@ -42,7 +42,7 @@ final class GenerateShipmentHandler
         $normalizedPayload['num_shipment'] = $result->getShipmentNumber();
 
         $infoPackage = (array) ($normalizedPayload['info_package'] ?? []);
-        $infoPackageId = (int) ($infoPackage['id_infopackage'] ?? 0);
+        $infoPackageId = (int) ($infoPackage['id_info_shipment'] ?? 0);
 
         if ($infoPackageId <= 0) {
             throw new RuntimeException('Missing info package identifier when generating shipment.');

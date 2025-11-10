@@ -1,109 +1,269 @@
 {% extends '@PrestaShop/Admin/layout.html.twig' %}
 
 {% block content %}
-  <div class="row">
-    <div class="col-lg-8">
-      <div class="card mb-3">
-        <div class="card-header d-flex align-items-center justify-content-between">
-          <h3 class="card-title mb-0">{{ 'Configuración del transportista'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
-          <a class="btn btn-outline-secondary btn-sm" href="{{ path('admin_rj_multicarrier_carriers_index') }}">
-            {{ 'Volver al listado'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-          </a>
-        </div>
-        <div class="card-body">
-          <p class="text-muted mb-4">
-            {{ 'Gestiona pares clave-valor específicos de este transportista. Se aplican al generar envíos y pueden consultarse desde el pedido.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-          </p>
+  <div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between">
+      <h3 class="card-title mb-0">{{ 'Configuración del transportista'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
+      <a class="btn btn-outline-secondary btn-sm" href="{{ path('admin_rj_multicarrier_carriers_index') }}">
+        {{ 'Volver al listado'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+      </a>
+    </div>
+    <div class="card-body">
+      <p class="text-muted mb-4">
+        {{ 'Las configuraciones por defecto permanecen fijas y se completan automáticamente al crear nuevos carriers. Puedes añadir valores adicionales según tus necesidades.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+      </p>
 
-          {% if configurations is not empty %}
-            <div class="table-responsive">
-              <table class="table table-striped">
-                <thead>
-                  <tr>
-                    <th>{{ 'Clave'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
-                    <th>{{ 'Valor'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
-                    <th class="text-right">{{ 'Acciones'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for configuration in configurations %}
-                    <tr>
-                      <td class="align-middle">
-                        <code>{{ configuration.name }}</code>
-                      </td>
-                      <td class="align-middle">
-                        {% if configuration.value %}
-                          <span class="text-break">{{ configuration.value }}</span>
-                        {% else %}
-                          <span class="text-muted">{{ 'Sin valor'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
-                        {% endif %}
-                      </td>
-                      <td class="align-middle text-right">
-                        <div class="btn-group btn-group-sm" role="group">
-                          <a
-                            class="btn btn-outline-primary"
-                            href="{{ path('admin_rj_multicarrier_carriers_configuration', { id: carrier.id, configId: configuration.id }) }}"
-                          >
-                            {{ 'Editar'|trans({}, 'Admin.Actions') }}
-                          </a>
-                          <form
-                            method="post"
-                            action="{{ path('admin_rj_multicarrier_carriers_configuration_delete', { id: carrier.id, configId: configuration.id }) }}"
-                            onsubmit="return confirm('{{ '¿Eliminar esta configuración?'|trans({}, 'Modules.RjMulticarrier.Admin')|escape('js') }}');"
-                          >
-                            <button type="submit" class="btn btn-outline-danger">
-                              {{ 'Eliminar'|trans({}, 'Admin.Actions') }}
-                            </button>
-                          </form>
-                        </div>
-                      </td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+      <form method="post" id="carrier-configurations-form">
+        <input type="hidden" name="_token" value="{{ csrf_token('carrier_configurations_' ~ carrier.id) }}">
+
+        <section class="mb-5">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+              <h4 class="mb-1">{{ 'Configuraciones por defecto'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h4>
+              <p class="text-muted mb-0">{{ 'Estos campos son obligatorios y no se pueden eliminar.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+            </div>
+          </div>
+
+          {% if defaultConfigurations is not empty %}
+            <div class="row g-4">
+              {% for configuration in defaultConfigurations %}
+                <div class="col-lg-6">
+                  <div class="border rounded p-3 h-100">
+                    <input type="hidden" name="defaults[{{ loop.index0 }}][id]" value="{{ configuration.id }}">
+                    <input type="hidden" name="defaults[{{ loop.index0 }}][name]" value="{{ configuration.name }}">
+
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <span class="fw-bold">{{ configuration.label ?? configuration.displayName }}</span>
+                      <code class="text-muted">{{ configuration.name }}</code>
+                    </div>
+
+                    {% if configuration.description %}
+                      <p class="text-muted small mb-3">{{ configuration.description }}</p>
+                    {% endif %}
+
+                    <input
+                      type="text"
+                      class="form-control"
+                      name="defaults[{{ loop.index0 }}][value]"
+                      value="{{ configuration.value ?? '' }}"
+                      placeholder="{{ 'Introduce un valor'|trans({}, 'Modules.RjMulticarrier.Admin') }}"
+                    >
+                  </div>
+                </div>
+              {% endfor %}
             </div>
           {% else %}
-            <p class="text-muted mb-0">
-              {{ 'Todavía no hay configuraciones definidas para este transportista.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-            </p>
+            <p class="text-muted mb-0">{{ 'Este transportista no define configuraciones por defecto.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
           {% endif %}
-        </div>
-      </div>
-    </div>
+        </section>
 
-    <div class="col-lg-4">
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title mb-0">
-            {% if isEditing %}
-              {{ 'Editar configuración'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-            {% else %}
-              {{ 'Nueva configuración'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-            {% endif %}
-          </h3>
-        </div>
-        <div class="card-body">
-          {{ form_start(configurationForm) }}
-            {{ form_row(configurationForm.name) }}
-            {{ form_row(configurationForm.value) }}
-
-            <div class="d-flex justify-content-between mt-3">
-              <button type="submit" class="btn btn-primary">
-                {% if isEditing %}
-                  {{ 'Actualizar'|trans({}, 'Admin.Actions') }}
-                {% else %}
-                  {{ 'Guardar'|trans({}, 'Admin.Actions') }}
-                {% endif %}
-              </button>
-              {% if isEditing %}
-                <a class="btn btn-outline-secondary" href="{{ path('admin_rj_multicarrier_carriers_configuration', { id: carrier.id }) }}">
-                  {{ 'Cancelar'|trans({}, 'Admin.Actions') }}
-                </a>
-              {% endif %}
+        <section>
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+              <h4 class="mb-1">{{ 'Configuraciones adicionales'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h4>
+              <p class="text-muted mb-0">{{ 'Añade claves personalizadas que podrán eliminarse cuando ya no sean necesarias.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
             </div>
-          {{ form_end(configurationForm) }}
+            <button type="button" class="btn btn-outline-secondary btn-sm js-add-extra-configuration">
+              {{ 'Añadir configuración'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead>
+                <tr>
+                  <th style="width: 25%;">{{ 'Clave'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+                  <th>{{ 'Valor'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+                  <th class="text-end" style="width: 140px;">{{ 'Acciones'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+                </tr>
+              </thead>
+              <tbody id="carrier-extra-configurations" data-next-index="{{ extraConfigurations|length }}">
+                {% for configuration in extraConfigurations %}
+                  <tr class="carrier-extra-row" data-persisted="1">
+                    <td>
+                      <input type="hidden" name="extras[{{ loop.index0 }}][id]" value="{{ configuration.id }}">
+                      <input type="hidden" class="js-delete-flag" name="extras[{{ loop.index0 }}][_delete]" value="0">
+                      <input
+                        type="text"
+                        class="form-control"
+                        name="extras[{{ loop.index0 }}][name]"
+                        value="{{ configuration.name }}"
+                        placeholder="{{ 'Clave interna'|trans({}, 'Modules.RjMulticarrier.Admin') }}"
+                      >
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        class="form-control"
+                        name="extras[{{ loop.index0 }}][value]"
+                        value="{{ configuration.value ?? '' }}"
+                        placeholder="{{ 'Introduce un valor'|trans({}, 'Modules.RjMulticarrier.Admin') }}"
+                      >
+                    </td>
+                    <td class="text-end">
+                      <button
+                        type="button"
+                        class="btn btn-outline-danger btn-sm js-remove-extra-configuration"
+                        data-remove-label="{{ 'Eliminar'|trans({}, 'Admin.Actions') }}"
+                        data-undo-label="{{ 'Deshacer'|trans({}, 'Admin.Actions') }}"
+                        data-confirm="{{ '¿Eliminar esta configuración?'|trans({}, 'Modules.RjMulticarrier.Admin') }}"
+                      >
+                        {{ 'Eliminar'|trans({}, 'Admin.Actions') }}
+                      </button>
+                    </td>
+                  </tr>
+                {% else %}
+                  <tr class="carrier-extra-empty">
+                    <td colspan="3" class="text-center text-muted py-4">
+                      {{ 'Todavía no se han añadido configuraciones adicionales.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <a class="btn btn-outline-secondary" href="{{ path('admin_rj_multicarrier_carriers_index') }}">
+            {{ 'Cancelar'|trans({}, 'Admin.Actions') }}
+          </a>
+          <button type="submit" class="btn btn-primary">
+            {{ 'Guardar cambios'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+          </button>
         </div>
-      </div>
+      </form>
     </div>
   </div>
+
+  <template id="extra-configuration-row-template">
+    <tr class="carrier-extra-row" data-persisted="0">
+      <td>
+        <input type="hidden" name="extras[__INDEX__][id]" value="">
+        <input type="hidden" class="js-delete-flag" name="extras[__INDEX__][_delete]" value="0">
+        <input
+          type="text"
+          class="form-control"
+          name="extras[__INDEX__][name]"
+          placeholder="{{ 'Clave interna'|trans({}, 'Modules.RjMulticarrier.Admin') }}"
+        >
+      </td>
+      <td>
+        <input
+          type="text"
+          class="form-control"
+          name="extras[__INDEX__][value]"
+          placeholder="{{ 'Introduce un valor'|trans({}, 'Modules.RjMulticarrier.Admin') }}"
+        >
+      </td>
+      <td class="text-end">
+        <button
+          type="button"
+          class="btn btn-outline-danger btn-sm js-remove-extra-configuration"
+          data-remove-label="{{ 'Eliminar'|trans({}, 'Admin.Actions') }}"
+          data-undo-label="{{ 'Deshacer'|trans({}, 'Admin.Actions') }}"
+          data-confirm="{{ '¿Eliminar esta configuración?'|trans({}, 'Modules.RjMulticarrier.Admin') }}"
+        >
+          {{ 'Eliminar'|trans({}, 'Admin.Actions') }}
+        </button>
+      </td>
+    </tr>
+  </template>
+
+  <script>
+    (function () {
+      var extrasBody = document.getElementById('carrier-extra-configurations');
+      if (!extrasBody) {
+        return;
+      }
+
+      var addButton = document.querySelector('.js-add-extra-configuration');
+      var template = document.getElementById('extra-configuration-row-template');
+      var emptyRow = extrasBody.querySelector('.carrier-extra-empty');
+      var nextIndex = parseInt(extrasBody.dataset.nextIndex || extrasBody.children.length || 0, 10);
+
+      var showEmptyRow = function () {
+        if (!emptyRow) {
+          return;
+        }
+
+        var hasRows = extrasBody.querySelectorAll('.carrier-extra-row').length > 0;
+        emptyRow.classList.toggle('d-none', hasRows);
+      };
+
+      showEmptyRow();
+
+      if (addButton && template) {
+        addButton.addEventListener('click', function () {
+          var wrapper = document.createElement('tbody');
+          wrapper.innerHTML = template.innerHTML.replace(/__INDEX__/g, String(nextIndex)).trim();
+          var row = wrapper.firstElementChild;
+
+          if (!row) {
+            return;
+          }
+
+          extrasBody.appendChild(row);
+          nextIndex += 1;
+          showEmptyRow();
+        });
+      }
+
+      extrasBody.addEventListener('click', function (event) {
+        var button = event.target.closest('.js-remove-extra-configuration');
+        if (!button) {
+          return;
+        }
+
+        var row = button.closest('tr');
+        if (!row) {
+          return;
+        }
+
+        var deleteFlag = row.querySelector('.js-delete-flag');
+        var isPersisted = row.dataset.persisted === '1';
+
+        if (!isPersisted) {
+          row.remove();
+          showEmptyRow();
+          return;
+        }
+
+        if (row.dataset.marked === '1') {
+          row.dataset.marked = '0';
+          if (deleteFlag) {
+            deleteFlag.value = '0';
+          }
+          row.classList.remove('table-danger');
+          row.querySelectorAll('input, textarea').forEach(function (input) {
+            if (!input.classList.contains('js-delete-flag')) {
+              input.disabled = false;
+            }
+          });
+          button.textContent = button.dataset.removeLabel;
+          button.classList.remove('btn-outline-secondary');
+          button.classList.add('btn-outline-danger');
+          return;
+        }
+
+        if (!window.confirm(button.dataset.confirm)) {
+          return;
+        }
+
+        row.dataset.marked = '1';
+        if (deleteFlag) {
+          deleteFlag.value = '1';
+        }
+  row.classList.add('table-danger');
+        row.querySelectorAll('input, textarea').forEach(function (input) {
+          if (!input.classList.contains('js-delete-flag')) {
+            input.disabled = true;
+          }
+        });
+        button.textContent = button.dataset.undoLabel;
+        button.classList.remove('btn-outline-danger');
+        button.classList.add('btn-outline-secondary');
+      });
+    })();
+  </script>
 {% endblock %}

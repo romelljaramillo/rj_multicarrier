@@ -106,6 +106,7 @@ function ready(callback) {
 
 ready(() => {
   initDetailModals();
+  initPanelModals();
 
   const containers = document.querySelectorAll('.js-grid');
 
@@ -137,6 +138,7 @@ ready(() => {
     }
   }, 400);
 
+  // use capture phase to prevent legacy grid listeners from triggering a full navigation
   document.addEventListener('click', (event) => {
     const target = event.target instanceof Element ? event.target : null;
     if (!target) {
@@ -282,6 +284,224 @@ function initDetailModals() {
 
     setupDetailModal(modal, triggerSelector);
   });
+}
+
+function initPanelModals() {
+  const modals = document.querySelectorAll('.js-panel-modal');
+
+  if (modals.length === 0) {
+    return;
+  }
+
+  modals.forEach((modal) => {
+    const triggerSelector = modal.dataset.trigger;
+    if (!triggerSelector) {
+      return;
+    }
+
+    setupPanelModal(modal, triggerSelector);
+  });
+}
+
+function executeInlineScripts(container) {
+  if (!container) {
+    return;
+  }
+
+  const scripts = container.querySelectorAll('script');
+
+  scripts.forEach((script) => {
+    const clone = document.createElement('script');
+
+    Array.from(script.attributes).forEach((attr) => {
+      clone.setAttribute(attr.name, attr.value);
+    });
+
+    if (script.parentNode) {
+      script.parentNode.removeChild(script);
+    }
+
+    if (script.src) {
+      clone.addEventListener('load', () => {
+        clone.remove();
+      });
+      clone.addEventListener('error', () => {
+        clone.remove();
+      });
+      clone.src = script.src;
+      document.head.appendChild(clone);
+    } else {
+      clone.textContent = script.textContent;
+      document.head.appendChild(clone);
+      document.head.removeChild(clone);
+    }
+  });
+}
+
+function setupPanelModal(modal, triggerSelector) {
+  const spinner = modal.querySelector('.js-panel-spinner');
+  const contentBox = modal.querySelector('.js-panel-content');
+  const errorBox = modal.querySelector('.js-panel-error');
+  const titleNode = modal.querySelector('.js-panel-title');
+  const defaultTitle = titleNode ? titleNode.textContent : (modal.dataset.titleDefault || '');
+  const genericError = modal.dataset.errorGeneric || 'Error';
+  const notFoundError = modal.dataset.errorNotFound || genericError;
+
+  function setTitle(text) {
+    if (!titleNode) {
+      return;
+    }
+    titleNode.textContent = text || defaultTitle || '';
+  }
+
+  function openModal() {
+    if (window.jQuery && typeof window.jQuery(modal).modal === 'function') {
+      window.jQuery(modal).modal('show');
+      return;
+    }
+
+    modal.classList.add('show');
+    modal.style.display = 'block';
+    modal.setAttribute('aria-modal', 'true');
+    modal.removeAttribute('aria-hidden');
+  }
+
+  function resetModal() {
+    if (errorBox) {
+      errorBox.classList.add('d-none');
+      errorBox.textContent = '';
+    }
+
+    if (contentBox) {
+      contentBox.classList.add('d-none');
+      contentBox.innerHTML = '';
+    }
+
+    if (spinner) {
+      spinner.classList.remove('d-none');
+    }
+
+    setTitle(defaultTitle);
+  }
+
+  function showError(message) {
+    if (spinner) {
+      spinner.classList.add('d-none');
+    }
+
+    if (contentBox) {
+      contentBox.classList.add('d-none');
+    }
+
+    if (errorBox) {
+      errorBox.classList.remove('d-none');
+      errorBox.textContent = message || genericError;
+    }
+  }
+
+  function showContent(html) {
+    if (spinner) {
+      spinner.classList.add('d-none');
+    }
+
+    if (!contentBox) {
+      return;
+    }
+
+    contentBox.innerHTML = html || '';
+    executeInlineScripts(contentBox);
+
+    if (window.rjMulticarrier && typeof window.rjMulticarrier.initOrderPanel === 'function') {
+      window.rjMulticarrier.initOrderPanel(contentBox);
+    }
+
+    contentBox.classList.remove('d-none');
+  }
+
+  function fetchPanel(url, trigger) {
+    openModal();
+    resetModal();
+
+    if (trigger) {
+      const explicitTitle = trigger.getAttribute('data-modal-title') || trigger.dataset.modalTitle;
+      if (explicitTitle) {
+        setTitle(explicitTitle);
+      }
+    }
+
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        Accept: 'text/html',
+      },
+      credentials: 'same-origin',
+    })
+      .then((response) => {
+        if (response.status === 404) {
+          throw new Error(notFoundError);
+        }
+
+        if (!response.ok) {
+          return response.text().then((text) => {
+            const trimmed = (text || '').trim();
+            throw new Error(trimmed || `${genericError} (Status: ${response.status})`);
+          });
+        }
+
+        return response.text();
+      })
+      .then((html) => {
+        showContent(html);
+      })
+      .catch((error) => {
+        if (window.console && typeof window.console.error === 'function') {
+          window.console.error('[rj_multicarrier] Panel fetch error:', error);
+        }
+        showError(error && error.message ? error.message : genericError);
+      });
+  }
+
+  document.addEventListener('click', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) {
+      return;
+    }
+
+    let trigger = null;
+    const selectorList = Array.isArray(triggerSelector)
+      ? triggerSelector
+      : String(triggerSelector)
+        .split(',')
+        .map((selector) => selector.trim())
+        .filter((selector) => selector.length > 0);
+
+    for (let index = 0; index < selectorList.length; index += 1) {
+      const selector = selectorList[index];
+      trigger = target.closest(selector);
+      if (trigger) {
+        break;
+      }
+    }
+
+    if (!trigger) {
+      return;
+    }
+
+    const url = trigger.getAttribute('href')
+      || trigger.dataset.href
+      || trigger.dataset.url;
+    if (!url) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (typeof event.stopImmediatePropagation === 'function') {
+      event.stopImmediatePropagation();
+    }
+    fetchPanel(url, trigger);
+  }, true);
 }
 
 function setupDetailModal(modal, triggerSelector) {

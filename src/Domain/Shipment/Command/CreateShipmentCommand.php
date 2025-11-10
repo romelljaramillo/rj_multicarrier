@@ -45,7 +45,7 @@ final class CreateShipmentCommand
         return $this->shipmentNumber;
     }
 
-    public function getInfoPackageId(): int
+    public function getInfoShipmentId(): int
     {
         return $this->infoPackageId;
     }

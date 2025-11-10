@@ -43,6 +43,9 @@ class CarrierConfiguration
     #[ORM\Column(name: 'value', type: 'text', nullable: true)]
     private ?string $value = null;
 
+    #[ORM\Column(name: 'is_required', type: 'boolean', options: ['default' => false])]
+    private bool $isRequired = false;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -116,6 +119,18 @@ class CarrierConfiguration
     public function setValue(?string $value): self
     {
         $this->value = $value;
+
+        return $this;
+    }
+
+    public function isRequired(): bool
+    {
+        return $this->isRequired;
+    }
+
+    public function setIsRequired(bool $isRequired): self
+    {
+        $this->isRequired = $isRequired;
 
         return $this;
     }

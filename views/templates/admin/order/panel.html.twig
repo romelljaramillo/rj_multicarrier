@@ -1,6 +1,8 @@
 
 {% set hasShipment = shipment is defined and shipment %}
 {% set currentOrderId = orderId|default(0)|intCast %}
+{% set mode = mode|default('form') %}
+{% set isPreviewOnly = mode == 'preview' %}
 
 {% for message in notifications.errors %}
 	<div class="alert alert-danger" role="alert">{{ message }}</div>
@@ -15,7 +17,8 @@
 	<div class="alert alert-info" role="alert">{{ message }}</div>
 {% endfor %}
 
-<div class="row g-4">
+<div class="row g-4" data-rj-order-panel-root>
+	{% if not isPreviewOnly %}
 	<div class="col-12 col-lg-7">
 		<div class="card">
 			<h3 class="card-header">{{ 'RJ Multi-carrier'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
@@ -136,7 +139,7 @@
 				{% endif %}
 				<form method="post" class="rj-multicarrier-admin-order" action="{{ upsertPackageAction }}">
 					<input type="hidden" name="id_order" value="{{ currentOrderId }}" />
-					<input type="hidden" name="id_infopackage" value="{{ request_values.id_infopackage|default(info_package.id_infopackage|default('')) }}" />
+					<input type="hidden" name="id_info_shipment" value="{{ request_values.id_info_shipment|default(info_package.id_info_shipment|default('')) }}" />
 					<input type="hidden" name="id_shipment" value="{{ request_values.id_shipment|default(info_shipment.id_shipment|default('')) }}" />
 					<input type="hidden" name="id_reference_carrier" id="rj-reference-carrier" value="{{ request_values.id_reference_carrier|default(info_package.id_reference_carrier|default('')) }}" />
 
@@ -234,7 +237,7 @@
 						</div>
 						<div class="col-md-4 d-flex align-items-end">
 							<div class="form-check">
-								<input class="form-check-input" type="checkbox" name="rj_rcs" id="rj_rcs_checkbox" {% if request_values.rj_rcs is defined %}checked{% elseif info_package.rcs %}checked{% endif %}>
+								<input class="form-check-input" type="checkbox" name="rj_rcs" id="rj_rcs_checkbox" {% if request_values.rj_rcs is defined %}checked{% elseif info_package.rcs|default(0) %}checked{% endif %}>
 								<label class="form-check-label" for="rj_rcs_checkbox">
 									{{ 'Retorno copia sellada'|trans({}, 'Modules.RjMulticarrier.Admin') }}
 								</label>
@@ -276,10 +279,10 @@
 							</button>
 						</div>
 						{# Generate shipment: separate form that posts to new route when info package exists #}
-						{% if info_package.id_infopackage is defined and info_package.id_infopackage %}
+						{% if info_package.id_info_shipment is defined and info_package.id_info_shipment %}
 							{% set generateShipmentAction = '#' %}
 							{% if currentOrderId > 0 %}
-								{% set generateShipmentAction = (currentOrderId is defined and currentOrderId) ? path('admin_rj_multicarrier_order_generate_shipment', {'orderId': currentOrderId, 'infoPackageId': info_package.id_infopackage}) : '#' %}
+								{% set generateShipmentAction = (currentOrderId is defined and currentOrderId) ? path('admin_rj_multicarrier_order_generate_shipment', {'orderId': currentOrderId, 'infoPackageId': info_package.id_info_shipment}) : '#' %}
 							{% endif %}
 							<form method="post" action="{{ generateShipmentAction }}" class="ms-2">
 								<button type="submit" class="btn btn-primary" {% if hasShipment %}disabled{% endif %}>
@@ -305,14 +308,54 @@
 			</div>
 		</div>
 	</div>
+	{% endif %}
 
 	{% include '@Modules/rj_multicarrier/views/templates/admin/order/label_preview.html.twig' %}
 </div>
 <script>
-	document.addEventListener('DOMContentLoaded', () => {
-		const carrierSelect = document.getElementById('rj-carrier-select');
-		const typeSelect = document.getElementById('rj-type-select');
-		const referenceInput = document.getElementById('rj-reference-carrier');
+(function (global) {
+	function resolveScope(rootCandidate) {
+		if (rootCandidate && typeof rootCandidate.querySelector === 'function') {
+			return rootCandidate;
+		}
+
+		if (global.document) {
+			return global.document;
+		}
+
+		return null;
+	}
+
+	function initOrderPanel(rootCandidate) {
+		const scope = resolveScope(rootCandidate);
+		if (!scope) {
+			return;
+		}
+
+		const panelRoot = scope.querySelector('[data-rj-order-panel-root]');
+
+		if (!panelRoot || panelRoot.dataset.rjPanelReady === '1') {
+			return;
+		}
+
+		panelRoot.dataset.rjPanelReady = '1';
+
+		const carrierSelect = panelRoot.querySelector('#rj-carrier-select');
+		const typeSelect = panelRoot.querySelector('#rj-type-select');
+		const referenceInput = panelRoot.querySelector('#rj-reference-carrier');
+
+		const updateReferenceCarrier = () => {
+			if (!typeSelect || !referenceInput) {
+				return;
+			}
+
+			const selectedOption = typeSelect.options[typeSelect.selectedIndex];
+			if (selectedOption && selectedOption.dataset.referenceCarrier) {
+				referenceInput.value = selectedOption.dataset.referenceCarrier;
+			} else if (!selectedOption || !selectedOption.value) {
+				referenceInput.value = '';
+			}
+		};
 
 		const updateTypeOptions = () => {
 			if (!carrierSelect || !typeSelect) {
@@ -347,19 +390,6 @@
 			updateReferenceCarrier();
 		};
 
-		const updateReferenceCarrier = () => {
-			if (!typeSelect || !referenceInput) {
-				return;
-			}
-
-			const selectedOption = typeSelect.options[typeSelect.selectedIndex];
-			if (selectedOption && selectedOption.dataset.referenceCarrier) {
-				referenceInput.value = selectedOption.dataset.referenceCarrier;
-			} else if (!selectedOption || !selectedOption.value) {
-				referenceInput.value = '';
-			}
-		};
-
 		if (carrierSelect) {
 			carrierSelect.addEventListener('change', updateTypeOptions);
 		}
@@ -371,32 +401,43 @@
 		updateTypeOptions();
 		updateReferenceCarrier();
 
-		// --- Contrareembolso behaviour (replicar rj_carrier) ---
-		const contrareembolsoCheckbox = document.getElementById('rj_contrareembolso');
-		const cashOnDeliveryInput = document.getElementById('rj_cash_ondelivery');
+		const contrareembolsoCheckbox = panelRoot.querySelector('#rj_contrareembolso');
+		const cashOnDeliveryInput = panelRoot.querySelector('#rj_cash_ondelivery');
 		const defaultCod = '{{ info_package.cash_ondelivery|default('')|e('js') }}';
 
 		function parseNumberFromText(text) {
-			if (!text) return '';
+			if (!text) {
+				return '';
+			}
+
 			const cleaned = text.replace(/[^0-9,\.\-]/g, '').trim();
-			if (!cleaned) return '';
+			if (!cleaned) {
+				return '';
+			}
+
 			return cleaned.replace(/,/g, '.');
 		}
 
 		function tryReadOrderTotalFromPage() {
 			const selectors = ['.order-total', '#order_total', '#orderTotal', '.total_paid', '.order-price', '.total-value', '.order-amount'];
 			for (const sel of selectors) {
-				const el = document.querySelector(sel);
+				const el = global.document ? global.document.querySelector(sel) : null;
 				if (el && el.textContent) {
 					const num = parseNumberFromText(el.textContent);
-					if (num) return num;
+					if (num) {
+						return num;
+					}
 				}
 			}
+
 			return '';
 		}
 
 		function getPriceOrder() {
-			if (!contrareembolsoCheckbox || !cashOnDeliveryInput) return;
+			if (!contrareembolsoCheckbox || !cashOnDeliveryInput) {
+				return;
+			}
+
 			if (!contrareembolsoCheckbox.checked) {
 				cashOnDeliveryInput.value = '';
 				return;
@@ -418,7 +459,20 @@
 
 		if (contrareembolsoCheckbox) {
 			contrareembolsoCheckbox.addEventListener('change', getPriceOrder);
-			getPriceOrder();
 		}
-	});
+
+		getPriceOrder();
+	}
+
+	global.rjMulticarrier = global.rjMulticarrier || {};
+	global.rjMulticarrier.initOrderPanel = initOrderPanel;
+
+	if (global.document) {
+		if (global.document.readyState === 'loading') {
+			global.document.addEventListener('DOMContentLoaded', () => initOrderPanel(global.document));
+		} else {
+			initOrderPanel(global.document);
+		}
+	}
+})(typeof window !== 'undefined' ? window : this);
 </script>

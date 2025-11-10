@@ -13,8 +13,11 @@ final class CarrierConfigurationView
         private readonly int $carrierId,
         private readonly string $name,
         private readonly ?string $value,
-        private readonly ?string $createdAt,
-        private readonly ?string $updatedAt
+        private readonly bool $isRequired,
+        private readonly ?string $label = null,
+        private readonly ?string $description = null,
+        private readonly ?string $createdAt = null,
+        private readonly ?string $updatedAt = null
     ) {
     }
 
@@ -38,6 +41,26 @@ final class CarrierConfigurationView
         return $this->value;
     }
 
+    public function isRequired(): bool
+    {
+        return $this->isRequired;
+    }
+
+    public function getLabel(): ?string
+    {
+        return $this->label;
+    }
+
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+
+    public function getDisplayName(): string
+    {
+        return $this->label ? $this->label : $this->name;
+    }
+
     public function getCreatedAt(): ?string
     {
         return $this->createdAt;
@@ -59,6 +82,10 @@ final class CarrierConfigurationView
             'companyId' => $this->carrierId,
             'name' => $this->name,
             'value' => $this->value,
+            'label' => $this->label,
+            'displayName' => $this->getDisplayName(),
+            'description' => $this->description,
+            'isRequired' => $this->isRequired,
             'createdAt' => $this->createdAt,
             'updatedAt' => $this->updatedAt,
         ];

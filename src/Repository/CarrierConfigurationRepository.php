@@ -6,28 +6,21 @@ declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Repository;
 
+use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\EntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Roanja\Module\RjMulticarrier\Entity\CarrierConfiguration;
 use Roanja\Module\RjMulticarrier\Entity\Carrier;
 use Roanja\Module\RjMulticarrier\Entity\TypeShipment;
 
-final class CarrierConfigurationRepository
+final class CarrierConfigurationRepository extends ServiceEntityRepository
 {
     private EntityManagerInterface $entityManager;
 
-    /**
-     * @var EntityRepository<CarrierConfiguration>
-     */
-    private EntityRepository $repository;
-
     public function __construct(ManagerRegistry $registry)
     {
-        /** @var EntityManagerInterface $entityManager */
-        $entityManager = $registry->getManager();
-        $this->entityManager = $entityManager;
-        $this->repository = $entityManager->getRepository(CarrierConfiguration::class);
+        parent::__construct($registry, CarrierConfiguration::class);
+        $this->entityManager = $this->getEntityManager();
     }
 
     /**
@@ -35,7 +28,7 @@ final class CarrierConfigurationRepository
      */
     public function findByCarrier(Carrier $carrier): array
     {
-        return $this->repository->findBy(
+        return $this->findBy(
             ['carrier' => $carrier, 'typeShipment' => null],
             ['name' => 'ASC']
         );
@@ -46,7 +39,7 @@ final class CarrierConfigurationRepository
      */
     public function findByTypeShipment(TypeShipment $typeShipment): array
     {
-        return $this->repository->findBy(
+        return $this->findBy(
             ['typeShipment' => $typeShipment],
             ['name' => 'ASC']
         );
@@ -54,7 +47,7 @@ final class CarrierConfigurationRepository
 
     public function findOneForCarrierByName(Carrier $carrier, string $name): ?CarrierConfiguration
     {
-        return $this->repository->findOneBy([
+        return $this->findOneBy([
             'carrier' => $carrier,
             'typeShipment' => null,
             'name' => $name,
@@ -63,7 +56,7 @@ final class CarrierConfigurationRepository
 
     public function findOneForTypeShipmentByName(TypeShipment $typeShipment, string $name): ?CarrierConfiguration
     {
-        return $this->repository->findOneBy([
+        return $this->findOneBy([
             'typeShipment' => $typeShipment,
             'name' => $name,
         ]);
@@ -75,9 +68,16 @@ final class CarrierConfigurationRepository
         $this->entityManager->flush();
     }
 
-    public function find(int $id): ?CarrierConfiguration
+    /**
+     * @param mixed $id
+     * @param int|null $lockMode
+     * @param int|null $lockVersion
+     */
+    public function find($id, $lockMode = null, $lockVersion = null): ?CarrierConfiguration
     {
-        return $this->repository->find($id);
+        $entity = parent::find($id, $lockMode, $lockVersion);
+
+        return $entity instanceof CarrierConfiguration ? $entity : null;
     }
 
     public function remove(CarrierConfiguration $configuration): void

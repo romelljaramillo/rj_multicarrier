@@ -57,6 +57,90 @@ final class GoiCarrierAdapter implements CarrierAdapterInterface
         );
     }
 
+    public static function getDefaultConfiguration(): array
+    {
+        return [
+            [
+                'name' => 'RJ_GOI_USERID',
+                'label' => 'User Id',
+                'required' => true,
+                'legacy' => ['USERID', 'RJ_GOI_USERID'],
+            ],
+            [
+                'name' => 'RJ_GOI_USERID_DEV',
+                'label' => 'User Id DEV',
+                'required' => true,
+                'legacy' => ['USERID_DEV', 'RJ_GOI_USERID_DEV'],
+            ],
+            [
+                'name' => 'RJ_GOI_STOREID',
+                'label' => 'Store Id',
+                'required' => true,
+                'legacy' => ['STOREID', 'RJ_GOI_STOREID'],
+            ],
+            [
+                'name' => 'RJ_GOI_STOREID_DEV',
+                'label' => 'Store Id DEV',
+                'required' => true,
+                'legacy' => ['STOREID_DEV', 'RJ_GOI_STOREID_DEV'],
+            ],
+            [
+                'name' => 'RJ_GOI_KEY',
+                'label' => 'Key',
+                'required' => true,
+                'legacy' => ['KEY', 'RJ_GOI_KEY'],
+            ],
+            [
+                'name' => 'RJ_GOI_KEY_DEV',
+                'label' => 'Key DEV',
+                'required' => true,
+                'legacy' => ['KEY_DEV', 'RJ_GOI_KEY_DEV'],
+            ],
+            [
+                'name' => 'RJ_GOI_URL',
+                'label' => 'Url Production',
+                'description' => 'Formato http:// o https://',
+                'required' => true,
+                'legacy' => ['URL', 'RJ_GOI_URL'],
+            ],
+            [
+                'name' => 'RJ_GOI_URL_DEV',
+                'label' => 'Url Develop',
+                'description' => 'Ejemplo: https://test-api-jaw.letsgoi.com',
+                'required' => true,
+                'legacy' => ['URL_DEV', 'RJ_GOI_URL_DEV'],
+            ],
+            [
+                'name' => 'RJ_GOI_ENDPOINT_LOGIN',
+                'label' => 'Endpoint login',
+                'description' => 'Ejemplo: /oauth/token',
+                'required' => true,
+                'legacy' => ['ENDPOINT_LOGIN', 'RJ_GOI_ENDPOINT_LOGIN'],
+            ],
+            [
+                'name' => 'RJ_GOI_ENDPOINT_SHIPMENT',
+                'label' => 'Endpoint Shipment',
+                'description' => 'Ejemplo: /integrations/import',
+                'required' => true,
+                'legacy' => ['ENDPOINT_SHIPMENT', 'RJ_GOI_ENDPOINT_SHIPMENT'],
+            ],
+            [
+                'name' => 'RJ_GOI_ENDPOINT_LABEL',
+                'label' => 'Endpoint Label',
+                'description' => 'Ejemplo: /integrations/labels',
+                'required' => true,
+                'legacy' => ['ENDPOINT_LABEL', 'RJ_GOI_ENDPOINT_LABEL'],
+            ],
+            [
+                'name' => 'RJ_GOI_ENV',
+                'label' => 'Modo producción',
+                'value' => '0',
+                'required' => true,
+                'legacy' => ['ENV', 'RJ_GOI_ENV'],
+            ],
+        ];
+    }
+
     /**
      * @return array<string, mixed>
      */
