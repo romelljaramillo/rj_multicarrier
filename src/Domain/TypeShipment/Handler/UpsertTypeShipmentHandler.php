@@ -40,7 +40,8 @@ final class UpsertTypeShipmentHandler
             ->setName($command->getName())
             ->setBusinessCode($command->getBusinessCode())
             ->setReferenceCarrierId($referenceCarrierId)
-            ->setActive($command->isActive());
+            ->setActive($command->isActive())
+            ->touch();
 
         $this->entityManager->persist($typeShipment);
         $this->entityManager->flush();

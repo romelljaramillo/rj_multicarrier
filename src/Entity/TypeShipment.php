@@ -46,6 +46,9 @@ class TypeShipment
         $this->carrier = $carrier;
         $this->name = $name;
         $this->businessCode = $businessCode;
+        $now = new \DateTimeImmutable();
+        $this->createdAt = $now;
+        $this->updatedAt = $now;
     }
 
     public function getId(): ?int
@@ -129,6 +132,13 @@ class TypeShipment
     {
         $current = $this->getSettings();
         $this->settings = array_merge($current, $settings);
+
+        return $this;
+    }
+
+    public function touch(): self
+    {
+        $this->updatedAt = new \DateTimeImmutable();
 
         return $this;
     }

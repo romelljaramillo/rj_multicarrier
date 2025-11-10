@@ -85,10 +85,10 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                 ->setOptions([
                     'field' => 'id_bc',
                 ]))
-            ->add((new DataColumn('id_reference_carrier'))
+            ->add((new DataColumn('reference_carrier_name'))
                 ->setName($this->transString('Reference carrier'))
                 ->setOptions([
-                    'field' => 'id_reference_carrier',
+                    'field' => 'reference_carrier_name',
                 ]))
             ->add((new ToggleColumn('active'))
                 ->setName($this->transString('Active'))
@@ -157,6 +157,14 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                     'placeholder' => $this->transString('Any', [], 'Admin.Global'),
                 ])
                 ->setAssociatedColumn('active'))
+            ->add((new Filter('reference_carrier_name', TextType::class))
+                ->setTypeOptions([
+                    'required' => false,
+                    'attr' => [
+                        'placeholder' => $this->transString('Reference carrier'),
+                    ],
+                ])
+                ->setAssociatedColumn('reference_carrier_name'))
             ->add((new Filter('carrier_id', ChoiceType::class))
                 ->setTypeOptions([
                     'choices' => $this->getCompanyFilterChoices(),

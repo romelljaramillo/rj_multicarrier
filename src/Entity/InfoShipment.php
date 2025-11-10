@@ -88,6 +88,11 @@ class InfoShipment
         $this->quantity = $quantity;
         $this->weight = $weight;
         $this->shops = new ArrayCollection();
+        
+        // Initialize timestamps to prevent NULL constraint violations
+        $now = new \DateTimeImmutable();
+        $this->createdAt = $now;
+        $this->updatedAt = $now;
     }
 
     /**
@@ -291,6 +296,17 @@ class InfoShipment
     public function setDorig(?string $dorig): self
     {
         $this->dorig = $dorig;
+
+        return $this;
+    }
+
+    /**
+     * Updates the updatedAt timestamp to current time.
+     * Call this method when making changes to trigger timestamp update.
+     */
+    public function touch(): self
+    {
+        $this->updatedAt = new \DateTimeImmutable();
 
         return $this;
     }

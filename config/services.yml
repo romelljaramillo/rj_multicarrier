@@ -96,14 +96,7 @@ services:
           command: 'Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetShipmentForView',
         }
 
-  Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\GetTypeShipmentForViewHandler:
-    arguments:
-      $typeShipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository'
-    tags:
-      - {
-          name: "tactician.handler",
-          command: 'Roanja\Module\RjMulticarrier\Domain\TypeShipment\Query\GetTypeShipmentForView',
-        }
+  # Note: GetTypeShipmentForViewHandler will be registered below after the automatic registration
 
   Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\GetTypeShipmentFormOptionsHandler:
     arguments:
@@ -281,6 +274,55 @@ services:
   Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\:
     resource: "../src/Domain/TypeShipment/Handler"
     public: true
+
+  # Override automatic registration for handlers that need specific Tactician tags
+  Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\GetTypeShipmentForViewHandler:
+    arguments:
+      $typeShipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository'
+    public: true
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\TypeShipment\Query\GetTypeShipmentForView',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\UpsertTypeShipmentHandler:
+    public: true
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\UpsertTypeShipmentCommand',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\DeleteTypeShipmentHandler:
+    public: true
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\DeleteTypeShipmentCommand',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\ToggleTypeShipmentStatusHandler:
+    public: true
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\ToggleTypeShipmentStatusCommand',
+        }
+
+  # InfoShipment handlers that need specific Tactician tags
+  Roanja\Module\RjMulticarrier\Domain\InfoShipment\Handler\UpsertInfoShipmentHandler:
+    arguments:
+      $entityManager: '@doctrine.orm.entity_manager'
+      $infoShipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository'
+      $typeShipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository'
+      $connection: '@doctrine.dbal.default_connection'
+    public: true
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\InfoShipment\Command\UpsertInfoShipmentCommand',
+        }
 
   Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentQueryBuilder:
     arguments:
@@ -652,26 +694,7 @@ services:
           command: 'Roanja\Module\RjMulticarrier\Domain\Carrier\Query\GetCarrierForView',
         }
 
-  Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\UpsertTypeShipmentHandler:
-    tags:
-      - {
-          name: "tactician.handler",
-          command: 'Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\UpsertTypeShipmentCommand',
-        }
-
-  Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\DeleteTypeShipmentHandler:
-    tags:
-      - {
-          name: "tactician.handler",
-          command: 'Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\DeleteTypeShipmentCommand',
-        }
-
-  Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\ToggleTypeShipmentStatusHandler:
-    tags:
-      - {
-          name: "tactician.handler",
-          command: 'Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\ToggleTypeShipmentStatusCommand',
-        }
+  # TypeShipment handlers moved below for proper registration
 
   # Shipment Repository
   Roanja\Module\RjMulticarrier\Repository\ShipmentRepository:

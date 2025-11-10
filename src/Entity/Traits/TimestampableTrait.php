@@ -12,32 +12,32 @@ use Doctrine\ORM\Mapping as ORM;
 
 trait TimestampableTrait
 {
-    #[ORM\Column(name: 'date_add', type: 'datetime', nullable: true)]
-    private ?DateTimeInterface $createdAt = null;
+    #[ORM\Column(name: 'date_add', type: 'datetime', nullable: false)]
+    private DateTimeInterface $createdAt;
 
-    #[ORM\Column(name: 'date_upd', type: 'datetime', nullable: true)]
-    private ?DateTimeInterface $updatedAt = null;
+    #[ORM\Column(name: 'date_upd', type: 'datetime', nullable: false)]
+    private DateTimeInterface $updatedAt;
 
-    public function getCreatedAt(): ?DateTimeInterface
+    public function getCreatedAt(): DateTimeInterface
     {
         return $this->createdAt;
     }
 
-    public function setCreatedAt(?DateTimeInterface $createdAt): self
+    public function setCreatedAt(DateTimeInterface $createdAt): self
     {
-        $this->createdAt = $createdAt ? DateTimeImmutable::createFromInterface($createdAt) : null;
+        $this->createdAt = DateTimeImmutable::createFromInterface($createdAt);
 
         return $this;
     }
 
-    public function getUpdatedAt(): ?DateTimeInterface
+    public function getUpdatedAt(): DateTimeInterface
     {
         return $this->updatedAt;
     }
 
-    public function setUpdatedAt(?DateTimeInterface $updatedAt): self
+    public function setUpdatedAt(DateTimeInterface $updatedAt): self
     {
-        $this->updatedAt = $updatedAt ? DateTimeImmutable::createFromInterface($updatedAt) : null;
+        $this->updatedAt = DateTimeImmutable::createFromInterface($updatedAt);
 
         return $this;
     }

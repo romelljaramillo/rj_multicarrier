@@ -35,7 +35,8 @@ final class TypeShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
         $qb = $this->connection->createQueryBuilder()
             ->select('COUNT(*)')
             ->from($this->dbPrefix . 'rj_multicarrier_type_shipment', 'ts')
-            ->innerJoin('ts', $this->dbPrefix . 'rj_multicarrier_carrier', 'c', 'ts.id_carrier = c.id_carrier');
+            ->innerJoin('ts', $this->dbPrefix . 'rj_multicarrier_carrier', 'c', 'ts.id_carrier = c.id_carrier')
+            ->leftJoin('ts', $this->dbPrefix . 'carrier', 'pc', 'ts.id_reference_carrier = pc.id_carrier AND pc.deleted = 0');
 
         $this->applyFilters($qb, $searchCriteria->getFilters(), 'count_');
 
@@ -101,6 +102,14 @@ final class TypeShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
                             ->setParameter($parameter, (int) $value);
                     }
                     break;
+                case 'reference_carrier_name':
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $parameter = $parameterPrefix . 'reference_carrier_name';
+                        $qb->andWhere(sprintf('COALESCE(pc.name, CONCAT(\'ID: \', ts.id_reference_carrier)) LIKE :%s', $parameter))
+                            ->setParameter($parameter, $this->buildContainsPattern($value));
+                    }
+                    break;
             }
         }
     }
@@ -120,6 +129,7 @@ final class TypeShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
             'name' => 'ts.name',
             'id_bc' => 'ts.id_bc',
             'id_reference_carrier' => 'ts.id_reference_carrier',
+            'reference_carrier_name' => 'COALESCE(pc.name, CONCAT(\'ID: \', ts.id_reference_carrier))',
             'active' => 'ts.active',
         ];
 
@@ -200,9 +210,11 @@ final class TypeShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
                 'ts.id_reference_carrier',
                 'ts.active',
                 'ts.id_carrier',
-                'c.name AS company_name'
+                'c.name AS company_name',
+                'COALESCE(pc.name, CONCAT(\'ID: \', ts.id_reference_carrier)) AS reference_carrier_name'
             )
             ->from($this->dbPrefix . 'rj_multicarrier_type_shipment', 'ts')
-            ->innerJoin('ts', $this->dbPrefix . 'rj_multicarrier_carrier', 'c', 'ts.id_carrier = c.id_carrier');
+            ->innerJoin('ts', $this->dbPrefix . 'rj_multicarrier_carrier', 'c', 'ts.id_carrier = c.id_carrier')
+            ->leftJoin('ts', $this->dbPrefix . 'carrier', 'pc', 'ts.id_reference_carrier = pc.id_carrier AND pc.deleted = 0');
     }
 }
