@@ -1,7 +1,9 @@
 <?php
+
 /**
  * Repository for info package entities.
  */
+
 declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Repository;
@@ -14,6 +16,7 @@ use PrestaShop\PrestaShop\Adapter\Shop\Context as ShopContext;
 /**
  * Note: this repository expects the service 'prestashop.adapter.shop.context' to be injected.
  */
+
 use Roanja\Module\RjMulticarrier\Entity\InfoShipment;
 
 class InfoShipmentRepository extends ServiceEntityRepository
@@ -207,16 +210,7 @@ class InfoShipmentRepository extends ServiceEntityRepository
             return null;
         }
 
-        // Verify package belongs to the provided shop using ORM relation (InfoShipment->shops)
-        $belongsToShop = false;
-        foreach ($package->getShops() as $shopMapping) {
-            if ($shopMapping->getShopId() === $shopId) {
-                $belongsToShop = true;
-                break;
-            }
-        }
-
-        if (!$belongsToShop) {
+        if (!$this->belongsToShop((int) $package->getId(), $shopId)) {
             return null;
         }
 
@@ -243,6 +237,28 @@ class InfoShipmentRepository extends ServiceEntityRepository
             'date_upd' => $package->getUpdatedAt()?->format('Y-m-d H:i:s'),
             'id_shop' => $shopId,
         ];
+    }
+
+    public function belongsToShop(int $infoShipmentId, int $shopId): bool
+    {
+        if ($infoShipmentId <= 0 || $shopId <= 0) {
+            return false;
+        }
+
+        $qb = $this->createQueryBuilder('package')
+            ->select('1')
+            ->join('package.shops', 'ps')
+            ->andWhere('package.id = :infoShipmentId')
+            ->andWhere('ps.shopId = :shopId')
+            ->setParameter('infoShipmentId', $infoShipmentId)
+            ->setParameter('shopId', $shopId)
+            ->setMaxResults(1);
+
+        try {
+            return null !== $qb->getQuery()->getOneOrNullResult();
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     private function applyShopRestriction(\Doctrine\ORM\QueryBuilder $qb): void

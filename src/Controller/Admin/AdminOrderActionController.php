@@ -6,6 +6,7 @@ namespace Roanja\Module\RjMulticarrier\Controller\Admin;
 
 use Roanja\Module\RjMulticarrier\Domain\InfoShipment\Command\UpsertInfoShipmentCommand;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Command\DeleteShipmentCommand;
+use Roanja\Module\RjMulticarrier\Entity\InfoShipment;
 use Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\ShipmentRepository;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Query\GetTypeShipmentForView;
@@ -18,6 +19,8 @@ use Symfony\Component\HttpFoundation\Response;
 final class AdminOrderActionController extends FrameworkBundleAdminController
 {
     private const TRANSLATION_DOMAIN = 'Modules.RjMulticarrier.Admin';
+
+    public function __construct(private readonly ShipmentGenerationService $shipmentGenerationService) {}
 
     public function upsertPackageAction(Request $request, int $orderId): RedirectResponse
     {
@@ -56,6 +59,8 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
         $infoPackageIdRaw = $request->request->get('id_info_shipment');
         $infoPackageId = ($infoPackageIdRaw !== null && '' !== trim((string) $infoPackageIdRaw)) ? (int) $infoPackageIdRaw : null;
 
+        $shouldGenerateShipment = null !== $request->request->get('generate_shipment');
+
         $quantity = max(1, (int) $request->request->get('rj_quantity', 1));
         $weight = (float) $request->request->get('rj_weight', 0);
         $length = $this->toNullableFloat($request->request->get('rj_length'));
@@ -71,8 +76,13 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
         $vsec = $this->normalizeStringValue($request->request->get('rj_vsec'));
         $dorig = $this->normalizeStringValue($request->request->get('rj_dorig'));
 
+        /** @var ShipmentRepository $shipmentRepository */
+        $shipmentRepository = $this->get(ShipmentRepository::class);
+        $previousShipment = $shipmentRepository->findOneByOrderId($orderId);
+
         try {
-            $this->getCommandBus()->handle(new UpsertInfoShipmentCommand(
+            /** @var InfoShipment|null $infoShipment */
+            $infoShipment = $this->getCommandBus()->handle(new UpsertInfoShipmentCommand(
                 $infoPackageId,
                 $orderId,
                 $referenceCarrierId,
@@ -93,15 +103,19 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
                 $shopId
             ));
 
+            $infoPackageIdPersisted = $infoShipment instanceof InfoShipment ? (int) $infoShipment->getId() : null;
+
             // After upsert, if carrier changed remove previous shipment
             /** @var InfoShipmentRepository $infoShipmentRepository */
             $infoShipmentRepository = $this->get(InfoShipmentRepository::class);
             $package = $infoShipmentRepository->getPackageByOrder($orderId, $shopId);
 
+            if ($package && null === $infoPackageIdPersisted) {
+                $infoPackageIdPersisted = (int) ($package['id_info_shipment'] ?? 0);
+            }
+
             if ($package) {
                 $newCarrierId = (int) ($typeShipmentArr['carrierId'] ?? ($typeShipmentArr['referenceCarrierId'] ?? 0));
-                /** @var ShipmentRepository $shipmentRepository */
-                $shipmentRepository = $this->get(ShipmentRepository::class);
                 $currentShipment = $shipmentRepository->findOneByOrderId($orderId);
 
                 if ($currentShipment && $currentShipment->getCarrier() && $currentShipment->getCarrier()->getId() !== $newCarrierId) {
@@ -114,7 +128,27 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
                 }
             }
 
-            $this->addFlash('success', $this->translate('Package information saved.'));
+            if ($shouldGenerateShipment) {
+                if ($infoPackageIdPersisted > 0) {
+                    try {
+                        $packageRow = $infoShipmentRepository->getPackageByOrder($orderId, $shopId);
+                        $reloadedPackageId = (int) ($packageRow['id_info_shipment'] ?? 0);
+                        if ($reloadedPackageId > 0) {
+                            $infoPackageIdPersisted = $reloadedPackageId;
+                        }
+
+                        $this->shipmentGenerationService->generateForInfoShipment($infoPackageIdPersisted);
+                        $this->addFlash('success', $this->translate('Package information saved and shipment generated successfully.'));
+                    } catch (\Throwable $e) {
+                        $this->cleanupFailedShipment($orderId, $infoPackageIdPersisted, $shipmentRepository, $previousShipment);
+                        $this->addFlash('error', $this->translate('Package information saved but shipment generation failed: %message%', ['%message%' => $e->getMessage()]));
+                    }
+                } else {
+                    $this->addFlash('warning', $this->translate('Package information saved but shipment generation could not be started because the package identifier is missing.'));
+                }
+            } else {
+                $this->addFlash('success', $this->translate('Package information saved.'));
+            }
         } catch (\Throwable $e) {
             $this->addFlash('error', $this->translate('Unable to save package information: %message%', ['%message%' => $e->getMessage()]));
         }
@@ -125,9 +159,7 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
     public function generateShipmentAction(Request $request, int $orderId, int $infoPackageId): RedirectResponse
     {
         try {
-            /** @var ShipmentGenerationService $generationService */
-            $generationService = $this->get(ShipmentGenerationService::class);
-            $generationService->generateForInfoShipment($infoPackageId);
+            $this->shipmentGenerationService->generateForInfoShipment($infoPackageId);
             $this->addFlash('success', $this->translate('Shipment generated successfully.'));
         } catch (\Throwable $e) {
             $this->addFlash('error', $e->getMessage());
@@ -206,5 +238,24 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
     private function translate(string $message, array $parameters = []): string
     {
         return $this->trans($message, self::TRANSLATION_DOMAIN, $parameters);
+    }
+
+    private function cleanupFailedShipment(int $orderId, int $infoPackageId, ShipmentRepository $shipmentRepository, ?\Roanja\Module\RjMulticarrier\Entity\Shipment $previousShipment): void
+    {
+        try {
+            $currentShipment = $shipmentRepository->findOneByOrderId($orderId);
+
+            if (!$currentShipment || $currentShipment === $previousShipment) {
+                return;
+            }
+
+            if ($currentShipment->getInfoShipment()->getId() !== $infoPackageId) {
+                return;
+            }
+
+            $this->getCommandBus()->handle(new DeleteShipmentCommand((int) $currentShipment->getId()));
+        } catch (\Throwable) {
+            // swallow cleanup failures to avoid masking original error
+        }
     }
 }

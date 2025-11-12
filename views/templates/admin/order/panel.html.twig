@@ -278,22 +278,9 @@
 								{{ 'Guardar bulto'|trans({}, 'Modules.RjMulticarrier.Admin') }}
 							</button>
 						</div>
-						{# Generate shipment: separate form that posts to new route when info package exists #}
-						{% if info_package.id_info_shipment is defined and info_package.id_info_shipment %}
-							{% set generateShipmentAction = '#' %}
-							{% if currentOrderId > 0 %}
-								{% set generateShipmentAction = (currentOrderId is defined and currentOrderId) ? path('admin_rj_multicarrier_order_generate_shipment', {'orderId': currentOrderId, 'infoPackageId': info_package.id_info_shipment}) : '#' %}
-							{% endif %}
-							<form method="post" action="{{ generateShipmentAction }}" class="ms-2">
-								<button type="submit" class="btn btn-primary" {% if hasShipment %}disabled{% endif %}>
-									{{ 'Generar envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-								</button>
-							</form>
-						{% else %}
-							<button type="button" class="btn btn-primary" disabled>
-								{{ 'Generar envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-							</button>
-						{% endif %}
+						<button type="submit" name="generate_shipment" value="1" class="btn btn-primary" {% if hasShipment %}disabled{% endif %}>
+							{{ 'Generar envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+						</button>
 						{% if hasShipment %}
 							<span class="small text-muted">{{ 'Elimina el envío actual para poder generar uno nuevo.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
 						{% endif %}

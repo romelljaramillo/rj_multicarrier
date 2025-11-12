@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Service\Shipment;
@@ -36,8 +37,7 @@ final class ShipmentGenerationService
         private readonly ConfigurationRepository $ConfigurationRepository,
         private readonly LegacyConfiguration $legacyConfiguration,
         private readonly GenerateShipmentHandler $generateShipmentHandler
-    ) {
-    }
+    ) {}
 
     /**
      * @throws ShipmentGenerationException
@@ -59,18 +59,8 @@ final class ShipmentGenerationService
 
         $context = Context::getContext();
         $shopId = (int) $context->shop->id;
-        if ($shopId > 0) {
-                $belongsToShop = false;
-                foreach ($infoPackage->getShops() as $shopMapping) {
-                    if ($shopMapping->getShopId() === $shopId) {
-                        $belongsToShop = true;
-                        break;
-                    }
-                }
-
-                if (!$belongsToShop) {
-                    throw ShipmentGenerationException::infoPackageNotFound($infoPackageId);
-                }
+        if ($shopId > 0 && !$this->infoShipmentRepository->belongsToShop($infoPackageId, $shopId)) {
+            throw ShipmentGenerationException::infoPackageNotFound($infoPackageId);
         }
 
         $existingShipmentId = $this->shipmentRepository->shipmentExistsByInfoShipment($infoPackageId);
