@@ -1,0 +1,5 @@
+# Generated shipment labels
+labels/*.pdf
+
+# Module logs
+var/log/*.log
