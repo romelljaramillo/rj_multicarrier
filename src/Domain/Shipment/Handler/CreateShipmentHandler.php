@@ -51,6 +51,8 @@ final class CreateShipmentHandler
             ->setRequestPayload($this->encodePayload($command->getRequestPayload()))
             ->setResponsePayload($this->encodePayload($command->getResponsePayload()));
 
+        $shipment->touch();
+
         $carrierId = $command->getCarrierId();
         $carrier = null === $carrierId ? null : $this->carrierRepository->find($carrierId);
         $shipment->setCarrier($carrier instanceof Carrier ? $carrier : null);
@@ -93,6 +95,7 @@ final class CreateShipmentHandler
             $label->setLabelType($labelData['label_type'] ?? null);
             $label->setPdf($labelData['storage_key']);
             $label->setPrinted(false);
+            $label->touch();
 
             $this->entityManager->persist($label);
 

@@ -13,13 +13,12 @@ use Roanja\Module\RjMulticarrier\Domain\Shipment\Command\GenerateShipmentCommand
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Exception\ShipmentGenerationException;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\GenerateShipmentHandler;
 use Roanja\Module\RjMulticarrier\Entity\Carrier as CarrierEntity;
-use Roanja\Module\RjMulticarrier\Entity\InfoShipment;
 use Roanja\Module\RjMulticarrier\Entity\Configuration;
+use Roanja\Module\RjMulticarrier\Entity\InfoShipment;
 use Roanja\Module\RjMulticarrier\Entity\Shipment as ShipmentEntity;
 use Roanja\Module\RjMulticarrier\Entity\TypeShipment;
 use PrestaShop\PrestaShop\Adapter\Configuration as LegacyConfiguration;
 use PrestaShop\PrestaShop\Core\Domain\Shop\ValueObject\ShopConstraint;
-use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
 use Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\ConfigurationRepository;
 use Roanja\Module\RjMulticarrier\Repository\ShipmentRepository;
@@ -33,7 +32,6 @@ final class ShipmentGenerationService
     public function __construct(
         private readonly InfoShipmentRepository $infoShipmentRepository,
         private readonly ShipmentRepository $shipmentRepository,
-        private readonly CarrierRepository $carrierRepository,
         private readonly TypeShipmentRepository $typeShipmentRepository,
         private readonly ConfigurationRepository $ConfigurationRepository,
         private readonly LegacyConfiguration $legacyConfiguration,
@@ -62,10 +60,17 @@ final class ShipmentGenerationService
         $context = Context::getContext();
         $shopId = (int) $context->shop->id;
         if ($shopId > 0) {
-            $packageRow = $this->infoShipmentRepository->getPackageByOrder($orderId, $shopId);
-            if (null === $packageRow || (int) ($packageRow['id_info_shipment'] ?? 0) !== $infoPackageId) {
-                throw ShipmentGenerationException::infoPackageNotFound($infoPackageId);
-            }
+                $belongsToShop = false;
+                foreach ($infoPackage->getShops() as $shopMapping) {
+                    if ($shopMapping->getShopId() === $shopId) {
+                        $belongsToShop = true;
+                        break;
+                    }
+                }
+
+                if (!$belongsToShop) {
+                    throw ShipmentGenerationException::infoPackageNotFound($infoPackageId);
+                }
         }
 
         $existingShipmentId = $this->shipmentRepository->shipmentExistsByInfoShipment($infoPackageId);
@@ -101,6 +106,10 @@ final class ShipmentGenerationService
         $carrierCode = (string) ($companyData['shortname'] ?? '');
 
         $ConfigurationPayload = $this->mapConfiguration($languageId);
+        $carrierDisplayName = $this->resolveCarrierName($referenceCarrierId, $languageId);
+        if ('' === $carrierDisplayName) {
+            $carrierDisplayName = (string) ($companyData['name'] ?? '');
+        }
         $payload = [
             'id_order' => $orderId,
             'reference' => (string) $order->reference,
@@ -108,7 +117,8 @@ final class ShipmentGenerationService
             'info_customer' => $this->mapCustomer($order, $languageId),
             'configuration_shop' => $ConfigurationPayload,
             'carriers' => Carrier::getCarriers($languageId, true, false, false, null, false),
-            'carrier_name' => $this->resolveCarrierName($referenceCarrierId, $languageId),
+            'carrier_name' => $carrierDisplayName,
+            'name_carrier' => $carrierDisplayName,
             'info_company_carrier' => $companyData,
             'info_type_shipment' => $typeShipments,
             'config_extra_info' => [
@@ -290,7 +300,7 @@ final class ShipmentGenerationService
             'length' => $infoPackage->getLength(),
             'width' => $infoPackage->getWidth(),
             'height' => $infoPackage->getHeight(),
-            'cash_ondelivery' => $infoPackage->getCashOnDelivery(),
+            'cash_ondelivery' => $this->normalizePriceValue($infoPackage->getCashOnDelivery()),
             'message' => $infoPackage->getMessage(),
             'hour_from' => $hourFrom ? $hourFrom->format('H:i:s') : null,
             'hour_until' => $hourUntil ? $hourUntil->format('H:i:s') : null,
@@ -299,6 +309,25 @@ final class ShipmentGenerationService
             'vsec' => $infoPackage->getVsec(),
             'dorig' => $infoPackage->getDorig(),
         ];
+    }
+
+    private function normalizePriceValue(mixed $value): float
+    {
+        if (null === $value) {
+            return 0.0;
+        }
+
+        if (is_string($value)) {
+            $normalized = str_replace(',', '.', $value);
+
+            return is_numeric($normalized) ? (float) $normalized : 0.0;
+        }
+
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+
+        return 0.0;
     }
 
     /**
@@ -323,17 +352,15 @@ final class ShipmentGenerationService
      */
     private function resolveTypeShipments(int $companyId): array
     {
-        $company = $this->carrierRepository->find($companyId);
+        $typeShipments = $this->typeShipmentRepository->findByCarrierId($companyId, true);
 
-        if (!$company instanceof Carrier) {
+        if ([] === $typeShipments) {
             return [];
         }
 
-        $types = $this->typeShipmentRepository->findByCarrier($company, true);
-
         $mapped = [];
-        foreach ($types as $typeShipment) {
-            $mapped[] = $this->mapTypeShipment($typeShipment, $company);
+        foreach ($typeShipments as $typeShipment) {
+            $mapped[] = $this->mapTypeShipment($typeShipment, $typeShipment->getCarrier());
         }
 
         return $mapped;

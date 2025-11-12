@@ -243,6 +243,10 @@ final class ShipmentGridDefinitionFactory extends AbstractModuleGridDefinitionFa
                     'route' => 'admin_rj_multicarrier_shipments_print',
                     'route_param_name' => 'id',
                     'route_param_field' => 'id_shipment',
+                    'attr' => [
+                        'target' => '_blank',
+                        'rel' => 'noopener noreferrer',
+                    ],
                 ]))
             ->add(
                 $this->buildDeleteAction(

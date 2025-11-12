@@ -45,6 +45,11 @@ class Label
     {
         $this->shipment = $shipment;
         $this->shops = new ArrayCollection();
+
+        // Ensure timestamp columns are initialized
+        $now = new \DateTimeImmutable();
+        $this->createdAt = $now;
+        $this->updatedAt = $now;
     }
 
     /**
@@ -146,6 +151,13 @@ class Label
     public function setPrinted(bool $printed): self
     {
         $this->printed = $printed;
+
+        return $this;
+    }
+
+    public function touch(): self
+    {
+        $this->updatedAt = new \DateTimeImmutable();
 
         return $this;
     }

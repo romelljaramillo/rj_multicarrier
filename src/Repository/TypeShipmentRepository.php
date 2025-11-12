@@ -35,6 +35,24 @@ class TypeShipmentRepository
         return $qb->getQuery()->getResult();
     }
 
+    /**
+     * @return TypeShipment[]
+     */
+    public function findByCarrierId(int $carrierId, bool $onlyActive = false): array
+    {
+        $qb = $this->createQueryBuilder('type')
+            ->innerJoin('type.carrier', 'carrier')
+            ->andWhere('carrier.id = :carrierId')
+            ->setParameter('carrierId', $carrierId)
+            ->orderBy('type.name', 'ASC');
+
+        if ($onlyActive) {
+            $qb->andWhere('type.active = true');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
     public function findActiveByReferenceCarrier(int $referenceCarrierId): ?TypeShipment
     {
         try {

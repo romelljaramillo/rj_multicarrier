@@ -65,6 +65,11 @@ class Shipment
         $this->orderId = $orderId;
         $this->infoPackage = $infoPackage;
         $this->shops = new ArrayCollection();
+
+        // Initialize timestamps to satisfy NOT NULL constraints
+        $now = new \DateTimeImmutable();
+        $this->createdAt = $now;
+        $this->updatedAt = $now;
     }
 
     public function getId(): ?int
@@ -213,6 +218,13 @@ class Shipment
             $this->shops->add($shop);
             $shop->setShipment($this);
         }
+
+        return $this;
+    }
+
+    public function touch(): self
+    {
+        $this->updatedAt = new \DateTimeImmutable();
 
         return $this;
     }
