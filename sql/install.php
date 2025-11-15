@@ -41,6 +41,32 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_configu
     PRIMARY KEY (`id_configuration`, `id_shop`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
+$sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_validation_rule` (
+    `id_validation_rule` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(191) NOT NULL,
+    `priority` INT NOT NULL DEFAULT 0,
+    `active` TINYINT(1) NOT NULL DEFAULT 1,
+    `shop_id` INT(11) NULL DEFAULT NULL,
+    `shop_group_id` INT(11) NULL DEFAULT NULL,
+    `product_ids` JSON NULL,
+    `category_ids` JSON NULL,
+    `zone_ids` JSON NULL,
+    `country_ids` JSON NULL,
+    `min_weight` DOUBLE NULL,
+    `max_weight` DOUBLE NULL,
+    `allow_ids` JSON NULL,
+    `deny_ids` JSON NULL,
+    `add_ids` JSON NULL,
+    `prefer_ids` JSON NULL,
+    `created_at` DATETIME NULL,
+    `updated_at` DATETIME NULL,
+    PRIMARY KEY (`id_validation_rule`),
+    INDEX `idx_validation_rule_active` (`active`),
+    INDEX `idx_validation_rule_priority` (`priority`),
+    INDEX `idx_validation_rule_shop` (`shop_id`),
+    INDEX `idx_validation_rule_shop_group` (`shop_group_id`)
+) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
+
 $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_carrier` (
     `id_carrier` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(50) NOT NULL,

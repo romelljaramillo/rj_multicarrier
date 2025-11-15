@@ -7,8 +7,9 @@ declare(strict_types=1);
 namespace Roanja\Module\RjMulticarrier\Service\Installer;
 
 use Doctrine\DBAL\Connection;
-use Roanja\Module\RjMulticarrier\Service\Doctrine\DoctrineMappingConfigurator;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Doctrine\ORM\Mapping\Driver\AttributeDriver;
+use Doctrine\Persistence\Mapping\Driver\MappingDriverChain;
 
 if (!class_exists('\\Tab') && class_exists('\\TabCore')) {
     class_alias('\\TabCore', '\\Tab');
@@ -46,6 +47,16 @@ final class ModuleInstaller
             'wording' => 'Configuration shop',
             'wording_domain' => 'Modules.RjMulticarrier.Admin',
             'translation_key' => 'Modules.RjMulticarrier.Admin.Menu.Configuration',
+        ],
+        [
+            'class_name' => 'AdminRjMulticarrierValidationRules',
+            'parent_class_name' => 'AdminRjMulticarrierConfigurationParent',
+            'route_name' => 'admin_rj_multicarrier_validation_rule_index',
+            'icon' => 'rule',
+            'active' => true,
+            'wording' => 'Carrier validation rules',
+            'wording_domain' => 'Modules.RjMulticarrier.Admin',
+            'translation_key' => 'Modules.RjMulticarrier.Admin.Menu.ValidationRules',
         ],
         [
             'class_name' => 'AdminRjMulticarrierCarriers',
@@ -113,10 +124,16 @@ final class ModuleInstaller
     ];
 
     private ?Connection $connection;
+    private bool $doctrineDriverRegistered = false;
 
-    public function __construct(?Connection $connection = null, private ?DoctrineMappingConfigurator $mappingConfigurator = null)
+    public function __construct(
+        ?Connection $connection = null,
+        private ?MappingDriverChain $mappingDriverChain = null,
+        private ?AttributeDriver $attributeDriver = null
+    )
     {
         $this->connection = $connection;
+        $this->registerDoctrineDriver();
     }
 
     public function install(): bool
@@ -127,7 +144,7 @@ final class ModuleInstaller
             && $this->ensureConfigurationSchema();
 
         if ($installed) {
-            $this->mappingConfigurator?->registerDriver();
+            $this->registerDoctrineDriver();
             $this->refreshRoutingCache();
             $this->syncTabRoutesWithDefinitions();
         }
@@ -141,11 +158,33 @@ final class ModuleInstaller
             && $this->executeSqlScript('uninstall');
 
         if ($uninstalled) {
-            $this->mappingConfigurator?->registerDriver();
+            $this->registerDoctrineDriver();
             $this->refreshRoutingCache();
         }
 
         return $uninstalled;
+    }
+
+    private function registerDoctrineDriver(): void
+    {
+        if ($this->doctrineDriverRegistered) {
+            return;
+        }
+
+        if (null === $this->mappingDriverChain || null === $this->attributeDriver) {
+            return;
+        }
+
+        foreach ($this->mappingDriverChain->getDrivers() as $namespace => $driver) {
+            if ($namespace === 'Roanja\\Module\\RjMulticarrier\\Entity') {
+                $this->doctrineDriverRegistered = true;
+
+                return;
+            }
+        }
+
+        $this->mappingDriverChain->addDriver($this->attributeDriver, 'Roanja\\Module\\RjMulticarrier\\Entity');
+        $this->doctrineDriverRegistered = true;
     }
 
     private function ensureConfigurationSchema(): bool
@@ -172,9 +211,56 @@ final class ModuleInstaller
                     $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` ADD `cod_module` VARCHAR(255) NULL DEFAULT NULL');
                 }
             }
+
+            if (!$this->ensureValidationRuleSchema($schemaManager)) {
+                return false;
+            }
         } catch (\Throwable $exception) {
             return false;
         }
+
+        return true;
+    }
+
+    private function ensureValidationRuleSchema(AbstractSchemaManager $schemaManager): bool
+    {
+        if (null === $this->connection) {
+            return true;
+        }
+
+        $tableName = _DB_PREFIX_ . 'rj_multicarrier_validation_rule';
+
+        if ($schemaManager->tablesExist([$tableName])) {
+            return true;
+        }
+
+        $sql = 'CREATE TABLE `' . $tableName . '` (
+    `id_validation_rule` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(191) NOT NULL,
+    `priority` INT NOT NULL DEFAULT 0,
+    `active` TINYINT(1) NOT NULL DEFAULT 1,
+    `shop_id` INT(11) NULL DEFAULT NULL,
+    `shop_group_id` INT(11) NULL DEFAULT NULL,
+    `product_ids` JSON NULL,
+    `category_ids` JSON NULL,
+    `zone_ids` JSON NULL,
+    `country_ids` JSON NULL,
+    `min_weight` DOUBLE NULL,
+    `max_weight` DOUBLE NULL,
+    `allow_ids` JSON NULL,
+    `deny_ids` JSON NULL,
+    `add_ids` JSON NULL,
+    `prefer_ids` JSON NULL,
+    `created_at` DATETIME NULL,
+    `updated_at` DATETIME NULL,
+    PRIMARY KEY (`id_validation_rule`),
+    INDEX `idx_validation_rule_active` (`active`),
+    INDEX `idx_validation_rule_priority` (`priority`),
+    INDEX `idx_validation_rule_shop` (`shop_id`),
+    INDEX `idx_validation_rule_shop_group` (`shop_group_id`)
+) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
+
+        $this->connection->executeStatement($sql);
 
         return true;
     }
@@ -392,6 +478,10 @@ final class ModuleInstaller
             'Modules.RjMulticarrier.Admin.Menu.Ajax' => [
                 'en' => 'Ajax bridge',
                 'es' => 'Pasarela Ajax',
+            ],
+            'Modules.RjMulticarrier.Admin.Menu.ValidationRules' => [
+                'en' => 'Carrier validation rules',
+                'es' => 'Validaciones de transportista',
             ],
         ];
 

@@ -49,6 +49,7 @@ Modern shipping orchestration module for PrestaShop 8 that centralises multiple 
 1. **Credenciales de transportistas:** accede a **Multi-carrier → Configuración** y rellena los datos de las integraciones activas.
 2. **Tipos de envío:** define las reglas en **Multi-carrier → Tipos de envío** (tarifas, servicios, etc.).
 3. **Contexto multitienda:** el módulo detecta la tienda activa; usa el selector de tienda de PrestaShop para revisar o actualizar datos por contexto.
+4. **Reglas de validación de transportistas:** en **Multi-carrier → Validaciones de transportista** puedes cargar el contenido de `sample-data/validation_rules.sample.json` como punto de partida para las pruebas.
 
 ## 📊 Registro de logs
 

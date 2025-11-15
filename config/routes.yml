@@ -112,6 +112,94 @@ admin_rj_multicarrier_configuration:
 
 
 ###############################################################################
+# VALIDATION RULES CONTROLLER
+###############################################################################
+admin_rj_multicarrier_validation_rule_index:
+  path: /rj-multicarrier/validation-rules
+  methods: [GET]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ValidationRuleController::indexAction'
+    _legacy_controller: "AdminRjMulticarrierValidationRules"
+    _legacy_link: "AdminRjMulticarrierValidationRules"
+  options:
+    expose: true
+
+admin_rj_multicarrier_validation_rule_create:
+  path: /rj-multicarrier/validation-rules/create
+  methods: [GET, POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ValidationRuleController::createAction'
+    _legacy_controller: "AdminRjMulticarrierValidationRules"
+    _legacy_link: "AdminRjMulticarrierValidationRules:create"
+  options:
+    expose: true
+
+admin_rj_multicarrier_validation_rule_edit:
+  path: /rj-multicarrier/validation-rules/{id}/edit
+  methods: [GET, POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ValidationRuleController::editAction'
+    _legacy_controller: "AdminRjMulticarrierValidationRules"
+    _legacy_link: "AdminRjMulticarrierValidationRules:edit"
+    _legacy_parameters:
+      id_validation_rule: id
+  requirements:
+    id: '\d+'
+  options:
+    expose: true
+
+admin_rj_multicarrier_validation_rule_delete:
+  path: /rj-multicarrier/validation-rules/{id}/delete
+  methods: [POST, DELETE]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ValidationRuleController::deleteAction'
+    _legacy_controller: "AdminRjMulticarrierValidationRules"
+    _legacy_link: "AdminRjMulticarrierValidationRules:delete"
+    _legacy_parameters:
+      id_validation_rule: id
+  requirements:
+    id: '\d+'
+  options:
+    expose: true
+
+admin_rj_multicarrier_validation_rule_toggle:
+  path: /rj-multicarrier/validation-rules/{id}/toggle
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ValidationRuleController::toggleAction'
+    _legacy_controller: "AdminRjMulticarrierValidationRules"
+    _legacy_link: "AdminRjMulticarrierValidationRules:toggle"
+    _legacy_parameters:
+      id_validation_rule: id
+  requirements:
+    id: '\d+'
+  options:
+    expose: true
+
+admin_rj_multicarrier_validation_rule_delete_bulk:
+  path: /rj-multicarrier/validation-rules/bulk-delete
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ValidationRuleController::deleteBulkAction'
+    _legacy_controller: "AdminRjMulticarrierValidationRules"
+    _legacy_link: "AdminRjMulticarrierValidationRules:bulkdelete"
+  options:
+    expose: true
+
+admin_rj_multicarrier_validation_rule_search:
+  path: /rj-multicarrier/validation-rules
+  methods: [POST]
+  defaults:
+    _controller: "PrestaShopBundle:Admin/Common:searchGrid"
+    gridDefinitionFactoryServiceId: "rj_multicarrier.grid.definition.factory.validation_rule"
+    redirectRoute: admin_rj_multicarrier_validation_rule_index
+    _legacy_controller: "AdminRjMulticarrierValidationRules"
+    _legacy_link: "AdminRjMulticarrierValidationRules:submitFilterrj_multicarrier_validation_rule"
+  options:
+    expose: true
+
+
+###############################################################################
 # TYPE SHIPMENT CONTROLLER
 ###############################################################################
 admin_rj_multicarrier_type_shipment_index:

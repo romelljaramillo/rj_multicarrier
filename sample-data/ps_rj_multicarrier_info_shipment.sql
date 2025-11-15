@@ -1,5 +1,5 @@
 -- Active: 1728664076851@@172.16.238.12@3306@gcroma
--- Fake info packages for testing grids and modals
+-- Fake info shipment for testing grids and modals
 INSERT INTO `ps_rj_multicarrier_info_shipment`
   (`id_info_shipment`, `id_order`, `id_reference_carrier`, `id_type_shipment`, `quantity`, `weight`, `length`, `width`, `height`,
    `cash_ondelivery`, `message`, `hour_from`, `hour_until`, `retorno`, `rcs`, `vsec`, `dorig`, `date_add`, `date_upd`)
@@ -44,3 +44,46 @@ VALUES
   (5038, 109038, 103, 1, 2, 1.85, 21.0, 15.0, 11.0, NULL, 'Pet supplies', NULL, NULL, NULL, 0, NULL, 'ORIHUELA-ES', NOW() - INTERVAL 31 DAY, NOW() - INTERVAL 31 DAY),
   (5039, 4, 104, 1, 4, 6.80, 44.0, 33.0, 25.0, NULL, 'Gardening set', NULL, NULL, NULL, 1, '240.000000', 'LANZAROTE-ES', NOW() - INTERVAL 32 DAY, NOW() - INTERVAL 32 DAY),
   (5040, 5, 105, 1, 1, 0.48, 9.0, 6.5, 4.0, NULL, 'Trial pack', NULL, NULL, NULL, 0, NULL, 'PALENCIA-ES', NOW() - INTERVAL 33 DAY, NOW() - INTERVAL 33 DAY);
+
+
+INSERT INTO `ps_rj_multicarrier_info_shipment_shop` (`id_info_shipment`, `id_shop`) VALUES
+  (5001, 1),
+  (5002, 1),
+  (5003, 1),
+  (5004, 1),
+  (5005, 1),
+  (5006, 2),
+  (5007, 2),
+  (5008, 2),
+  (5009, 2),
+  (5010, 2),
+  (5011, 1),
+  (5012, 1),
+  (5013, 1),
+  (5014, 1),
+  (5015, 1),
+  (5016, 1),
+  (5017, 1),
+  (5018, 1),
+  (5019, 1),
+  (5020, 1),
+  (5021, 2),
+  (5022, 2),
+  (5023, 2),
+  (5024, 2),
+  (5025, 2),
+  (5026, 2),
+  (5027, 2),
+  (5028, 2),
+  (5029, 2),
+  (5030, 2),
+  (5031, 1),
+  (5032, 1),
+  (5033, 1),
+  (5034, 1),
+  (5035, 1),
+  (5036, 1),
+  (5037, 2),
+  (5038, 2),
+  (5039, 1),
+  (5040, 1);

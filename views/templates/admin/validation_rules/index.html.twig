@@ -1,0 +1,33 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+  <div class="row">
+    <div class="col-12">
+      {% embed '@PrestaShop/Admin/Common/Grid/grid_panel.html.twig' with { grid: validationRuleGrid } %}
+        {% block grid_panel_header %}
+          <div class="card-header js-grid-header d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center">
+              <h3 class="card-header-title mb-0">{{ 'Reglas de validación'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
+              <span class="badge badge-secondary ml-2">{{ grid.data.records_total }}</span>
+            </div>
+            <div class="d-flex align-items-center">
+              <a
+                href="{{ path('admin_rj_multicarrier_validation_rule_create') }}"
+                class="btn btn-outline-primary btn-sm mr-2"
+              >
+                {{ 'Nueva regla'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+              </a>
+              {{ include('@PrestaShop/Admin/Common/Grid/Blocks/grid_actions.html.twig', { grid: grid }) }}
+            </div>
+          </div>
+        {% endblock %}
+
+        {% block grid_panel_body %}
+          <div class="card-body">
+            {{ include('@PrestaShop/Admin/Common/Grid/grid.html.twig', { grid: grid }) }}
+          </div>
+        {% endblock %}
+      {% endembed %}
+    </div>
+  </div>
+{% endblock %}

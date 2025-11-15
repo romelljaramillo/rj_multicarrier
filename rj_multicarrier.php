@@ -47,6 +47,7 @@ use Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\DeleteShipmentHandler;
 use Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\ShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
+use Roanja\Module\RjMulticarrier\Service\Carrier\ValidationRuleApplier;
 use Roanja\Module\RjMulticarrier\Service\Installer\ModuleInstaller;
 use Roanja\Module\RjMulticarrier\Service\Presenter\OrderViewPresenter;
 use Roanja\Module\RjMulticarrier\Service\Shipment\ShipmentGenerationService;
@@ -61,8 +62,12 @@ class Rj_Multicarrier extends Module implements WidgetInterface
         'displayBeforeCarrier',
         'displayAfterCarrier',
         'actionAdminControllerSetMedia',
+        'actionCarrierProcess',
         'displayProductAdditionalInfo',
     ];
+
+    /** @var ValidationRuleApplier|null */
+    private $validationRuleApplier;
 
     public function __construct()
     {
@@ -146,6 +151,39 @@ class Rj_Multicarrier extends Module implements WidgetInterface
     public function hookActionAdminControllerSetMedia(): void
     {
         $this->hookDisplayBackOfficeHeader();
+    }
+
+    public function hookActionCarrierProcess(array $params): void
+    {
+        $cart = $params['cart'] ?? null;
+
+        if (!$cart instanceof Cart) {
+            return;
+        }
+
+        $applier = $this->resolveValidationRuleApplier();
+
+        if (!$applier instanceof ValidationRuleApplier) {
+            return;
+        }
+
+        try {
+            $packages = $cart->getPackageList(true);
+
+            if (empty($packages)) {
+                return;
+            }
+
+            $updatedPackages = $applier->apply($packages, $cart);
+            $cacheKey = (int) $cart->id . '_' . (int) $cart->id_address_delivery;
+
+            $this->writeCartPackageCache((string) $cacheKey, $updatedPackages);
+            $this->resetCartDeliveryCache((int) $cart->id);
+        } catch (\Throwable $exception) {
+            if (defined('_PS_MODE_DEV_') && _PS_MODE_DEV_) {
+                throw $exception;
+            }
+        }
     }
 
     public function hookDisplayAdminOrder(array $params)
@@ -554,6 +592,59 @@ class Rj_Multicarrier extends Module implements WidgetInterface
         return '' === $trimmed ? null : $trimmed;
     }
 
+    private function resolveValidationRuleApplier(): ?ValidationRuleApplier
+    {
+        if (!$this->active) {
+            return null;
+        }
+
+        if ($this->validationRuleApplier instanceof ValidationRuleApplier) {
+            return $this->validationRuleApplier;
+        }
+
+        try {
+            $service = $this->get(ValidationRuleApplier::class);
+
+            if ($service instanceof ValidationRuleApplier) {
+                $this->validationRuleApplier = $service;
+
+                return $this->validationRuleApplier;
+            }
+        } catch (\Throwable $exception) {
+            return null;
+        }
+
+        return $this->validationRuleApplier instanceof ValidationRuleApplier ? $this->validationRuleApplier : null;
+    }
+
+    private function writeCartPackageCache(string $cacheKey, array $packages): void
+    {
+        $writer = \Closure::bind(static function (string $key, array $data): void {
+            $property = 'cachePackageList';
+
+            if (!isset(static::${$property}) || !is_array(static::${$property})) {
+                static::${$property} = [];
+            }
+
+            static::${$property}[$key] = $data;
+        }, null, Cart::class);
+
+        $writer($cacheKey, $packages);
+    }
+
+    private function resetCartDeliveryCache(int $cartId): void
+    {
+        $resetter = \Closure::bind(static function (int $id): void {
+            foreach (['cacheDeliveryOption', 'cacheNbPackages', 'cachePackageList', 'cacheDeliveryOptionList', 'cacheMultiAddressDelivery'] as $property) {
+                if (isset(static::${$property}[$id])) {
+                    unset(static::${$property}[$id]);
+                }
+            }
+        }, null, Cart::class);
+
+        $resetter($cartId);
+    }
+
     private function registerModuleHooks(): bool
     {
         foreach (self::HOOKS as $hook) {
@@ -563,18 +654,5 @@ class Rj_Multicarrier extends Module implements WidgetInterface
         }
 
         return true;
-    }
-
-    private function renderErrorTemplate(string $message): string
-    {
-        try {
-            /** @var Environment $twig */
-            $twig = $this->get('twig');
-            return $twig->render('@Modules/rj_multicarrier/views/templates/admin/configuration/error.html.twig', [
-                'message' => $message,
-            ]);
-        } catch (Exception $exception) {
-            return sprintf('<div class="alert alert-danger">%s</div>', Tools::safeOutput($message));
-        }
     }
 }

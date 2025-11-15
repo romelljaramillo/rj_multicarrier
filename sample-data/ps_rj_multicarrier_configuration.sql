@@ -8,3 +8,7 @@ VALUES
    '28013', '3ºB', '1', 'ana.logistica@gcromo.es', '+34 910 000 001', 'ESB12345678', 'GC', 'ps_cashondelivery', 1, NOW() - INTERVAL 20 DAY, NOW() - INTERVAL 5 DAY),
   (7002, 'Bruno', 'Silva', 'GCromo Portugal Lda.', NULL, 173, 'Lisboa', 'Lisbon', 'Rua Augusta', '102',
    '1100-048', NULL, '1', 'porto@gcromo.pt', '+351 210 000 002', 'PT500123456', 'GC', 'ps_cashondelivery', 0, NOW() - INTERVAL 18 DAY, NOW() - INTERVAL 3 DAY);
+
+INSERT INTO `ps_rj_multicarrier_configuration_shop` (`id_configuration`, `id_shop`) VALUES
+  (7001, 1),
+  (7002, 2);

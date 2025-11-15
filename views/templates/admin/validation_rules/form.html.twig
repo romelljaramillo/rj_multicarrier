@@ -1,0 +1,188 @@
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+
+{% block content %}
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h3 class="mb-0">
+        {{ isEdit ? 'Editar regla de validación'|trans({}, 'Modules.RjMulticarrier.Admin') : 'Nueva regla de validación'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+      </h3>
+      <a
+        class="btn btn-outline-secondary btn-sm"
+        href="{{ path('admin_rj_multicarrier_validation_rule_index') }}"
+      >
+        {{ 'Volver al listado'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+      </a>
+    </div>
+    <div class="card-body">
+      {{ form_start(form, {
+        action: path(
+          isEdit ? 'admin_rj_multicarrier_validation_rule_edit' : 'admin_rj_multicarrier_validation_rule_create',
+          isEdit ? {id: ruleId|default(form.vars.value.id)} : {}
+        ),
+        attr: { novalidate: 'novalidate' }
+      }) }}
+        {{ form_errors(form) }}
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="form-group">
+              {{ form_row(form.name) }}
+            </div>
+            <div class="form-group">
+              {{ form_row(form.priority) }}
+            </div>
+            <div class="form-group">
+              {{ form_row(form.scope) }}
+            </div>
+            <div class="form-group">
+              {{ form_row(form.active) }}
+            </div>
+            <div class="form-row">
+              <div class="form-group col-md-6">
+                {{ form_row(form.min_weight) }}
+              </div>
+              <div class="form-group col-md-6">
+                {{ form_row(form.max_weight) }}
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-6">
+            <div class="form-group">
+              {{ form_row(form.allow_ids) }}
+            </div>
+            <div class="form-group">
+              {{ form_row(form.deny_ids) }}
+            </div>
+            <div class="form-group">
+              {{ form_row(form.add_ids) }}
+            </div>
+            <div class="form-group">
+              {{ form_row(form.prefer_ids) }}
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-4" />
+
+        <div class="row">
+          <div class="col-md-6">
+            <div class="form-group">
+              {{ form_row(form.product_ids) }}
+            </div>
+            <div class="form-group">
+              {{ form_row(form.category_ids) }}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-group">
+              {{ form_row(form.zone_ids) }}
+            </div>
+            <div class="form-group">
+              {{ form_row(form.country_ids) }}
+            </div>
+          </div>
+        </div>
+
+        {{ form_rest(form) }}
+
+        {{ form_row(form.save) }}
+      {{ form_end(form, { render_rest: false }) }}
+    </div>
+  </div>
+{% endblock %}
+
+{% block stylesheets %}
+  {{ parent() }}
+  <style>
+    .select2-container--bootstrap .select2-selection--multiple,
+    .select2-container--default .select2-selection--multiple {
+      min-height: calc(2.25rem + 2px);
+      padding: 0.25rem 0.5rem;
+      border: 1px solid #ced4da;
+      border-radius: 0.25rem;
+      transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+    .select2-container--bootstrap .select2-selection--multiple:focus,
+    .select2-container--default .select2-selection--multiple:focus {
+      border-color: #80bdff;
+      outline: 0;
+      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    .select2-container--bootstrap .select2-selection--multiple .select2-selection__choice,
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+      background-color: #f8f9fa;
+      border: 1px solid #ced4da;
+      border-radius: 0.2rem;
+      color: #212529;
+      padding: 0.15rem 0.5rem;
+      margin-top: 0.15rem;
+      margin-bottom: 0.15rem;
+    }
+
+    .select2-container--bootstrap .select2-selection--multiple .select2-selection__choice__remove,
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+      color: #6c757d;
+      margin-right: 0.35rem;
+    }
+
+    .select2-container--bootstrap .select2-selection--multiple .select2-search__field,
+    .select2-container--default .select2-selection--multiple .select2-search__field {
+      margin-top: 0.2rem;
+      font-size: 0.95rem;
+    }
+  </style>
+{% endblock %}
+
+{% block javascripts %}
+  {{ parent() }}
+  <script>
+    (function () {
+      function initValidationRuleSelect2() {
+        var $ = window.jQuery || window.$;
+
+        var bootstrapSelect2 = function () {
+          if (typeof $ !== 'function' || !$.fn || typeof $.fn.select2 !== 'function') {
+            return;
+          }
+
+          $('.js-validation-rule-select2').each(function () {
+            var $element = $(this);
+            var width = $element.data('width') || '100%';
+            var placeholder = $element.data('placeholder') || '';
+            var allowClear = String($element.data('allow-clear')) !== 'false';
+
+            if ($element.hasClass('select2-hidden-accessible')) {
+              $element.select2('destroy');
+            }
+
+            $element.select2({
+              theme: 'bootstrap',
+              width: width,
+              placeholder: placeholder,
+              allowClear: allowClear,
+              closeOnSelect: false,
+            });
+          });
+        };
+
+        if (window.prestashop && window.prestashop.component && typeof window.prestashop.component.initComponents === 'function') {
+          window.prestashop.component.initComponents(['Select2']);
+          setTimeout(bootstrapSelect2, 0);
+        } else {
+          bootstrapSelect2();
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', initValidationRuleSelect2);
+
+      if (window.prestashop && typeof window.prestashop.on === 'function') {
+        window.prestashop.on('formUpdated', initValidationRuleSelect2);
+      }
+
+      window.initValidationRuleSelect2 = initValidationRuleSelect2;
+    }());
+  </script>
+{% endblock %}

@@ -59,6 +59,12 @@ services:
       $registry: "@doctrine"
     public: false
 
+  Roanja\Module\RjMulticarrier\Service\Carrier\ValidationRuleProvider:
+    public: true
+
+  Roanja\Module\RjMulticarrier\Service\Carrier\ValidationRuleApplier:
+    public: true
+
   Roanja\Module\RjMulticarrier\Domain\Log\Handler\GetLogEntryForViewHandler:
     arguments:
       $logRepository: '@Roanja\Module\RjMulticarrier\Repository\LogEntryRepository'
@@ -310,6 +316,46 @@ services:
           command: 'Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\ToggleTypeShipmentStatusCommand',
         }
 
+  Roanja\Module\RjMulticarrier\Domain\ValidationRule\Handler\UpsertValidationRuleHandler:
+    arguments:
+      $entityManager: '@doctrine.orm.entity_manager'
+      $validationRuleRepository: '@Roanja\Module\RjMulticarrier\Repository\ValidationRuleRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\ValidationRule\Command\UpsertValidationRuleCommand',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\ValidationRule\Handler\DeleteValidationRuleHandler:
+    arguments:
+      $entityManager: '@doctrine.orm.entity_manager'
+      $validationRuleRepository: '@Roanja\Module\RjMulticarrier\Repository\ValidationRuleRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\ValidationRule\Command\DeleteValidationRuleCommand',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\ValidationRule\Handler\BulkDeleteValidationRuleHandler:
+    arguments:
+      $entityManager: '@doctrine.orm.entity_manager'
+      $validationRuleRepository: '@Roanja\Module\RjMulticarrier\Repository\ValidationRuleRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\ValidationRule\Command\BulkDeleteValidationRuleCommand',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\ValidationRule\Handler\ToggleValidationRuleStatusHandler:
+    arguments:
+      $entityManager: '@doctrine.orm.entity_manager'
+      $validationRuleRepository: '@Roanja\Module\RjMulticarrier\Repository\ValidationRuleRepository'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\ValidationRule\Command\ToggleValidationRuleStatusCommand',
+        }
+
   # InfoShipment handlers that need specific Tactician tags
   Roanja\Module\RjMulticarrier\Domain\InfoShipment\Handler\UpsertInfoShipmentHandler:
     arguments:
@@ -357,6 +403,42 @@ services:
       $gridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\TypeShipment\TypeShipmentGridDataFactory'
       $gridFilterFormFactory: "@prestashop.core.grid.filter.form_factory"
       $hookDispatcher: "@prestashop.core.hook.dispatcher"
+
+  Roanja\Module\RjMulticarrier\Grid\ValidationRule\ValidationRuleQueryBuilder:
+    arguments:
+      $connection: "@doctrine.dbal.default_connection"
+      $dbPrefix: "%database_prefix%"
+      $searchCriteriaApplicator: "@prestashop.core.query.doctrine_search_criteria_applicator"
+
+  Roanja\Module\RjMulticarrier\Grid\ValidationRule\ValidationRuleGridDefinitionFactory:
+    public: true
+    arguments:
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+    calls:
+      - [setTranslator, ["@translator"]]
+
+  Roanja\Module\RjMulticarrier\Grid\ValidationRule\ValidationRuleDoctrineGridDataFactory:
+    class: PrestaShop\PrestaShop\Core\Grid\Data\Factory\DoctrineGridDataFactory
+    arguments:
+      $gridQueryBuilder: '@Roanja\Module\RjMulticarrier\Grid\ValidationRule\ValidationRuleQueryBuilder'
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+      $queryParser: "@prestashop.core.grid.query.doctrine_query_parser"
+      $gridId: "rj_multicarrier_validation_rule"
+
+  Roanja\Module\RjMulticarrier\Grid\ValidationRule\ValidationRuleGridDataFactory:
+    arguments:
+      $doctrineDataFactory: '@Roanja\Module\RjMulticarrier\Grid\ValidationRule\ValidationRuleDoctrineGridDataFactory'
+
+  Roanja\Module\RjMulticarrier\Grid\ValidationRule\ValidationRuleGridFactory:
+    arguments:
+      $gridDefinitionFactory: '@Roanja\Module\RjMulticarrier\Grid\ValidationRule\ValidationRuleGridDefinitionFactory'
+      $gridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\ValidationRule\ValidationRuleGridDataFactory'
+      $gridFilterFormFactory: "@prestashop.core.grid.filter.form_factory"
+      $hookDispatcher: "@prestashop.core.hook.dispatcher"
+
+  rj_multicarrier.grid.definition.factory.validation_rule:
+    alias: 'Roanja\Module\RjMulticarrier\Grid\ValidationRule\ValidationRuleGridDefinitionFactory'
+    public: true
 
   Roanja\Module\RjMulticarrier\Grid\Log\LogQueryBuilder:
     arguments:
@@ -610,7 +692,8 @@ services:
     class: Roanja\Module\RjMulticarrier\Service\Installer\ModuleInstaller
     arguments:
       - "@doctrine.dbal.default_connection"
-      - "@roanja.module.rj_multicarrier.doctrine.mapping_configurator"
+      - "@doctrine.orm.default_metadata_driver"
+      - "@roanja.module.rj_multicarrier.doctrine.attribute_driver"
     public: true
 
   roanja.module.rj_multicarrier.presenter.order_view:
