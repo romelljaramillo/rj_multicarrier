@@ -29,14 +29,12 @@ class ValidationRule
     #[ORM\Column(name: 'active', type: 'boolean')]
     private bool $active = true;
 
-    // Shop context
     #[ORM\Column(name: 'shop_id', type: 'integer', nullable: true)]
     private ?int $shopId = null;
 
     #[ORM\Column(name: 'shop_group_id', type: 'integer', nullable: true)]
     private ?int $shopGroupId = null;
 
-    // Conditions (stored as JSON arrays)
     #[ORM\Column(name: 'product_ids', type: 'json', nullable: true)]
     private ?array $productIds = null;
 
@@ -55,7 +53,6 @@ class ValidationRule
     #[ORM\Column(name: 'max_weight', type: 'float', nullable: true)]
     private ?float $maxWeight = null;
 
-    // Actions (stored as JSON arrays of carrier ids)
     #[ORM\Column(name: 'allow_ids', type: 'json', nullable: true)]
     private ?array $allowIds = null;
 

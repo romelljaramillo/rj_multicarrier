@@ -1,4 +1,4 @@
--- Active: 1728664076851@@172.16.238.12@3306@gcroma
+-- Active: 1762970070909@@localhost@3306@gcroma
 -- Fake info shipment for testing grids and modals
 INSERT INTO `ps_rj_multicarrier_info_shipment`
   (`id_info_shipment`, `id_order`, `id_reference_carrier`, `id_type_shipment`, `quantity`, `weight`, `length`, `width`, `height`,

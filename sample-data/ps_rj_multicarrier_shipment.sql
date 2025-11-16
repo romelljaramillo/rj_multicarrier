@@ -24,3 +24,15 @@ VALUES
    'CEX-ACC-001', 'Sample', '{"action":"create","packages":1,"weight":0.65}', '{"status":"ok","tracking":"CEX-108009-01"}', 0, NOW() - INTERVAL 6 DAY + INTERVAL 10 HOUR, NOW() - INTERVAL 4 DAY + INTERVAL 22 HOUR),
   (6010, 108010, 'WEB-108010', 'DHL-108010-01', 2, 5010,
    'DHL-ACC-002', 'Expo', '{"action":"create","packages":5,"insurance":480}', '{"status":"ok","tracking":"DHL-108010-01"}', 0, NOW() - INTERVAL 5 DAY + INTERVAL 2 HOUR, NOW() - INTERVAL 3 DAY + INTERVAL 19 HOUR);
+
+INSERT INTO `ps_rj_multicarrier_shipment_shop` (`id_shipment`, `id_shop`) VALUES
+  (6001, 1),
+  (6002, 1),
+  (6003, 1),
+  (6004, 1),
+  (6005, 1),
+  (6006, 2),
+  (6007, 2),
+  (6008, 2),
+  (6009, 2),
+  (6010, 2);

@@ -21,6 +21,7 @@ use Roanja\Module\RjMulticarrier\Grid\ValidationRule\ValidationRuleFilters;
 use Roanja\Module\RjMulticarrier\Grid\ValidationRule\ValidationRuleGridDefinitionFactory;
 use Roanja\Module\RjMulticarrier\Grid\ValidationRule\ValidationRuleGridFactory;
 use Roanja\Module\RjMulticarrier\Repository\ValidationRuleRepository;
+use Roanja\Module\RjMulticarrier\Service\Carrier\ValidationRuleReferenceNormalizer;
 use Symfony\Component\Form\FormError;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -34,7 +35,8 @@ final class ValidationRuleController extends FrameworkBundleAdminController
 	public function __construct(
 		private readonly ValidationRuleGridFactory $gridFactory,
 		private readonly ValidationRuleFormOptionsProvider $formOptionsProvider,
-		private readonly ValidationRuleRepository $validationRuleRepository
+		private readonly ValidationRuleRepository $validationRuleRepository,
+		private readonly ValidationRuleReferenceNormalizer $validationRuleReferenceNormalizer
 	) {
 	}
 
@@ -178,6 +180,8 @@ final class ValidationRuleController extends FrameworkBundleAdminController
 
 	private function createValidationRuleForm(array $data): FormInterface
 	{
+		$this->validationRuleReferenceNormalizer->normalizeAll();
+
 		return $this->createForm(ValidationRuleType::class, $data, [
 			'scope_choices' => $this->formOptionsProvider->getScopeChoices(),
 			'carrier_choices' => $this->formOptionsProvider->getCarrierChoices(),

@@ -1,4 +1,4 @@
--- Active: 1728664076851@@172.16.238.12@3306@gcroma
+-- Active: 1762970070909@@localhost@3306@gcroma
 INSERT INTO `ps_rj_multicarrier_log` (`name`, `id_order`, `id_shop`, `request`, `response`, `date_add`, `date_upd`) VALUES
 ('Carrier webhook sync #001', 78001, 2, '{"action":"create_shipment","company":"CEX","payload_id":"req-001"}', '{"status":"ok","shipment_id":"CEX-001"}', NOW() - INTERVAL 5 DAY + INTERVAL 1 HOUR, NOW() - INTERVAL 5 DAY + INTERVAL 1 HOUR),
 ('Carrier webhook sync #002', 78002, 1, '{"action":"create_shipment","company":"CEX","payload_id":"req-002"}', '{"status":"ok","shipment_id":"CEX-002"}', NOW() - INTERVAL 5 DAY + INTERVAL 3 HOUR, NOW() - INTERVAL 5 DAY + INTERVAL 3 HOUR),

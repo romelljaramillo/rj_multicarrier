@@ -133,7 +133,11 @@ final class ValidationRuleType extends AbstractType
                 'required' => false,
                 'multiple' => true,
                 'attr' => [
+                    'class' => 'form-control js-validation-rule-select2',
                     'data-placeholder' => 'Selecciona transportistas permitidos',
+                    'data-allow-clear' => 'true',
+                    'data-width' => '100%',
+                    'data-toggle' => 'select2',
                 ],
             ])
             ->add('deny_ids', ChoiceType::class, [
@@ -142,7 +146,11 @@ final class ValidationRuleType extends AbstractType
                 'required' => false,
                 'multiple' => true,
                 'attr' => [
+                    'class' => 'form-control js-validation-rule-select2',
                     'data-placeholder' => 'Selecciona transportistas a bloquear',
+                    'data-allow-clear' => 'true',
+                    'data-width' => '100%',
+                    'data-toggle' => 'select2',
                 ],
             ])
             ->add('add_ids', ChoiceType::class, [
@@ -151,7 +159,11 @@ final class ValidationRuleType extends AbstractType
                 'required' => false,
                 'multiple' => true,
                 'attr' => [
+                    'class' => 'form-control js-validation-rule-select2',
                     'data-placeholder' => 'Selecciona transportistas adicionales',
+                    'data-allow-clear' => 'true',
+                    'data-width' => '100%',
+                    'data-toggle' => 'select2',
                 ],
             ])
             ->add('prefer_ids', ChoiceType::class, [
@@ -160,7 +172,11 @@ final class ValidationRuleType extends AbstractType
                 'required' => false,
                 'multiple' => true,
                 'attr' => [
+                    'class' => 'form-control js-validation-rule-select2',
                     'data-placeholder' => 'Selecciona transportistas preferentes',
+                    'data-allow-clear' => 'true',
+                    'data-width' => '100%',
+                    'data-toggle' => 'select2',
                 ],
             ])
             ->add('save', SubmitType::class, [

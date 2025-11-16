@@ -9,12 +9,15 @@ namespace Roanja\Module\RjMulticarrier\Service\Carrier;
 use Roanja\Module\RjMulticarrier\Entity\ValidationRule;
 use Roanja\Module\RjMulticarrier\Repository\ValidationRuleRepository;
 
-final class ValidationRuleProvider
+final class ValidationRuleProvider implements ValidationRuleProviderInterface
 {
     /** @var array<string, array<int, array{priority:int,name:string,conditions:array<string, mixed>,actions:array<string, array<int>>}>> */
     private array $cache = [];
 
-    public function __construct(private readonly ValidationRuleRepository $repository)
+    public function __construct(
+        private readonly ValidationRuleRepository $repository,
+        private readonly ValidationRuleReferenceNormalizer $referenceNormalizer
+    )
     {
     }
 
@@ -23,6 +26,8 @@ final class ValidationRuleProvider
      */
     public function getActiveRules(?int $shopId, ?int $shopGroupId): array
     {
+        $this->referenceNormalizer->normalizeAll();
+
         $cacheKey = sprintf('%s|%s', (string) ($shopGroupId ?? 'g0'), (string) ($shopId ?? 's0'));
 
         if (isset($this->cache[$cacheKey])) {

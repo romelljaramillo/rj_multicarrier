@@ -12,7 +12,10 @@ if (!\class_exists('\\Address') && \class_exists('\\AddressCore')) {
 
 final class ValidationRuleApplier
 {
-    public function __construct(private readonly ValidationRuleProvider $ruleProvider)
+    public function __construct(
+        private readonly ValidationRuleProviderInterface $ruleProvider,
+        private readonly CarrierReferenceResolver $referenceResolver
+    )
     {
     }
 
@@ -23,7 +26,10 @@ final class ValidationRuleApplier
      */
     public function apply(array $packagesByAddress, \Cart $cart): array
     {
-        $rules = $this->ruleProvider->getActiveRules($cart->id_shop ?? null, $cart->id_shop_group ?? null);
+        $shopId = $this->toPositiveIntOrNull($cart->id_shop ?? null);
+        $shopGroupId = $this->toPositiveIntOrNull($cart->id_shop_group ?? null);
+
+        $rules = $this->ruleProvider->getActiveRules($shopId, $shopGroupId);
 
         if (empty($rules)) {
             return $packagesByAddress;
@@ -105,7 +111,7 @@ final class ValidationRuleApplier
      */
     private function applyRulesToCarriers(array $carrierList, array $rules, array $context): array
     {
-        $normalizedCarriers = $this->normalizeCarrierList($carrierList);
+    [$normalizedCarriers, $referenceToCarrier] = $this->normalizeCarrierList($carrierList);
         $originalCarriers = $normalizedCarriers;
 
         foreach ($rules as $rule) {
@@ -120,7 +126,7 @@ final class ValidationRuleApplier
             $normalizedCarriers = $originalCarriers;
         }
 
-        return $this->denormalizeCarrierList($normalizedCarriers);
+        return $this->denormalizeCarrierList($normalizedCarriers, $referenceToCarrier);
     }
 
     /**
@@ -182,8 +188,8 @@ final class ValidationRuleApplier
     }
 
     /**
-     * @param array<int> $carrierIds
-     * @param array<string, array<int>> $actions
+    * @param array<int> $carrierIds Carrier references.
+    * @param array<string, array<int>> $actions Carrier references grouped by action key.
      *
      * @return array<int>
      */
@@ -215,40 +221,85 @@ final class ValidationRuleApplier
     /**
      * @param array<int, mixed> $carrierList
      *
-     * @return array<int>
+     * @return array{0: int[], 1: array<int, int>}
      */
     private function normalizeCarrierList(array $carrierList): array
     {
-        $normalized = [];
+        $carrierIds = [];
 
-        foreach ($carrierList as $value) {
+        foreach ($carrierList as $key => $value) {
             if (is_array($value)) {
+                if (isset($value['id_carrier']) && is_numeric($value['id_carrier'])) {
+                    $carrierIds[] = (int) $value['id_carrier'];
+                } elseif (is_numeric($key)) {
+                    $carrierIds[] = (int) $key;
+                }
+
                 continue;
             }
 
-            if (!is_numeric($value)) {
+            if (is_numeric($value)) {
+                $carrierIds[] = (int) $value;
                 continue;
             }
 
-            $normalized[] = (int) $value;
+            if (is_numeric($key)) {
+                $carrierIds[] = (int) $key;
+            }
         }
 
-        return array_values(array_unique($normalized));
+        $carrierIds = array_values(array_unique(array_filter($carrierIds, static fn (int $id): bool => $id > 0)));
+
+        if (empty($carrierIds)) {
+            return [[], []];
+        }
+
+        $mapping = $this->referenceResolver->mapCarrierIdsToReferences($carrierIds);
+
+        return [$mapping['references'], $mapping['map']];
     }
 
     /**
-     * @param array<int> $carrierIds
+     * @param array<int> $referenceIds
+     * @param array<int, int> $knownReferences
      *
      * @return array<int, int>
      */
-    private function denormalizeCarrierList(array $carrierIds): array
+    private function denormalizeCarrierList(array $referenceIds, array $knownReferences): array
     {
-        $carrierIds = array_values(array_unique($carrierIds));
+        $referenceIds = array_values(array_unique($referenceIds));
 
-        if (empty($carrierIds)) {
+        if (empty($referenceIds)) {
             return [];
         }
 
-        return array_combine($carrierIds, $carrierIds);
+        $resolved = [];
+        $resolvedMap = $this->referenceResolver->mapReferencesToCarrierIds($referenceIds);
+
+        foreach ($referenceIds as $referenceId) {
+            if (isset($resolvedMap[$referenceId])) {
+                $resolved[] = $resolvedMap[$referenceId];
+                continue;
+            }
+
+            if (isset($knownReferences[$referenceId])) {
+                $resolved[] = $knownReferences[$referenceId];
+            }
+        }
+
+        $resolved = array_values(array_unique(array_filter($resolved, static fn (int $id): bool => $id > 0)));
+
+        return empty($resolved) ? [] : array_combine($resolved, $resolved);
+    }
+
+    private function toPositiveIntOrNull($value): ?int
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        $intValue = (int) $value;
+
+        return $intValue > 0 ? $intValue : null;
     }
 }

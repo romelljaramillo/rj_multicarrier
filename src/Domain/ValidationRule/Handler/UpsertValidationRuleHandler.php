@@ -12,12 +12,14 @@ use Roanja\Module\RjMulticarrier\Domain\ValidationRule\Command\UpsertValidationR
 use Roanja\Module\RjMulticarrier\Domain\ValidationRule\Exception\ValidationRuleNotFoundException;
 use Roanja\Module\RjMulticarrier\Entity\ValidationRule;
 use Roanja\Module\RjMulticarrier\Repository\ValidationRuleRepository;
+use Roanja\Module\RjMulticarrier\Service\Carrier\CarrierReferenceResolver;
 
 final class UpsertValidationRuleHandler
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
-        private readonly ValidationRuleRepository $validationRuleRepository
+        private readonly ValidationRuleRepository $validationRuleRepository,
+        private readonly CarrierReferenceResolver $carrierReferenceResolver
     ) {
     }
 
@@ -50,10 +52,10 @@ final class UpsertValidationRuleHandler
             ->setCountryIds($this->normalizeArray($command->getCountryIds()))
             ->setMinWeight($command->getMinWeight())
             ->setMaxWeight($command->getMaxWeight())
-            ->setAllowIds($this->normalizeArray($command->getAllowIds()))
-            ->setDenyIds($this->normalizeArray($command->getDenyIds()))
-            ->setAddIds($this->normalizeArray($command->getAddIds()))
-            ->setPreferIds($this->normalizeArray($command->getPreferIds()));
+            ->setAllowIds($this->normalizeCarrierIds($command->getAllowIds()))
+            ->setDenyIds($this->normalizeCarrierIds($command->getDenyIds()))
+            ->setAddIds($this->normalizeCarrierIds($command->getAddIds()))
+            ->setPreferIds($this->normalizeCarrierIds($command->getPreferIds()));
 
         $this->entityManager->persist($rule);
         $this->entityManager->flush();
@@ -71,5 +73,15 @@ final class UpsertValidationRuleHandler
         }, $values)));
 
         return empty($normalized) ? null : $normalized;
+    }
+
+    /**
+     * @param int[] $values
+     */
+    private function normalizeCarrierIds(array $values): ?array
+    {
+        $references = $this->carrierReferenceResolver->ensureReferences($values);
+
+        return $this->normalizeArray($references);
     }
 }

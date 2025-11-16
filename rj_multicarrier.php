@@ -47,9 +47,14 @@ use Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\DeleteShipmentHandler;
 use Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\ShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
+use Roanja\Module\RjMulticarrier\Service\Carrier\CarrierReferenceResolver;
 use Roanja\Module\RjMulticarrier\Service\Carrier\ValidationRuleApplier;
+use Roanja\Module\RjMulticarrier\Service\Carrier\ValidationRuleProvider;
+use Roanja\Module\RjMulticarrier\Service\Carrier\ValidationRuleProviderInterface;
+use Roanja\Module\RjMulticarrier\Service\Carrier\RuntimeValidationRuleProvider;
 use Roanja\Module\RjMulticarrier\Service\Installer\ModuleInstaller;
 use Roanja\Module\RjMulticarrier\Service\Presenter\OrderViewPresenter;
+use Roanja\Module\RjMulticarrier\Service\Presenter\WidgetPresenter;
 use Roanja\Module\RjMulticarrier\Service\Shipment\ShipmentGenerationService;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Environment;
@@ -63,6 +68,7 @@ class Rj_Multicarrier extends Module implements WidgetInterface
         'displayAfterCarrier',
         'actionAdminControllerSetMedia',
         'actionCarrierProcess',
+        'actionDeliveryOptionListModifier',
         'displayProductAdditionalInfo',
     ];
 
@@ -150,7 +156,6 @@ class Rj_Multicarrier extends Module implements WidgetInterface
 
     public function hookActionAdminControllerSetMedia(): void
     {
-        $this->hookDisplayBackOfficeHeader();
     }
 
     public function hookActionCarrierProcess(array $params): void
@@ -160,6 +165,8 @@ class Rj_Multicarrier extends Module implements WidgetInterface
         if (!$cart instanceof Cart) {
             return;
         }
+
+        $this->ensureDeliveryOptionModifierHookRegistered();
 
         $applier = $this->resolveValidationRuleApplier();
 
@@ -226,7 +233,11 @@ class Rj_Multicarrier extends Module implements WidgetInterface
     public function renderWidget($hookName, array $configuration)
     {
         try {
-            return $this->get('roanja.module.rj_multicarrier.widget.presenter')->render($hookName, $configuration);
+            $presenter = $this->resolveWidgetPresenter();
+
+            if (null !== $presenter) {
+                return $presenter->render((string) $hookName, $configuration);
+            }
         } catch (\Throwable $exception) {
             if (_PS_MODE_DEV_) {
                 return sprintf(
@@ -237,12 +248,18 @@ class Rj_Multicarrier extends Module implements WidgetInterface
 
             return '';
         }
+
+        return '';
     }
 
     public function getWidgetVariables($hookName, array $configuration)
     {
         try {
-            return $this->get('roanja.module.rj_multicarrier.widget.presenter')->getVariables($hookName, $configuration);
+            $presenter = $this->resolveWidgetPresenter();
+
+            if (null !== $presenter) {
+                return $presenter->getVariables((string) $hookName, $configuration);
+            }
         } catch (\Throwable $exception) {
             if (_PS_MODE_DEV_) {
                 return [
@@ -252,6 +269,193 @@ class Rj_Multicarrier extends Module implements WidgetInterface
 
             return [];
         }
+
+        return [];
+    }
+
+    public function hookActionDeliveryOptionListModifier(array &$params): void
+    {
+        $cart = $params['cart'] ?? null;
+
+        if (!$cart instanceof Cart) {
+            return;
+        }
+
+        $this->ensureDeliveryOptionModifierHookRegistered();
+
+        $applier = $this->resolveValidationRuleApplier();
+
+        if (!$applier instanceof ValidationRuleApplier) {
+            return;
+        }
+
+        try {
+            $packages = $cart->getPackageList(true);
+
+            if (empty($packages)) {
+                return;
+            }
+
+            $updatedPackages = $applier->apply($packages, $cart);
+
+            $allowedByAddress = [];
+
+            foreach ($updatedPackages as $addressId => $packageList) {
+                $ordered = [];
+
+                foreach ($packageList as $package) {
+                    $carrierList = $package['carrier_list'] ?? [];
+
+                    if (!is_array($carrierList)) {
+                        continue;
+                    }
+
+                    foreach ($carrierList as $index => $carrier) {
+                        $carrierId = null;
+
+                        if (is_array($carrier) && isset($carrier['id_carrier'])) {
+                            $carrierId = (int) $carrier['id_carrier'];
+                        } elseif (is_numeric($carrier)) {
+                            $carrierId = (int) $carrier;
+                        } elseif (is_numeric($index)) {
+                            $carrierId = (int) $index;
+                        }
+
+                        if (null === $carrierId || $carrierId <= 0 || in_array($carrierId, $ordered, true)) {
+                            continue;
+                        }
+
+                        $ordered[] = $carrierId;
+                    }
+                }
+
+                if (!empty($ordered)) {
+                    $allowedByAddress[$addressId] = $ordered;
+                }
+            }
+
+            if (empty($allowedByAddress) || !isset($params['delivery_option_list']) || !is_array($params['delivery_option_list'])) {
+                return;
+            }
+
+            foreach ($params['delivery_option_list'] as $addressId => &$options) {
+                $allowed = $allowedByAddress[$addressId] ?? null;
+
+                if (null === $allowed || empty($allowed)) {
+                    continue;
+                }
+
+                $positions = array_flip($allowed);
+
+                foreach ($options as $optionKey => &$option) {
+                    if (!isset($option['carrier_list']) || !is_array($option['carrier_list'])) {
+                        continue;
+                    }
+
+                    $filtered = [];
+
+                    foreach ($option['carrier_list'] as $carrierId => $carrierData) {
+                        $resolvedId = null;
+
+                        if (is_array($carrierData) && isset($carrierData['id_carrier'])) {
+                            $resolvedId = (int) $carrierData['id_carrier'];
+                        } elseif (is_numeric($carrierId)) {
+                            $resolvedId = (int) $carrierId;
+                        } elseif (is_numeric($carrierData)) {
+                            $resolvedId = (int) $carrierData;
+                        }
+
+                        if (null === $resolvedId || $resolvedId <= 0 || !in_array($resolvedId, $allowed, true)) {
+                            continue;
+                        }
+
+                        $filtered[$resolvedId] = $carrierData;
+                    }
+
+                    if (empty($filtered)) {
+                        unset($options[$optionKey]);
+                        continue;
+                    }
+
+                    uksort($filtered, static function (int $leftId, int $rightId) use ($positions): int {
+                        $leftPos = $positions[$leftId] ?? PHP_INT_MAX;
+                        $rightPos = $positions[$rightId] ?? PHP_INT_MAX;
+
+                        return $leftPos <=> $rightPos;
+                    });
+
+                    $option['carrier_list'] = $filtered;
+
+                    reset($option['carrier_list']);
+                    $firstCarrierId = (int) key($option['carrier_list']);
+
+                    if ($firstCarrierId > 0) {
+                        $option['id_carrier'] = $firstCarrierId;
+                    }
+
+                    if (array_key_exists('unique_carrier', $option)) {
+                        $option['unique_carrier'] = count($filtered) <= 1;
+                    }
+                }
+                unset($option);
+
+                if (empty($options)) {
+                    unset($params['delivery_option_list'][$addressId]);
+                }
+            }
+            unset($options);
+        } catch (\Throwable $exception) {
+            if (defined('_PS_MODE_DEV_') && _PS_MODE_DEV_) {
+                throw $exception;
+            }
+        }
+    }
+
+    private function ensureDeliveryOptionModifierHookRegistered(): void
+    {
+        static $registered = false;
+
+        if ($registered) {
+            return;
+        }
+
+        if (!$this->isRegisteredInHook('actionDeliveryOptionListModifier')) {
+            $this->registerHook('actionDeliveryOptionListModifier');
+        }
+
+        $registered = true;
+    }
+
+    private function resolveWidgetPresenter(): ?WidgetPresenter
+    {
+        try {
+            $presenter = $this->get(WidgetPresenter::class);
+
+            if ($presenter instanceof WidgetPresenter) {
+                return $presenter;
+            }
+        } catch (\Throwable $exception) {
+            try {
+                $presenter = $this->get('roanja.module.rj_multicarrier.widget.presenter');
+
+                if ($presenter instanceof WidgetPresenter) {
+                    return $presenter;
+                }
+            } catch (\Throwable $innerException) {
+                try {
+                    $sfContainer = SymfonyContainer::getInstance();
+                    $twig = $sfContainer->get('twig');
+
+                    if ($twig instanceof Environment) {
+                        return new WidgetPresenter($twig);
+                    }
+                } catch (\Throwable) {
+                    // ignore
+                }
+            }
+        }
+
+        return null;
     }
 
     private function getSymfonyConfigureUrl(): ?string
@@ -310,8 +514,8 @@ class Rj_Multicarrier extends Module implements WidgetInterface
             'info' => [],
         ];
 
-    $lastPackage = null;
-    $shopId = (int) ($this->context->shop->id ?? 0);
+        $lastPackage = null;
+        $shopId = (int) ($this->context->shop->id ?? 0);
         $submittedValues = Tools::getAllValues();
 
         // If the Symfony routes for order actions are registered, delegate actions
@@ -602,19 +806,75 @@ class Rj_Multicarrier extends Module implements WidgetInterface
             return $this->validationRuleApplier;
         }
 
-        try {
-            $service = $this->get(ValidationRuleApplier::class);
+        $serviceIds = [
+            ValidationRuleApplier::class,
+            'roanja.module.rj_multicarrier.validation_rule_applier',
+        ];
+
+        foreach ($serviceIds as $serviceId) {
+            $service = $this->resolveServiceFromContainer($serviceId);
 
             if ($service instanceof ValidationRuleApplier) {
                 $this->validationRuleApplier = $service;
 
                 return $this->validationRuleApplier;
             }
-        } catch (\Throwable $exception) {
+        }
+
+        [$provider, $resolver] = $this->resolveValidationRuleDependencies();
+
+        if (!$provider instanceof ValidationRuleProviderInterface || !$resolver instanceof CarrierReferenceResolver) {
             return null;
         }
 
-        return $this->validationRuleApplier instanceof ValidationRuleApplier ? $this->validationRuleApplier : null;
+        $this->validationRuleApplier = new ValidationRuleApplier($provider, $resolver);
+
+        return $this->validationRuleApplier;
+    }
+
+    private function resolveValidationRuleDependencies(): array
+    {
+        $resolver = $this->resolveServiceFromContainer(CarrierReferenceResolver::class)
+            ?? $this->resolveServiceFromContainer('roanja.module.rj_multicarrier.carrier_reference_resolver');
+
+        if (!$resolver instanceof CarrierReferenceResolver) {
+            $resolver = new CarrierReferenceResolver();
+        }
+
+        $provider = $this->resolveServiceFromContainer(ValidationRuleProviderInterface::class)
+            ?? $this->resolveServiceFromContainer(ValidationRuleProvider::class)
+            ?? $this->resolveServiceFromContainer('roanja.module.rj_multicarrier.validation_rule_provider');
+
+        if (!$provider instanceof ValidationRuleProviderInterface) {
+            $provider = new RuntimeValidationRuleProvider($resolver);
+        }
+
+        return [$provider, $resolver];
+    }
+
+    private function resolveServiceFromContainer(string $serviceId): ?object
+    {
+        try {
+            $container = SymfonyContainer::getInstance();
+
+            if (null !== $container && method_exists($container, 'has') && $container->has($serviceId)) {
+                return $container->get($serviceId);
+            }
+        } catch (\Throwable) {
+            // ignore and fallback to module container
+        }
+
+        try {
+            $service = $this->get($serviceId);
+
+            if ($service) {
+                return $service;
+            }
+        } catch (\Throwable) {
+            // ignore
+        }
+
+        return null;
     }
 
     private function writeCartPackageCache(string $cacheKey, array $packages): void

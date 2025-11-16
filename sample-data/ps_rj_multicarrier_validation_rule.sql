@@ -1,5 +1,5 @@
 -- Active: 1762970070909@@localhost@3306@gcroma
--- Reglas de validación generadas dinámicamente con transportistas nativos de PrestaShop
+-- Reglas de validación generadas dinámicamente con referencias de transportistas nativos de PrestaShop
 INSERT INTO `ps_rj_multicarrier_validation_rule`
 	(`name`, `priority`, `active`, `shop_id`, `shop_group_id`, `product_ids`, `category_ids`, `zone_ids`, `country_ids`, `min_weight`, `max_weight`, `allow_ids`, `deny_ids`, `add_ids`, `prefer_ids`, `created_at`, `updated_at`)
 VALUES
@@ -29,24 +29,24 @@ VALUES
 		NULL,
 		3.0,
 		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(id_carrier ORDER BY id_carrier SEPARATOR ','), ']')
+			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
 			FROM ps_carrier
-			WHERE deleted = 0 AND name IN ('My carrier', 'My cheap carrier')
+			WHERE deleted = 0 AND id_reference > 0 AND name IN ('My carrier', 'My cheap carrier')
 		), '[]'),
 		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(id_carrier ORDER BY id_carrier SEPARATOR ','), ']')
+			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
 			FROM ps_carrier
-			WHERE deleted = 0 AND name IN ('Click and collect')
+			WHERE deleted = 0 AND id_reference > 0 AND name IN ('Click and collect')
 		), '[]'),
 		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(id_carrier ORDER BY id_carrier SEPARATOR ','), ']')
+			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
 			FROM ps_carrier
-			WHERE deleted = 0 AND name IN ('My cheap carrier')
+			WHERE deleted = 0 AND id_reference > 0 AND name IN ('My cheap carrier')
 		), '[]'),
 		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(id_carrier ORDER BY id_carrier SEPARATOR ','), ']')
+			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
 			FROM ps_carrier
-			WHERE deleted = 0 AND name IN ('My cheap carrier')
+			WHERE deleted = 0 AND id_reference > 0 AND name IN ('My cheap carrier')
 		), '[]'),
 		NOW(),
 		NOW()
@@ -76,20 +76,20 @@ VALUES
 		NULL,
 		NULL,
 		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(id_carrier ORDER BY id_carrier SEPARATOR ','), ']')
+			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
 			FROM ps_carrier
-			WHERE deleted = 0 AND name IN ('Click and collect', 'My carrier')
+			WHERE deleted = 0 AND id_reference > 0 AND name IN ('Click and collect', 'My carrier')
 		), '[]'),
 		NULL,
 		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(id_carrier ORDER BY id_carrier SEPARATOR ','), ']')
+			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
 			FROM ps_carrier
-			WHERE deleted = 0 AND name IN ('Click and collect')
+			WHERE deleted = 0 AND id_reference > 0 AND name IN ('Click and collect')
 		), '[]'),
 		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(id_carrier ORDER BY id_carrier SEPARATOR ','), ']')
+			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
 			FROM ps_carrier
-			WHERE deleted = 0 AND name IN ('Click and collect')
+			WHERE deleted = 0 AND id_reference > 0 AND name IN ('Click and collect')
 		), '[]'),
 		NOW(),
 		NOW()
@@ -115,20 +115,20 @@ VALUES
 		NULL,
 		NULL,
 		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(id_carrier ORDER BY id_carrier SEPARATOR ','), ']')
+			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
 			FROM ps_carrier
-			WHERE deleted = 0 AND name IN ('My carrier')
+			WHERE deleted = 0 AND id_reference > 0 AND name IN ('My carrier')
 		), '[]'),
 		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(id_carrier ORDER BY id_carrier SEPARATOR ','), ']')
+			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
 			FROM ps_carrier
-			WHERE deleted = 0 AND name IN ('Click and collect', 'My cheap carrier')
+			WHERE deleted = 0 AND id_reference > 0 AND name IN ('Click and collect', 'My cheap carrier')
 		), '[]'),
 		NULL,
 		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(id_carrier ORDER BY id_carrier SEPARATOR ','), ']')
+			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
 			FROM ps_carrier
-			WHERE deleted = 0 AND name IN ('My carrier')
+			WHERE deleted = 0 AND id_reference > 0 AND name IN ('My carrier')
 		), '[]'),
 		NOW(),
 		NOW()
@@ -150,22 +150,22 @@ VALUES
 		NULL,
 		NULL,
 		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(id_carrier ORDER BY id_carrier SEPARATOR ','), ']')
+			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
+			FROM ps_carrier
+			WHERE deleted = 0 AND id_reference > 0 AND name IN ('My carrier')
+		), '[]'),
+		COALESCE((
+			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
+			FROM ps_carrier
+			WHERE deleted = 0 AND id_reference > 0 AND name IN ('My cheap carrier')
+		), '[]'),
+		COALESCE((
+			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
 			FROM ps_carrier
 			WHERE deleted = 0 AND name IN ('My carrier')
 		), '[]'),
 		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(id_carrier ORDER BY id_carrier SEPARATOR ','), ']')
-			FROM ps_carrier
-			WHERE deleted = 0 AND name IN ('My cheap carrier')
-		), '[]'),
-		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(id_carrier ORDER BY id_carrier SEPARATOR ','), ']')
-			FROM ps_carrier
-			WHERE deleted = 0 AND name IN ('My carrier')
-		), '[]'),
-		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(id_carrier ORDER BY id_carrier SEPARATOR ','), ']')
+			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
 			FROM ps_carrier
 			WHERE deleted = 0 AND name IN ('My carrier')
 		), '[]'),

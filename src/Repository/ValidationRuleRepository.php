@@ -34,14 +34,20 @@ class ValidationRuleRepository extends ServiceEntityRepository
             ->setParameter('active', true)
             ->orderBy('r.priority', 'ASC');
 
+        $scopeConditions = [$qb->expr()->andX('r.shopId IS NULL', 'r.shopGroupId IS NULL')];
+
         if (null !== $shopGroupId) {
-            $qb->andWhere('r.shopGroupId = :shopGroupId')
-                ->setParameter('shopGroupId', $shopGroupId);
+            $scopeConditions[] = $qb->expr()->andX('r.shopId IS NULL', 'r.shopGroupId = :shopGroupId');
+            $qb->setParameter('shopGroupId', $shopGroupId);
         }
 
         if (null !== $shopId) {
-            $qb->andWhere('r.shopId = :shopId')
-                ->setParameter('shopId', $shopId);
+            $scopeConditions[] = 'r.shopId = :shopId';
+            $qb->setParameter('shopId', $shopId);
+        }
+
+        if (!empty($scopeConditions)) {
+            $qb->andWhere($qb->expr()->orX(...$scopeConditions));
         }
 
         return $qb->getQuery()->getResult();

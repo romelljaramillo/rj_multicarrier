@@ -111,30 +111,21 @@ final class ValidationRuleFormOptionsProvider
     public function getCarrierChoices(): array
     {
         $choices = [];
+        $languageId = $this->getContextLanguageId();
 
-        if (class_exists('\Db')) {
-            $sql = sprintf(
-                'SELECT c.id_carrier, c.name FROM `%scarrier` c WHERE c.deleted = 0 ORDER BY c.name ASC, c.id_carrier ASC',
-                _DB_PREFIX_
-            );
+        foreach ($this->carrierRepository->getActiveReferenceCarriers($languageId) as $carrier) {
+            $referenceId = (int) ($carrier['id_reference'] ?? 0);
+            $name = trim((string) ($carrier['name'] ?? ''));
 
-            $rows = \Db::getInstance()->executeS($sql) ?: [];
-
-            foreach ($rows as $row) {
-                if (!is_array($row)) {
-                    continue;
-                }
-
-                $id = (int) ($row['id_carrier'] ?? 0);
-                $name = trim((string) ($row['name'] ?? ''));
-
-                if ($id <= 0) {
-                    continue;
-                }
-
-                $label = $name === '' ? sprintf('Transportista ID %d', $id) : sprintf('%s (ID %d)', $name, $id);
-                $choices[$label] = $id;
+            if ($referenceId <= 0) {
+                continue;
             }
+
+            $label = $name === ''
+                ? sprintf('Transportista ref. %d', $referenceId)
+                : sprintf('%s (ref. %d)', $name, $referenceId);
+
+            $choices[$label] = $referenceId;
         }
 
         if (empty($choices)) {

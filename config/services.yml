@@ -59,10 +59,38 @@ services:
       $registry: "@doctrine"
     public: false
 
+  Roanja\Module\RjMulticarrier\Service\Carrier\ValidationRuleReferenceNormalizer:
+    arguments:
+      $validationRuleRepository: '@Roanja\Module\RjMulticarrier\Repository\ValidationRuleRepository'
+      $carrierReferenceResolver: '@Roanja\Module\RjMulticarrier\Service\Carrier\CarrierReferenceResolver'
+      $entityManager: '@doctrine.orm.entity_manager'
+
+  Roanja\Module\RjMulticarrier\Service\Carrier\CarrierReferenceResolver:
+    public: true
+
+  roanja.module.rj_multicarrier.carrier_reference_resolver:
+    alias: 'Roanja\Module\RjMulticarrier\Service\Carrier\CarrierReferenceResolver'
+    public: true
+
   Roanja\Module\RjMulticarrier\Service\Carrier\ValidationRuleProvider:
+    arguments:
+      $repository: '@Roanja\Module\RjMulticarrier\Repository\ValidationRuleRepository'
+      $referenceNormalizer: '@Roanja\Module\RjMulticarrier\Service\Carrier\ValidationRuleReferenceNormalizer'
+    public: true
+
+  Roanja\Module\RjMulticarrier\Service\Carrier\ValidationRuleProviderInterface:
+    alias: 'Roanja\Module\RjMulticarrier\Service\Carrier\ValidationRuleProvider'
     public: true
 
   Roanja\Module\RjMulticarrier\Service\Carrier\ValidationRuleApplier:
+    public: true
+
+  roanja.module.rj_multicarrier.validation_rule_applier:
+    alias: 'Roanja\Module\RjMulticarrier\Service\Carrier\ValidationRuleApplier'
+    public: true
+
+  roanja.module.rj_multicarrier.validation_rule_provider:
+    alias: 'Roanja\Module\RjMulticarrier\Service\Carrier\ValidationRuleProvider'
     public: true
 
   Roanja\Module\RjMulticarrier\Domain\Log\Handler\GetLogEntryForViewHandler:
@@ -320,6 +348,7 @@ services:
     arguments:
       $entityManager: '@doctrine.orm.entity_manager'
       $validationRuleRepository: '@Roanja\Module\RjMulticarrier\Repository\ValidationRuleRepository'
+      $carrierReferenceResolver: '@Roanja\Module\RjMulticarrier\Service\Carrier\CarrierReferenceResolver'
     tags:
       - {
           name: "tactician.handler",
@@ -712,6 +741,10 @@ services:
     class: Roanja\Module\RjMulticarrier\Service\Presenter\WidgetPresenter
     arguments:
       - "@twig"
+    public: true
+
+  Roanja\Module\RjMulticarrier\Service\Presenter\WidgetPresenter:
+    alias: 'roanja.module.rj_multicarrier.widget.presenter'
     public: true
 
   PrestaShop\PrestaShop\Core\Grid\Presenter\GridPresenterInterface:
