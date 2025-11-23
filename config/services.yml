@@ -544,8 +544,14 @@ services:
     public: true
     arguments:
       $hookDispatcher: "@prestashop.core.hook.dispatcher"
+      $inlineFieldChoicesProvider: '@Roanja\Module\RjMulticarrier\Service\InlineEntry\InlineFieldChoicesProvider'
     calls:
       - [setTranslator, ["@translator"]]
+
+  Roanja\Module\RjMulticarrier\Service\InlineEntry\InlineFieldChoicesProvider:
+    arguments:
+      $carrierRepository: '@Roanja\Module\RjMulticarrier\Repository\CarrierRepository'
+      $typeShipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository'
 
   Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentDoctrineGridDataFactory:
     class: PrestaShop\PrestaShop\Core\Grid\Data\Factory\DoctrineGridDataFactory
@@ -555,14 +561,23 @@ services:
       $queryParser: "@prestashop.core.grid.query.doctrine_query_parser"
       $gridId: "rj_multicarrier_info_shipment"
 
+  Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentGridFilterFormFactory:
+    class: PrestaShop\PrestaShop\Core\Grid\Filter\FilterFormFactoryFormActionDecorator
+    arguments:
+      $delegate: '@prestashop.core.grid.filter.form_factory'
+      $urlGenerator: '@router'
+      $formActionRoute: 'admin_rj_multicarrier_info_shipments_search'
+
   Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentGridDataFactory:
-    alias: 'Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentDoctrineGridDataFactory'
+    class: Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentGridDataFactoryDecorator
+    arguments:
+      $infoShipmentDoctrineGridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentDoctrineGridDataFactory'
 
   Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentGridFactory:
     arguments:
       $gridDefinitionFactory: '@Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentGridDefinitionFactory'
       $gridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentGridDataFactory'
-      $gridFilterFormFactory: "@prestashop.core.grid.filter.form_factory"
+      $gridFilterFormFactory: '@Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentGridFilterFormFactory'
       $hookDispatcher: "@prestashop.core.hook.dispatcher"
 
   Roanja\Module\RjMulticarrier\Grid\Configuration\ConfigurationQueryBuilder:

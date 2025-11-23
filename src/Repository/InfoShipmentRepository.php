@@ -62,6 +62,8 @@ class InfoShipmentRepository extends ServiceEntityRepository
                 'company.id AS carrier_id',
                 'company.name AS carrier_name',
                 'company.shortName AS carrier_short_name',
+                'package.employeeId AS id_employee',
+                'package.employeeName AS employee_name',
             ]);
 
         $this->applyShopRestriction($qb);
@@ -131,6 +133,8 @@ class InfoShipmentRepository extends ServiceEntityRepository
                 'package.length AS length',
                 'package.width AS width',
                 'package.height AS height',
+                'package.employeeId AS id_employee',
+                'package.employeeName AS employee_name',
                 'package.cashOnDelivery AS cash_ondelivery',
                 'package.message AS message',
                 'package.hourFrom AS hour_from',
@@ -220,6 +224,8 @@ class InfoShipmentRepository extends ServiceEntityRepository
             'id_reference_carrier' => $package->getReferenceCarrierId(),
             'id_type_shipment' => $package->getTypeShipment()?->getId(),
             'id_carrier' => $package->getTypeShipment()?->getCarrier()->getId(),
+            'id_employee' => $package->getEmployeeId(),
+            'employee_name' => $package->getEmployeeName(),
             'quantity' => $package->getQuantity(),
             'weight' => $package->getWeight(),
             'length' => $package->getLength(),

@@ -1,0 +1,5 @@
+Cuando se quieren bloquear todos los transportitas para una zona, aun sigue apareciendo todos.
+Solo dejar Transportistas permitidos y Transportistas a bloqueados.
+Revisar la prioridad
+Seleccionar operario: es el empleado.
+Pago contrareembolso, aunque sea diferente al pago completo.

@@ -72,6 +72,11 @@ final class ShipmentGridDefinitionFactory extends AbstractModuleGridDefinitionFa
                 ->setOptions([
                     'field' => 'shop_name',
                 ]))
+            ->add((new DataColumn('employee_name'))
+                ->setName($this->transString('Employee'))
+                ->setOptions([
+                    'field' => 'employee_name',
+                ]))
             ->add((new DataColumn('company_shortname'))
                 ->setName($this->transString('Carrier'))
                 ->setOptions([
@@ -153,6 +158,14 @@ final class ShipmentGridDefinitionFactory extends AbstractModuleGridDefinitionFa
                     ],
                 ])
                 ->setAssociatedColumn('company_shortname'))
+            ->add((new Filter('employee_name', TextType::class))
+                ->setTypeOptions([
+                    'required' => false,
+                    'attr' => [
+                        'placeholder' => $this->transString('Employee'),
+                    ],
+                ])
+                ->setAssociatedColumn('employee_name'))
             ->add((new Filter('reference_order', TextType::class))
                 ->setTypeOptions([
                     'required' => false,

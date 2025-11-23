@@ -107,6 +107,8 @@ function ready(callback) {
 ready(() => {
   initDetailModals();
   initPanelModals();
+  initInlinePanelRows();
+  initInlineEmployeeSelects();
 
   const containers = document.querySelectorAll('.js-grid');
 
@@ -268,6 +270,33 @@ ready(() => {
   }, true);
 
 });
+
+function initInlineEmployeeSelects() {
+  document.addEventListener('change', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) {
+      return;
+    }
+
+    const select = target.closest('.js-inline-employee-select');
+    if (!select) {
+      return;
+    }
+
+    const hiddenId = select.getAttribute('data-hidden-target');
+    if (!hiddenId) {
+      return;
+    }
+
+    const hidden = document.getElementById(hiddenId);
+    if (!hidden) {
+      return;
+    }
+
+    const option = select.options && select.selectedIndex >= 0 ? select.options[select.selectedIndex] : null;
+    hidden.value = option ? (option.textContent || '').trim() : '';
+  });
+}
 
 function initDetailModals() {
   const modals = document.querySelectorAll('.js-detail-modal');
@@ -502,6 +531,168 @@ function setupPanelModal(modal, triggerSelector) {
     }
     fetchPanel(url, trigger);
   }, true);
+}
+
+function initInlinePanelRows() {
+  const grid = document.querySelector('[data-grid-id="rj_multicarrier_info_shipment"]');
+
+  if (!grid) {
+    return;
+  }
+
+  grid.addEventListener('click', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) {
+      return;
+    }
+
+    const trigger = target.closest('.js-info-shipment-inline-row-action');
+    if (!trigger) {
+      return;
+    }
+
+    const url = trigger.getAttribute('href') || trigger.dataset.href || trigger.dataset.url;
+    if (!url) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    if (typeof event.stopImmediatePropagation === 'function') {
+      event.stopImmediatePropagation();
+    }
+
+    openInlinePanelRow(trigger, url);
+  });
+}
+
+function openInlinePanelRow(trigger, url) {
+  const row = trigger.closest('tr');
+
+  if (!row || !row.parentNode) {
+    window.location.href = url;
+    return;
+  }
+
+  const existing = row.nextElementSibling;
+  if (existing && existing.classList && existing.classList.contains('rj-inline-form-row') && existing.dataset.panelUrl === url) {
+    existing.parentNode.removeChild(existing);
+    row.classList.remove('rj-inline-form-target');
+    return;
+  }
+
+  closeAllInlinePanelRows();
+
+  const colCount = Math.max(row.children.length, row.querySelectorAll('td,th').length, 1);
+  const inlineRow = document.createElement('tr');
+  inlineRow.className = 'rj-inline-form-row';
+  inlineRow.dataset.panelUrl = url;
+  inlineRow.dataset.loading = '1';
+
+  const cell = document.createElement('td');
+  cell.colSpan = colCount;
+  cell.className = 'p-0 align-top';
+  const loader = buildInlinePanelLoaderElement();
+  if (loader) {
+    cell.appendChild(loader);
+  }
+
+  inlineRow.appendChild(cell);
+  row.parentNode.insertBefore(inlineRow, row.nextSibling);
+  row.classList.add('rj-inline-form-target');
+
+  fetchInlinePanelContent(url, cell)
+    .then(() => {
+      inlineRow.dataset.loading = '0';
+    })
+    .catch(() => {
+      inlineRow.dataset.loading = '0';
+    });
+}
+
+function closeAllInlinePanelRows() {
+  document.querySelectorAll('.rj-inline-form-row').forEach((inlineRow) => {
+    if (inlineRow.parentNode) {
+      inlineRow.parentNode.removeChild(inlineRow);
+    }
+  });
+
+  document.querySelectorAll('.rj-inline-form-target').forEach((tr) => {
+    tr.classList.remove('rj-inline-form-target');
+  });
+}
+
+function buildInlinePanelLoaderElement() {
+  const config = (window.rjMulticarrier && window.rjMulticarrier.inlinePanelConfig) || {};
+  const loadingLabel = String(config.loadingLabel || 'Cargando…');
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'rj-inline-form-loader text-center py-4';
+
+  const spinner = document.createElement('span');
+  spinner.className = 'spinner-border';
+  spinner.setAttribute('role', 'status');
+  spinner.setAttribute('aria-hidden', 'true');
+
+  const srOnly = document.createElement('span');
+  srOnly.className = 'sr-only';
+  srOnly.textContent = loadingLabel;
+
+  wrapper.appendChild(spinner);
+  wrapper.appendChild(srOnly);
+
+  return wrapper;
+}
+
+function fetchInlinePanelContent(url, container) {
+  const config = (window.rjMulticarrier && window.rjMulticarrier.inlinePanelConfig) || {};
+  const genericError = config.genericError || 'Error';
+  const notFoundError = config.notFoundError || genericError;
+
+  return fetch(url, {
+    method: 'GET',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      Accept: 'text/html',
+    },
+    credentials: 'same-origin',
+  })
+    .then((response) => {
+      if (response.status === 404) {
+        throw new Error(notFoundError);
+      }
+
+      if (!response.ok) {
+        return response.text().then((text) => {
+          const trimmed = (text || '').trim();
+          throw new Error(trimmed || `${genericError} (Status: ${response.status})`);
+        });
+      }
+
+      return response.text();
+    })
+    .then((html) => {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'rj-inline-form-wrapper p-3';
+      wrapper.innerHTML = html;
+      container.innerHTML = '';
+      container.appendChild(wrapper);
+      executeInlineScripts(container);
+
+      if (window.rjMulticarrier && typeof window.rjMulticarrier.initOrderPanel === 'function') {
+        window.rjMulticarrier.initOrderPanel(container);
+      }
+
+      return html;
+    })
+    .catch((error) => {
+      const alert = document.createElement('div');
+      alert.className = 'alert alert-danger m-3';
+      alert.textContent = error && error.message ? error.message : genericError;
+      container.innerHTML = '';
+      container.appendChild(alert);
+      throw error;
+    });
 }
 
 function setupDetailModal(modal, triggerSelector) {

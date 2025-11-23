@@ -56,6 +56,12 @@ class InfoShipment
     #[ORM\Column(name: 'height', type: 'float', nullable: true)]
     private ?float $height = null;
 
+    #[ORM\Column(name: 'id_employee', type: 'integer', nullable: true)]
+    private ?int $employeeId = null;
+
+    #[ORM\Column(name: 'employee_name', type: 'string', length: 255, nullable: true)]
+    private ?string $employeeName = null;
+
     #[ORM\Column(name: 'cash_ondelivery', type: 'decimal', precision: 20, scale: 6, nullable: true)]
     private ?string $cashOnDelivery = null;
 
@@ -88,7 +94,7 @@ class InfoShipment
         $this->quantity = $quantity;
         $this->weight = $weight;
         $this->shops = new ArrayCollection();
-        
+
         // Initialize timestamps to prevent NULL constraint violations
         $now = new \DateTimeImmutable();
         $this->createdAt = $now;
@@ -296,6 +302,31 @@ class InfoShipment
     public function setDorig(?string $dorig): self
     {
         $this->dorig = $dorig;
+
+        return $this;
+    }
+
+    public function getEmployeeId(): ?int
+    {
+        return $this->employeeId;
+    }
+
+    public function setEmployeeId(?int $employeeId): self
+    {
+        $this->employeeId = null !== $employeeId && $employeeId > 0 ? $employeeId : null;
+
+        return $this;
+    }
+
+    public function getEmployeeName(): ?string
+    {
+        return $this->employeeName;
+    }
+
+    public function setEmployeeName(?string $employeeName): self
+    {
+        $trimmed = null === $employeeName ? null : trim($employeeName);
+        $this->employeeName = '' === $trimmed ? null : $trimmed;
 
         return $this;
     }

@@ -125,6 +125,14 @@ final class ShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
                             ->setParameter($parameter, $this->buildContainsPattern($value));
                     }
                     break;
+                case 'employee_name':
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $parameter = $parameterPrefix . 'employee_name';
+                        $qb->andWhere(sprintf('shipment.employee_name LIKE :%s', $parameter))
+                            ->setParameter($parameter, $this->buildContainsPattern($value));
+                    }
+                    break;
                 case 'product':
                     $value = $this->resolveScalarFilterValue($filterValue);
                     if (null !== $value) {
@@ -179,6 +187,7 @@ final class ShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
             'id_order' => 'shipment.id_order',
             'shop_name' => 'shop.name',
             'company_shortname' => 'company.shortname',
+            'employee_name' => 'shipment.employee_name',
             'reference_order' => 'shipment.reference_order',
             'num_shipment' => 'shipment.num_shipment',
             'product' => 'shipment.product',
@@ -242,6 +251,8 @@ final class ShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
                 'shipment.id_order',
                 'shipment.reference_order',
                 'shipment.num_shipment',
+                'shipment.id_employee',
+                'shipment.employee_name',
                 'shipment.product',
                 'shipment.date_add',
                 'company.name AS company_name',

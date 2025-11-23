@@ -52,6 +52,8 @@ final class UpsertInfoShipmentHandler
             ->setRcsEnabled($command->isRcsEnabled())
             ->setVsec($command->getVsec())
             ->setDorig($command->getDorig())
+            ->setEmployeeId($command->getEmployeeId())
+            ->setEmployeeName($command->getEmployeeName())
             ->touch(); // Update timestamp
 
         $this->entityManager->flush();

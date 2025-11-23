@@ -1,4 +1,4 @@
--- Active: generate@local
+-- Active: 1762970070909@@localhost@3306@gcroma
 -- Carrier-level configuration key/value pairs
 INSERT INTO `ps_rj_multicarrier_carrier_configuration`
   (`id_carrier_configuration`, `id_shop_group`, `id_shop`, `id_carrier`, `id_type_shipment`,

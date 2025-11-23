@@ -53,6 +53,8 @@ final class GenerateShipmentHandler
             ? (int) $companyData['id_carrier']
             : null;
 
+        [$employeeId, $employeeName] = $this->resolveEmployeeContext();
+
         $createShipmentCommand = new CreateShipmentCommand(
             $command->getOrderId(),
             $command->getOrderReference(),
@@ -64,9 +66,33 @@ final class GenerateShipmentHandler
             isset($normalizedPayload['name_carrier']) ? (string) $normalizedPayload['name_carrier'] : null,
             $normalizedPayload,
             $result->getResponsePayload(),
-            $result->getLabels()
+            $result->getLabels(),
+            $employeeId,
+            $employeeName
         );
 
         return $this->createShipmentHandler->handle($createShipmentCommand);
+    }
+
+    /**
+     * @return array{0:?int,1:?string}
+     */
+    private function resolveEmployeeContext(): array
+    {
+        $context = \Context::getContext();
+        $employee = $context->employee ?? null;
+
+        if (null === $employee) {
+            return [null, null];
+        }
+
+        $employeeId = isset($employee->id) ? (int) $employee->id : null;
+        $fullName = trim(sprintf('%s %s', (string) ($employee->firstname ?? ''), (string) ($employee->lastname ?? '')));
+
+        if ('' === $fullName && isset($employee->email)) {
+            $fullName = (string) $employee->email;
+        }
+
+        return [$employeeId, '' !== $fullName ? $fullName : null];
     }
 }

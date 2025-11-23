@@ -24,12 +24,8 @@ final class ValidationRuleGridDataFactory implements GridDataFactoryInterface
         $records = [];
 
         foreach ($gridData->getRecords() as $record) {
-            $scopeLabel = $this->formatScope(
-                $record['shop_group_name'] ?? null,
-                $record['shop_name'] ?? null
-            );
-
-            $record['scope_label'] = $scopeLabel;
+            $shopLabel = trim((string) ($record['shop_name'] ?? ''));
+            $record['shop_label'] = $shopLabel === '' ? 'No asignada' : $shopLabel;
             $record['updated_at'] = $record['updated_at'] ?? '';
 
             $records[] = $record;
@@ -42,16 +38,4 @@ final class ValidationRuleGridDataFactory implements GridDataFactoryInterface
         );
     }
 
-    private function formatScope(?string $shopGroupName, ?string $shopName): string
-    {
-        if (null !== $shopName && '' !== $shopName) {
-            return sprintf('Tienda: %s', $shopName);
-        }
-
-        if (null !== $shopGroupName && '' !== $shopGroupName) {
-            return sprintf('Grupo: %s', $shopGroupName);
-        }
-
-        return 'Global';
-    }
 }

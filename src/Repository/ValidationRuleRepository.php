@@ -27,28 +27,18 @@ class ValidationRuleRepository extends ServiceEntityRepository
      *
      * @return ValidationRule[]
      */
-    public function findActiveRulesForContext(?int $shopId, ?int $shopGroupId): array
+    public function findActiveRulesForShop(?int $shopId): array
     {
+        if (null === $shopId) {
+            return [];
+        }
+
         $qb = $this->createQueryBuilder('r')
             ->where('r.active = :active')
+            ->andWhere('r.shopId = :shopId')
             ->setParameter('active', true)
+            ->setParameter('shopId', $shopId)
             ->orderBy('r.priority', 'ASC');
-
-        $scopeConditions = [$qb->expr()->andX('r.shopId IS NULL', 'r.shopGroupId IS NULL')];
-
-        if (null !== $shopGroupId) {
-            $scopeConditions[] = $qb->expr()->andX('r.shopId IS NULL', 'r.shopGroupId = :shopGroupId');
-            $qb->setParameter('shopGroupId', $shopGroupId);
-        }
-
-        if (null !== $shopId) {
-            $scopeConditions[] = 'r.shopId = :shopId';
-            $qb->setParameter('shopId', $shopId);
-        }
-
-        if (!empty($scopeConditions)) {
-            $qb->andWhere($qb->expr()->orX(...$scopeConditions));
-        }
 
         return $qb->getQuery()->getResult();
     }

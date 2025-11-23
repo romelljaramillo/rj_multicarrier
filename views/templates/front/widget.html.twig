@@ -1,3 +1,16 @@
-<div class="rj-multicarrier-widget" data-hook="{{ hook }}">
-  <!-- Placeholder widget output -->
-</div>
+{% set messages = configuration.rj_multicarrier_messages ?? [] %}
+{% if hook == 'displayBeforeCarrier' and messages|length > 0 %}
+  <div class="rj-multicarrier-widget" data-hook="{{ hook }}">
+    <div class="alert alert-warning" role="alert">
+      {% if messages|length > 1 %}
+        <ul class="mb-0 pl-3">
+          {% for message in messages %}
+            <li>{{ message.text }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="mb-0">{{ messages[0].text }}</p>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}

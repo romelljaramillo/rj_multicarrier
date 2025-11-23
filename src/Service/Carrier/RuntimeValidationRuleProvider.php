@@ -18,9 +18,13 @@ final class RuntimeValidationRuleProvider implements ValidationRuleProviderInter
     {
     }
 
-    public function getActiveRules(?int $shopId, ?int $shopGroupId): array
+    public function getActiveRules(?int $shopId): array
     {
-        $cacheKey = sprintf('%s|%s', (string) ($shopGroupId ?? 'g0'), (string) ($shopId ?? 's0'));
+        if (null === $shopId) {
+            return [];
+        }
+
+        $cacheKey = sprintf('shop-%s', (string) $shopId);
 
         if (isset($this->cache[$cacheKey])) {
             return $this->cache[$cacheKey];
@@ -30,7 +34,7 @@ final class RuntimeValidationRuleProvider implements ValidationRuleProviderInter
             return $this->cache[$cacheKey] = [];
         }
 
-        $rows = $this->fetchRuleRows($shopId, $shopGroupId);
+        $rows = $this->fetchRuleRows($shopId);
 
         if (empty($rows)) {
             return $this->cache[$cacheKey] = [];
@@ -58,7 +62,6 @@ final class RuntimeValidationRuleProvider implements ValidationRuleProviderInter
                     'allow' => $this->normalizeReferences($row['allow_ids'] ?? null),
                     'deny' => $this->normalizeReferences($row['deny_ids'] ?? null),
                     'add' => $this->normalizeReferences($row['add_ids'] ?? null),
-                    'prefer' => $this->normalizeReferences($row['prefer_ids'] ?? null),
                 ],
             ];
         }
@@ -68,18 +71,13 @@ final class RuntimeValidationRuleProvider implements ValidationRuleProviderInter
         return $this->cache[$cacheKey] = $rules;
     }
 
-    private function fetchRuleRows(?int $shopId, ?int $shopGroupId): array
+    private function fetchRuleRows(int $shopId): array
     {
-        $clauses = ['active = 1'];
-
-        $scopes = $this->buildScopeClauses($shopId, $shopGroupId);
-        if (!empty($scopes)) {
-            $clauses[] = '(' . implode(' OR ', $scopes) . ')';
-        }
+        $clauses = ['active = 1', sprintf('shop_id = %d', $shopId)];
 
         $sql = sprintf(
             'SELECT name, priority, product_ids, category_ids, zone_ids, country_ids, '
-            . 'min_weight, max_weight, allow_ids, deny_ids, add_ids, prefer_ids '
+            . 'min_weight, max_weight, allow_ids, deny_ids, add_ids '
             . 'FROM `%1$srj_multicarrier_validation_rule` '
             . 'WHERE %2$s '
             . 'ORDER BY priority ASC',
@@ -88,21 +86,6 @@ final class RuntimeValidationRuleProvider implements ValidationRuleProviderInter
         );
 
         return (array) \Db::getInstance()->executeS($sql);
-    }
-
-    private function buildScopeClauses(?int $shopId, ?int $shopGroupId): array
-    {
-        $scopes = ['(shop_id IS NULL AND shop_group_id IS NULL)'];
-
-        if (null !== $shopGroupId) {
-            $scopes[] = sprintf('(shop_id IS NULL AND shop_group_id = %d)', $shopGroupId);
-        }
-
-        if (null !== $shopId) {
-            $scopes[] = sprintf('shop_id = %d', $shopId);
-        }
-
-        return array_values(array_unique($scopes));
     }
 
     private function decodeIntList(?string $value): array

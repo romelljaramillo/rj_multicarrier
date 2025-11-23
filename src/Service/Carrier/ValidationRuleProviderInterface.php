@@ -11,5 +11,5 @@ interface ValidationRuleProviderInterface
     /**
      * @return array<int, array{priority:int,name:string,conditions:array<string, mixed>,actions:array<string, array<int>>}>
      */
-    public function getActiveRules(?int $shopId, ?int $shopGroupId): array;
+    public function getActiveRules(?int $shopId): array;
 }

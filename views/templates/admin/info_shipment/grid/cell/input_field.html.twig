@@ -1,0 +1,16 @@
+{% set config = column.options.input|default({}) %}
+{% set field = config.field|default(column.id) %}
+{% set type = config.type|default('text') %}
+{% set value = record.inline_form[field]|default('') %}
+{% set placeholder = config.placeholder|default('') %}
+{% set extraClasses = config.class|default('') %}
+<input type="{{ type }}"
+       class="form-control form-control-sm js-inline-input {{ extraClasses }}"
+       data-field="{{ field }}"
+       value="{{ value }}"
+       {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+       {% for attrName, attrValue in config %}
+         {% if attrName not in ['field', 'type', 'placeholder', 'class'] %}
+           {{ attrName }}="{{ attrValue }}"
+         {% endif %}
+       {% endfor %}>

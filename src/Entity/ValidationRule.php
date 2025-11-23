@@ -32,9 +32,6 @@ class ValidationRule
     #[ORM\Column(name: 'shop_id', type: 'integer', nullable: true)]
     private ?int $shopId = null;
 
-    #[ORM\Column(name: 'shop_group_id', type: 'integer', nullable: true)]
-    private ?int $shopGroupId = null;
-
     #[ORM\Column(name: 'product_ids', type: 'json', nullable: true)]
     private ?array $productIds = null;
 
@@ -61,9 +58,6 @@ class ValidationRule
 
     #[ORM\Column(name: 'add_ids', type: 'json', nullable: true)]
     private ?array $addIds = null;
-
-    #[ORM\Column(name: 'prefer_ids', type: 'json', nullable: true)]
-    private ?array $preferIds = null;
 
     #[ORM\Column(name: 'created_at', type: 'datetime', nullable: true)]
     private ?\DateTimeInterface $createdAt = null;
@@ -120,18 +114,6 @@ class ValidationRule
     public function setShopId(?int $shopId): self
     {
         $this->shopId = $shopId;
-
-        return $this;
-    }
-
-    public function getShopGroupId(): ?int
-    {
-        return $this->shopGroupId;
-    }
-
-    public function setShopGroupId(?int $shopGroupId): self
-    {
-        $this->shopGroupId = $shopGroupId;
 
         return $this;
     }
@@ -240,18 +222,6 @@ class ValidationRule
     public function setAddIds(?array $ids): self
     {
         $this->addIds = $ids;
-
-        return $this;
-    }
-
-    public function getPreferIds(): array
-    {
-        return $this->preferIds ?? [];
-    }
-
-    public function setPreferIds(?array $ids): self
-    {
-        $this->preferIds = $ids;
 
         return $this;
     }

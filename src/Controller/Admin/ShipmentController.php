@@ -250,6 +250,8 @@ final class ShipmentController extends FrameworkBundleAdminController
             'labels' => $data['labels'],
             'account' => $metadata['account'] ?? null,
             'product' => $metadata['product'] ?? null,
+            'employeeId' => $metadata['employeeId'] ?? null,
+            'employeeName' => $metadata['employeeName'] ?? null,
             'deleted' => (bool) ($metadata['deleted'] ?? false),
             'requestPayload' => $metadata['requestPayload'] ?? null,
             'responsePayload' => $metadata['responsePayload'] ?? null,
@@ -389,6 +391,8 @@ final class ShipmentController extends FrameworkBundleAdminController
             'Order Reference',
             'Shipment Number',
             'Carrier',
+            'Employee ID',
+            'Employee Name',
             'Package Weight',
             'Package Width',
             'Package Height',
@@ -403,6 +407,7 @@ final class ShipmentController extends FrameworkBundleAdminController
         foreach ($shipments as $shipment) {
             $package = $shipment->getPackage();
             $labels = $shipment->getLabels();
+            $metadata = $shipment->getMetadata();
 
             $row = [
                 $shipment->getId(),
@@ -410,6 +415,8 @@ final class ShipmentController extends FrameworkBundleAdminController
                 '"' . str_replace('"', '""', $shipment->getOrderReference() ?? '') . '"',
                 '"' . str_replace('"', '""', $shipment->getShipmentNumber() ?? '') . '"',
                 '"' . str_replace('"', '""', $shipment->getCarrierShortName() ?? '') . '"',
+                $metadata['employeeId'] ?? '',
+                '"' . str_replace('"', '""', (string) ($metadata['employeeName'] ?? '')) . '"',
                 $package['weight'] ?? '',
                 $package['width'] ?? '',
                 $package['height'] ?? '',

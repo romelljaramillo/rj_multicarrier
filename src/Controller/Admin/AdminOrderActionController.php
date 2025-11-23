@@ -11,6 +11,8 @@ use Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\ShipmentRepository;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Query\GetTypeShipmentForView;
 use Roanja\Module\RjMulticarrier\Service\Shipment\ShipmentGenerationService;
+use \Employee;
+use \Validate;
 use PrestaShopBundle\Controller\Admin\FrameworkBundleAdminController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -75,6 +77,16 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
         $rcs = (bool) $request->request->get('rj_rcs');
         $vsec = $this->normalizeStringValue($request->request->get('rj_vsec'));
         $dorig = $this->normalizeStringValue($request->request->get('rj_dorig'));
+        $employeeId = $this->normalizeEmployeeId($request->request->get('rj_employee_id'));
+        $employeeName = $this->normalizeStringValue($request->request->get('rj_employee_name'));
+
+        if (null === $employeeName && null !== $employeeId) {
+            $employeeName = $this->resolveEmployeeNameById($employeeId);
+        }
+
+        if (null === $employeeId && null === $employeeName) {
+            [$employeeId, $employeeName] = $this->resolveCurrentEmployee();
+        }
 
         /** @var ShipmentRepository $shipmentRepository */
         $shipmentRepository = $this->get(ShipmentRepository::class);
@@ -100,6 +112,8 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
                 $rcs,
                 $vsec,
                 $dorig,
+                $employeeId,
+                $employeeName,
                 $shopId
             ));
 
@@ -233,6 +247,62 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
         }
 
         return $time;
+    }
+
+    private function normalizeEmployeeId($value): ?int
+    {
+        if ($value === null || '' === trim((string) $value)) {
+            return null;
+        }
+
+        $candidate = (int) $value;
+
+        return $candidate > 0 ? $candidate : null;
+    }
+
+    private function resolveEmployeeNameById(int $employeeId): ?string
+    {
+        if ($employeeId <= 0) {
+            return null;
+        }
+
+        try {
+            $employee = new Employee($employeeId);
+            if (Validate::isLoadedObject($employee)) {
+                $name = trim(sprintf('%s %s', (string) ($employee->firstname ?? ''), (string) ($employee->lastname ?? '')));
+                if ('' === $name && isset($employee->email)) {
+                    $name = (string) $employee->email;
+                }
+
+                return '' === $name ? null : $name;
+            }
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{0:?int,1:?string}
+     */
+    private function resolveCurrentEmployee(): array
+    {
+        $context = \Context::getContext();
+        $employee = $context->employee ?? null;
+
+        if (null === $employee) {
+            return [null, null];
+        }
+
+        $employeeId = isset($employee->id) ? (int) $employee->id : null;
+        $fullName = trim(sprintf('%s %s', (string) ($employee->firstname ?? ''), (string) ($employee->lastname ?? '')));
+
+        if ('' === $fullName && isset($employee->email)) {
+            $fullName = (string) $employee->email;
+        }
+
+        return [$employeeId, '' === $fullName ? null : $fullName];
     }
 
     private function translate(string $message, array $parameters = []): string

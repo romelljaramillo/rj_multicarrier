@@ -20,6 +20,7 @@ if (!defined('_PS_VERSION_')) {
     exit;
 }
 
+
 if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . '/vendor/autoload.php';
 }
@@ -74,6 +75,11 @@ class Rj_Multicarrier extends Module implements WidgetInterface
 
     /** @var ValidationRuleApplier|null */
     private $validationRuleApplier;
+
+    /**
+     * @var array<int|string, array<int, array{rule_names: string[], dimensions: string[]}>>
+     */
+    private array $lastCheckoutBlockSummaries = [];
 
     public function __construct()
     {
@@ -174,6 +180,8 @@ class Rj_Multicarrier extends Module implements WidgetInterface
             return;
         }
 
+        $this->rememberCheckoutBlockSummaries([]);
+
         try {
             $packages = $cart->getPackageList(true);
 
@@ -182,6 +190,7 @@ class Rj_Multicarrier extends Module implements WidgetInterface
             }
 
             $updatedPackages = $applier->apply($packages, $cart);
+            $this->rememberCheckoutBlockSummaries($applier->getLastBlockedSummaries());
             $cacheKey = (int) $cart->id . '_' . (int) $cart->id_address_delivery;
 
             $this->writeCartPackageCache((string) $cacheKey, $updatedPackages);
@@ -222,6 +231,8 @@ class Rj_Multicarrier extends Module implements WidgetInterface
 
     public function hookDisplayBeforeCarrier(array $params)
     {
+        $params['rj_multicarrier_messages'] = $this->buildBlockedMessages();
+
         return $this->renderWidget('displayBeforeCarrier', $params);
     }
 
@@ -289,6 +300,8 @@ class Rj_Multicarrier extends Module implements WidgetInterface
             return;
         }
 
+        $this->rememberCheckoutBlockSummaries([]);
+
         try {
             $packages = $cart->getPackageList(true);
 
@@ -297,6 +310,7 @@ class Rj_Multicarrier extends Module implements WidgetInterface
             }
 
             $updatedPackages = $applier->apply($packages, $cart);
+            $this->rememberCheckoutBlockSummaries($applier->getLastBlockedSummaries());
 
             $allowedByAddress = [];
 
@@ -682,6 +696,16 @@ class Rj_Multicarrier extends Module implements WidgetInterface
         $rcs = (bool) Tools::getValue('rj_rcs');
         $vsec = $this->normalizeStringValue(Tools::getValue('rj_vsec'));
         $dorig = $this->normalizeStringValue(Tools::getValue('rj_dorig'));
+        $employeeId = $this->normalizeEmployeeId(Tools::getValue('rj_employee_id'));
+        $employeeName = $this->normalizeStringValue(Tools::getValue('rj_employee_name'));
+
+        if (null === $employeeName && null !== $employeeId) {
+            $employeeName = $this->resolveEmployeeNameById($employeeId);
+        }
+
+        if (null === $employeeId && null === $employeeName) {
+            [$employeeId, $employeeName] = $this->resolveCurrentEmployee();
+        }
 
         /** @var UpsertInfoShipmentHandler $handler */
         $handler = $this->get(UpsertInfoShipmentHandler::class);
@@ -704,6 +728,8 @@ class Rj_Multicarrier extends Module implements WidgetInterface
                 $rcs,
                 $vsec,
                 $dorig,
+                $employeeId,
+                $employeeName,
                 $shopId
             )
         );
@@ -794,6 +820,69 @@ class Rj_Multicarrier extends Module implements WidgetInterface
         $trimmed = trim((string) $value);
 
         return '' === $trimmed ? null : $trimmed;
+    }
+
+    private function normalizeEmployeeId($value): ?int
+    {
+        if ($value === null || '' === trim((string) $value)) {
+            return null;
+        }
+
+        $candidate = (int) $value;
+
+        return $candidate > 0 ? $candidate : null;
+    }
+
+    private function resolveEmployeeNameById(int $employeeId): ?string
+    {
+        if ($employeeId <= 0) {
+            return null;
+        }
+
+        try {
+            $db = \Db::getInstance();
+            $sql = sprintf(
+                'SELECT firstname, lastname, email FROM %semployee WHERE id_employee = %d LIMIT 1',
+                _DB_PREFIX_,
+                (int) $employeeId
+            );
+
+            $row = $db->getRow($sql);
+            if (!is_array($row)) {
+                return null;
+            }
+
+            $name = trim(sprintf('%s %s', (string) ($row['firstname'] ?? ''), (string) ($row['lastname'] ?? '')));
+            if ('' === $name && isset($row['email'])) {
+                $name = (string) $row['email'];
+            }
+
+            return '' === $name ? null : $name;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * @return array{0:?int,1:?string}
+     */
+    private function resolveCurrentEmployee(): array
+    {
+        $context = \Context::getContext();
+        $employee = $context->employee ?? null;
+
+        if (null === $employee) {
+            return [null, null];
+        }
+
+        $employeeId = isset($employee->id) ? (int) $employee->id : null;
+        $fullName = trim(sprintf('%s %s', (string) ($employee->firstname ?? ''), (string) ($employee->lastname ?? '')));
+
+        if ('' === $fullName && isset($employee->email)) {
+            $fullName = (string) $employee->email;
+        }
+
+        return [$employeeId, '' === $fullName ? null : $fullName];
     }
 
     private function resolveValidationRuleApplier(): ?ValidationRuleApplier
@@ -914,5 +1003,124 @@ class Rj_Multicarrier extends Module implements WidgetInterface
         }
 
         return true;
+    }
+
+    private function rememberCheckoutBlockSummaries(array $summaries): void
+    {
+        $this->lastCheckoutBlockSummaries = $summaries;
+    }
+
+    /**
+     * @return array<int, array{address_id: string, text: string}>
+     */
+    private function buildBlockedMessages(): array
+    {
+        if (empty($this->lastCheckoutBlockSummaries)) {
+            return [];
+        }
+
+        $messages = [];
+
+        foreach ($this->lastCheckoutBlockSummaries as $addressId => $summaries) {
+            foreach ($summaries as $summary) {
+                $text = $this->formatBlockedMessage($summary);
+
+                if ($text === null) {
+                    continue;
+                }
+
+                $messages[] = [
+                    'address_id' => (string) $addressId,
+                    'text' => $text,
+                ];
+            }
+        }
+
+        return $messages;
+    }
+
+    private function formatBlockedMessage(array $summary): ?string
+    {
+        $dimensions = $summary['dimensions'] ?? [];
+
+        if (empty($dimensions)) {
+            return null;
+        }
+
+        $labels = [];
+
+        foreach ($dimensions as $dimension) {
+            if (!is_string($dimension)) {
+                continue;
+            }
+
+            $label = $this->formatDimensionLabel($dimension);
+
+            if ($label !== null) {
+                $labels[] = $label;
+            }
+        }
+
+        if (empty($labels)) {
+            return null;
+        }
+
+        $dimensionText = $this->formatList($labels);
+
+        $ruleNames = array_values(array_filter($summary['rule_names'] ?? [], static function ($name): bool {
+            return is_string($name) && '' !== trim($name);
+        }));
+
+        $ruleHint = '';
+
+        if (!empty($ruleNames)) {
+            $ruleHint = $this->trans(
+                ' (reglas: %names%)',
+                ['%names%' => $this->formatList(array_map(static fn ($name) => trim((string) $name), $ruleNames))],
+                'Modules.RjMulticarrier.Shop'
+            );
+        }
+
+        return $this->trans(
+            'Las reglas de transporte vinculadas a %dimensions% bloquearon todas las opciones disponibles%rule_hint%. Modifica los artículos del carrito o la dirección de entrega para continuar.',
+            [
+                '%dimensions%' => $dimensionText,
+                '%rule_hint%' => $ruleHint,
+            ],
+            'Modules.RjMulticarrier.Shop'
+        );
+    }
+
+    private function formatDimensionLabel(string $dimension): ?string
+    {
+        return match ($dimension) {
+            'product' => $this->trans('los productos del carrito', [], 'Modules.RjMulticarrier.Shop'),
+            'category' => $this->trans('las categorías del carrito', [], 'Modules.RjMulticarrier.Shop'),
+            'zone' => $this->trans('las zonas geográficas', [], 'Modules.RjMulticarrier.Shop'),
+            'country' => $this->trans('los países de entrega', [], 'Modules.RjMulticarrier.Shop'),
+            'weight' => $this->trans('el rango de peso configurado', [], 'Modules.RjMulticarrier.Shop'),
+            default => null,
+        };
+    }
+
+    private function formatList(array $items): string
+    {
+        $items = array_values(array_filter(array_map(static function ($value) {
+            return is_string($value) ? trim($value) : '';
+        }, $items), static fn ($value) => '' !== $value));
+
+        $count = count($items);
+
+        if ($count === 0) {
+            return '';
+        }
+
+        if ($count === 1) {
+            return $items[0];
+        }
+
+        $last = array_pop($items);
+
+        return implode(', ', $items) . ' y ' . $last;
     }
 }

@@ -66,6 +66,8 @@ final class GetShipmentsByIdsHandler
             $metadata = [
                 'account' => $shipment->getAccount(),
                 'product' => $shipment->getProduct(),
+                'employeeId' => $shipment->getEmployeeId(),
+                'employeeName' => $shipment->getEmployeeName(),
                 'requestPayload' => $shipment->getRequestPayload(),
                 'responsePayload' => $shipment->getResponsePayload(),
                 'deleted' => $shipment->isDeleted(),

@@ -29,6 +29,8 @@ final class UpsertInfoShipmentCommand
         private readonly bool $rcs,
         private readonly ?string $vsec,
         private readonly ?string $dorig,
+        private readonly ?int $employeeId,
+        private readonly ?string $employeeName,
         private readonly int $shopId
     ) {
     }
@@ -116,6 +118,16 @@ final class UpsertInfoShipmentCommand
     public function getDorig(): ?string
     {
         return $this->dorig;
+    }
+
+    public function getEmployeeId(): ?int
+    {
+        return $this->employeeId;
+    }
+
+    public function getEmployeeName(): ?string
+    {
+        return $this->employeeName;
     }
 
     public function getShopId(): int

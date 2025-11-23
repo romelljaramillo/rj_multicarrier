@@ -23,6 +23,16 @@
       }) }}
         {{ form_errors(form) }}
 
+        {% if currentShopName %}
+          <div class="alert alert-info">
+            {{ 'Esta regla se guardará exclusivamente para la tienda: %shop%'|trans({'%shop%': currentShopName}, 'Modules.RjMulticarrier.Admin') }}
+          </div>
+        {% else %}
+          <div class="alert alert-warning">
+            {{ 'Selecciona una tienda concreta en el selector multitienda antes de guardar.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+          </div>
+        {% endif %}
+
         <div class="row">
           <div class="col-md-6">
             <div class="form-group">
@@ -30,9 +40,6 @@
             </div>
             <div class="form-group">
               {{ form_row(form.priority) }}
-            </div>
-            <div class="form-group">
-              {{ form_row(form.scope) }}
             </div>
             <div class="form-group">
               {{ form_row(form.active) }}
@@ -56,9 +63,6 @@
             </div>
             <div class="form-group">
               {{ form_row(form.add_ids) }}
-            </div>
-            <div class="form-group">
-              {{ form_row(form.prefer_ids) }}
             </div>
           </div>
         </div>

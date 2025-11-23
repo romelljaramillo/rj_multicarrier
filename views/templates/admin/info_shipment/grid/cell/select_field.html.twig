@@ -1,0 +1,9 @@
+{% set config = column.options.select|default({}) %}
+{% set field = config.field|default(column.id) %}
+{% set value = record.inline_form[field]|default('') %}
+<select class="form-select form-select-sm js-inline-input"
+        data-field="{{ field }}">
+  {% for choice in config.choices|default([]) %}
+    <option value="{{ choice.value }}" {% if choice.value == value %}selected{% endif %}>{{ choice.label }}</option>
+  {% endfor %}
+</select>

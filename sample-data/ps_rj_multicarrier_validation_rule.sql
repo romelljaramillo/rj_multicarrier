@@ -1,13 +1,12 @@
 -- Active: 1762970070909@@localhost@3306@gcroma
 -- Reglas de validación generadas dinámicamente con referencias de transportistas nativos de PrestaShop
 INSERT INTO `ps_rj_multicarrier_validation_rule`
-	(`name`, `priority`, `active`, `shop_id`, `shop_group_id`, `product_ids`, `category_ids`, `zone_ids`, `country_ids`, `min_weight`, `max_weight`, `allow_ids`, `deny_ids`, `add_ids`, `prefer_ids`, `created_at`, `updated_at`)
+	(`name`, `priority`, `active`, `shop_id`, `product_ids`, `category_ids`, `zone_ids`, `country_ids`, `min_weight`, `max_weight`, `allow_ids`, `deny_ids`, `add_ids`, `created_at`, `updated_at`)
 VALUES
 	(
 		'Regla - Moda ligera Europa',
 		100,
 		1,
-		NULL,
 		NULL,
 		NULL,
 		COALESCE((
@@ -43,11 +42,6 @@ VALUES
 			FROM ps_carrier
 			WHERE deleted = 0 AND id_reference > 0 AND name IN ('My cheap carrier')
 		), '[]'),
-		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
-			FROM ps_carrier
-			WHERE deleted = 0 AND id_reference > 0 AND name IN ('My cheap carrier')
-		), '[]'),
 		NOW(),
 		NOW()
 	),
@@ -55,7 +49,6 @@ VALUES
 		'Regla - Posters recogida local',
 		110,
 		1,
-		NULL,
 		NULL,
 		COALESCE((
 			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT p.id_product ORDER BY p.id_product SEPARATOR ','), ']')
@@ -74,18 +67,12 @@ VALUES
 			WHERE active = 1 AND iso_code IN ('ES')
 		), '[]'),
 		NULL,
-		NULL,
 		COALESCE((
 			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
 			FROM ps_carrier
 			WHERE deleted = 0 AND id_reference > 0 AND name IN ('Click and collect', 'My carrier')
 		), '[]'),
 		NULL,
-		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
-			FROM ps_carrier
-			WHERE deleted = 0 AND id_reference > 0 AND name IN ('Click and collect')
-		), '[]'),
 		COALESCE((
 			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
 			FROM ps_carrier
@@ -98,7 +85,6 @@ VALUES
 		'Regla - Envíos USA solo estándar',
 		120,
 		1,
-		NULL,
 		NULL,
 		NULL,
 		NULL,
@@ -125,11 +111,6 @@ VALUES
 			WHERE deleted = 0 AND id_reference > 0 AND name IN ('Click and collect', 'My cheap carrier')
 		), '[]'),
 		NULL,
-		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
-			FROM ps_carrier
-			WHERE deleted = 0 AND id_reference > 0 AND name IN ('My carrier')
-		), '[]'),
 		NOW(),
 		NOW()
 	),
@@ -158,11 +139,6 @@ VALUES
 			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
 			FROM ps_carrier
 			WHERE deleted = 0 AND id_reference > 0 AND name IN ('My cheap carrier')
-		), '[]'),
-		COALESCE((
-			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')
-			FROM ps_carrier
-			WHERE deleted = 0 AND name IN ('My carrier')
 		), '[]'),
 		COALESCE((
 			SELECT CONCAT('[', GROUP_CONCAT(DISTINCT id_reference ORDER BY id_reference SEPARATOR ','), ']')

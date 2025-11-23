@@ -1,0 +1,15 @@
+{% set fields = {
+  'rj_length': 'L',
+  'rj_width': 'W',
+  'rj_height': 'H'
+} %}
+<div class="rj-inline-dimensions d-flex gap-1">
+  {% for field, label in fields %}
+    <input type="number"
+           class="form-control form-control-sm js-inline-input"
+           data-field="{{ field }}"
+           value="{{ record.inline_form[field]|default('') }}"
+           placeholder="{{ label }}"
+           step="0.01">
+  {% endfor %}
+</div>

@@ -1,0 +1,22 @@
+{% set selectId = 'inline-employee-' ~ record.id_order ~ '-' ~ record.id_info_shipment_raw|default('0') %}
+{% set currentId = (record.inline_form.rj_employee_id|default('')) ~ '' %}
+{% set currentName = record.inline_form.rj_employee_name|default('') %}
+{% set choices = column.options.employee_choices|default([]) %}
+
+<div class="rj-inline-employee">
+       <select id="{{ selectId }}"
+                                   class="form-select form-select-sm js-inline-input js-inline-employee-select"
+                                   data-field="rj_employee_id"
+                                   data-hidden-target="{{ selectId }}-name">
+              <option value="">{{ 'Selecciona empleado'|trans({}, 'Modules.RjMulticarrier.Admin') }}</option>
+              {% for choice in choices %}
+                     {% set choiceValue = (choice.id|default('')) ~ '' %}
+                     <option value="{{ choiceValue }}" {% if choiceValue == currentId %}selected{% endif %}>{{ choice.label }}</option>
+              {% endfor %}
+       </select>
+       <input type="hidden"
+                             id="{{ selectId }}-name"
+                             class="js-inline-input js-inline-employee-name"
+                             data-field="rj_employee_name"
+                             value="{{ currentName }}">
+</div>

@@ -21,6 +21,11 @@
             </div>
           </div>
         {% endblock %}
+        {% block grid_panel_body %}
+          <div class="card-body rj-inline-grid">
+            {{ include('@PrestaShop/Admin/Common/Grid/grid.html.twig', {'grid': grid }) }}
+          </div>
+        {% endblock %}
       {% endembed %}
     </div>
   </div>
@@ -164,4 +169,20 @@
       </div>
     </div>
   </div>
+{% endblock %}
+
+{% block javascripts %}
+  {{ parent() }}
+  <script>
+    window.rjMulticarrier = window.rjMulticarrier || {};
+    window.rjMulticarrier.inlinePanelConfig = Object.assign(
+      {},
+      window.rjMulticarrier.inlinePanelConfig || {},
+      {
+        loadingLabel: '{{ 'Cargando…'|trans({}, 'Admin.Actions')|e('js') }}',
+        genericError: '{{ 'No se pudo cargar la información del pedido.'|trans({}, 'Modules.RjMulticarrier.Admin')|e('js') }}',
+        notFoundError: '{{ 'El pedido solicitado ya no existe.'|trans({}, 'Modules.RjMulticarrier.Admin')|e('js') }}'
+      }
+    );
+  </script>
 {% endblock %}

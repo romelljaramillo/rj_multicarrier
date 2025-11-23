@@ -8,14 +8,6 @@ namespace Roanja\Module\RjMulticarrier\Form\ValidationRule;
 
 use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
 
-if (!class_exists('\Shop') && class_exists('\ShopCore')) {
-    class_alias('\ShopCore', '\Shop');
-}
-
-if (!class_exists('\ShopGroup') && class_exists('\ShopGroupCore')) {
-    class_alias('\ShopGroupCore', '\ShopGroup');
-}
-
 if (!class_exists('\Product') && class_exists('\ProductCore')) {
     class_alias('\ProductCore', '\Product');
 }
@@ -48,61 +40,6 @@ final class ValidationRuleFormOptionsProvider
 {
     public function __construct(private readonly CarrierRepository $carrierRepository)
     {
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    public function getScopeChoices(): array
-    {
-        $choices = [
-            'Todos los contextos' => 'global',
-        ];
-
-        $groupChoices = [];
-
-        if (class_exists('\ShopGroup')) {
-            $groups = \ShopGroup::getShopGroups(false);
-            $groupItems = $groups instanceof \Traversable ? iterator_to_array($groups, false) : (array) $groups;
-
-            foreach ($groupItems as $group) {
-                if (is_array($group)) {
-                    $groupId = (int) ($group['id_shop_group'] ?? $group['id'] ?? 0);
-                    $groupName = (string) ($group['name'] ?? ('ID ' . $groupId));
-                } elseif (is_object($group)) {
-                    $groupId = (int) ($group->id ?? $group->id_shop_group ?? 0);
-                    $groupName = (string) ($group->name ?? ('ID ' . $groupId));
-                } else {
-                    continue;
-                }
-
-                if ($groupId <= 0) {
-                    continue;
-                }
-
-                $label = sprintf('Grupo: %s', $groupName);
-                $groupChoices[$label] = sprintf('group-%d', $groupId);
-            }
-        }
-
-        $choices = array_merge($choices, $groupChoices);
-
-        if (class_exists('\Shop')) {
-            $shops = (array) \Shop::getShops(false, null, true);
-
-            foreach ($shops as $shopId => $shopName) {
-                $shopId = (int) $shopId;
-                if ($shopId <= 0) {
-                    continue;
-                }
-
-                $name = is_string($shopName) ? $shopName : ('ID ' . $shopId);
-                $label = sprintf('Tienda: %s', $name);
-                $choices[$label] = sprintf('shop-%d', $shopId);
-            }
-        }
-
-        return $choices;
     }
 
     /**

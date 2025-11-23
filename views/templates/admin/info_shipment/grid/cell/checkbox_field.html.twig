@@ -1,0 +1,10 @@
+{% set config = column.options.checkbox|default({}) %}
+{% set field = config.field|default(column.id) %}
+{% set isChecked = record.inline_form[field]|default(0) in [1, true, '1'] %}
+<div class="form-check">
+  <input type="checkbox"
+         class="form-check-input js-inline-input"
+         data-field="{{ field }}"
+         value="1"
+         {% if isChecked %}checked{% endif %}>
+</div>

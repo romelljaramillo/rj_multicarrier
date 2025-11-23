@@ -12,11 +12,24 @@ if (!\class_exists('\\Address') && \class_exists('\\AddressCore')) {
 
 final class ValidationRuleApplier
 {
+    /**
+     * @var array<int|string, array<int, array{rule_names: string[], dimensions: string[]}>>
+     */
+    private array $lastBlockedSummaries = [];
+
     public function __construct(
         private readonly ValidationRuleProviderInterface $ruleProvider,
         private readonly CarrierReferenceResolver $referenceResolver
     )
     {
+    }
+
+    /**
+     * @return array<int|string, array<int, array{rule_names: string[], dimensions: string[]}>>
+     */
+    public function getLastBlockedSummaries(): array
+    {
+        return $this->lastBlockedSummaries;
     }
 
     /**
@@ -27,13 +40,13 @@ final class ValidationRuleApplier
     public function apply(array $packagesByAddress, \Cart $cart): array
     {
         $shopId = $this->toPositiveIntOrNull($cart->id_shop ?? null);
-        $shopGroupId = $this->toPositiveIntOrNull($cart->id_shop_group ?? null);
-
-        $rules = $this->ruleProvider->getActiveRules($shopId, $shopGroupId);
+        $rules = $this->ruleProvider->getActiveRules($shopId);
 
         if (empty($rules)) {
             return $packagesByAddress;
         }
+
+        $this->lastBlockedSummaries = [];
 
         foreach ($packagesByAddress as $addressId => $packages) {
             $zoneId = null;
@@ -54,11 +67,23 @@ final class ValidationRuleApplier
                 }
 
                 $context = $this->buildContext($package, $zoneId, $countryId);
+                $matchedRules = [];
+                $hadInitialCarriers = false;
+
                 $packagesByAddress[$addressId][$index]['carrier_list'] = $this->applyRulesToCarriers(
                     $package['carrier_list'] ?? [],
                     $rules,
-                    $context
+                    $context,
+                    $matchedRules,
+                    $hadInitialCarriers
                 );
+
+                if ($hadInitialCarriers
+                    && $this->isEmptyCarrierList($packagesByAddress[$addressId][$index]['carrier_list'] ?? [])
+                    && !empty($matchedRules)
+                ) {
+                    $this->registerBlockedSummary((string) $addressId, $matchedRules);
+                }
             }
         }
 
@@ -109,24 +134,37 @@ final class ValidationRuleApplier
      *
      * @return array<int, int>
      */
-    private function applyRulesToCarriers(array $carrierList, array $rules, array $context): array
+    private function applyRulesToCarriers(
+        array $carrierList,
+        array $rules,
+        array $context,
+        ?array &$matchedRules = null,
+        ?bool &$hadInitialCarriers = null
+    ): array
     {
-    [$normalizedCarriers, $referenceToCarrier] = $this->normalizeCarrierList($carrierList);
-        $originalCarriers = $normalizedCarriers;
+        $matchedRules = [];
+        $hadInitialCarriers = false;
+
+        [$normalizedCarriers, $referenceToCarrier] = $this->normalizeCarrierList($carrierList);
+        $hadInitialCarriers = !empty($normalizedCarriers);
 
         foreach ($rules as $rule) {
             if (!$this->matchesRule($rule['conditions'], $context)) {
                 continue;
             }
 
+            $matchedRules[] = [
+                'name' => (string) ($rule['name'] ?? ''),
+                'dimensions' => $this->extractConditionDimensions($rule['conditions'] ?? []),
+            ];
+
             $normalizedCarriers = $this->applyActions($normalizedCarriers, $rule['actions']);
         }
 
-        if (empty($normalizedCarriers)) {
-            $normalizedCarriers = $originalCarriers;
-        }
+        $resolvedCarriers = $this->denormalizeCarrierList($normalizedCarriers, $referenceToCarrier);
 
-        return $this->denormalizeCarrierList($normalizedCarriers, $referenceToCarrier);
+        // PrestaShop core expects [0 => 0] as the sentinel when no carrier is available.
+        return empty($resolvedCarriers) ? [0 => 0] : $resolvedCarriers;
     }
 
     /**
@@ -209,12 +247,6 @@ final class ValidationRuleApplier
             $result = array_values(array_diff($result, $actions['deny']));
         }
 
-        if (!empty($actions['prefer'])) {
-            $preferred = array_values(array_intersect($actions['prefer'], $result));
-            $others = array_values(array_diff($result, $preferred));
-            $result = array_merge($preferred, $others);
-        }
-
         return $result;
     }
 
@@ -290,6 +322,75 @@ final class ValidationRuleApplier
         $resolved = array_values(array_unique(array_filter($resolved, static fn (int $id): bool => $id > 0)));
 
         return empty($resolved) ? [] : array_combine($resolved, $resolved);
+    }
+
+    private function registerBlockedSummary(string $addressId, array $matchedRules): void
+    {
+        $ruleNames = [];
+        $dimensions = [];
+
+        foreach ($matchedRules as $rule) {
+            if (!empty($rule['name'])) {
+                $ruleNames[] = (string) $rule['name'];
+            }
+
+            foreach ($rule['dimensions'] ?? [] as $dimension) {
+                if (is_string($dimension) && $dimension !== '') {
+                    $dimensions[] = $dimension;
+                }
+            }
+        }
+
+        $dimensions = array_values(array_unique($dimensions));
+
+        if (empty($dimensions)) {
+            return;
+        }
+
+        $ruleNames = array_values(array_unique(array_filter($ruleNames)));
+
+        if (!isset($this->lastBlockedSummaries[$addressId])) {
+            $this->lastBlockedSummaries[$addressId] = [];
+        }
+
+        $this->lastBlockedSummaries[$addressId][] = [
+            'rule_names' => $ruleNames,
+            'dimensions' => $dimensions,
+        ];
+    }
+
+    private function extractConditionDimensions(array $conditions): array
+    {
+        $dimensions = [];
+
+        if (!empty($conditions['product_ids'])) {
+            $dimensions[] = 'product';
+        }
+
+        if (!empty($conditions['category_ids'])) {
+            $dimensions[] = 'category';
+        }
+
+        if (!empty($conditions['zone_ids'])) {
+            $dimensions[] = 'zone';
+        }
+
+        if (!empty($conditions['country_ids'])) {
+            $dimensions[] = 'country';
+        }
+
+        if (null !== ($conditions['min_weight'] ?? null) || null !== ($conditions['max_weight'] ?? null)) {
+            $dimensions[] = 'weight';
+        }
+
+        return $dimensions;
+    }
+
+    private function isEmptyCarrierList(array $carrierList): bool
+    {
+        return count($carrierList) === 1
+            && isset($carrierList[0])
+            && (int) $carrierList[0] === 0;
     }
 
     private function toPositiveIntOrNull($value): ?int

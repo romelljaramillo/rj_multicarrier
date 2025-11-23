@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Controller\Admin;
 
+use Context;
 use Roanja\Module\RjMulticarrier\Domain\InfoShipment\Query\GetInfoShipmentsForExport;
 use Roanja\Module\RjMulticarrier\Domain\InfoShipment\Query\GetInfoShipmentsByIds;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -32,6 +33,27 @@ use Throwable;
 final class InfoShipmentController extends FrameworkBundleAdminController
 {
     private const TRANSLATION_DOMAIN = 'Modules.RjMulticarrier.Admin';
+    private const FORM_FIELD_WHITELIST = [
+        'id_info_shipment',
+        'id_reference_carrier',
+        'id_type_shipment',
+        'carrier_id',
+        'rj_quantity',
+        'rj_weight',
+        'rj_length',
+        'rj_width',
+        'rj_height',
+        'rj_cash_ondelivery',
+        'rj_message',
+        'rj_hour_from',
+        'rj_hour_until',
+        'rj_retorno',
+        'rj_rcs',
+        'rj_vsec',
+        'rj_dorig',
+        'rj_employee_id',
+        'rj_employee_name',
+    ];
 
     public function __construct(
         private readonly InfoShipmentGridFactory $gridFactory,
@@ -55,12 +77,17 @@ final class InfoShipmentController extends FrameworkBundleAdminController
 
         $mode = (string) $request->query->get('mode', 'form');
         $mode = in_array($mode, ['form', 'preview'], true) ? $mode : 'form';
+        $display = (string) $request->query->get('display', 'modal');
+        $display = in_array($display, ['modal', 'inline'], true) ? $display : 'modal';
         $infoShipmentId = max(0, (int) $request->query->get('infoShipmentId', 0));
+
+        $prefillValues = $this->resolvePrefillValues($request);
 
         $context = [
             'notifications' => $this->collectFlashNotifications(),
             'mode' => $mode,
             'infoShipmentId' => $infoShipmentId,
+            'display' => $display,
         ];
 
         if ($infoShipmentId > 0) {
@@ -92,6 +119,8 @@ final class InfoShipmentController extends FrameworkBundleAdminController
             }
         }
 
+        $context['submitted'] = $this->buildDefaultFormValues($context['package'] ?? null, $prefillValues);
+
         try {
             $html = $this->orderViewPresenter->present($orderId, $context);
         } catch (Throwable $throwable) {
@@ -116,6 +145,59 @@ final class InfoShipmentController extends FrameworkBundleAdminController
         }
 
         return new Response($html);
+    }
+
+    /**
+     * @param array<string, mixed>|null $package
+     *
+     * @return array<string, scalar|null>
+     */
+    private function buildDefaultFormValues(?array $package, array $prefill = []): array
+    {
+        $defaults = [];
+
+        if (is_array($package)) {
+            $defaults = $this->mapPackageToFormValues($package);
+        }
+
+        if (!empty($prefill)) {
+            foreach ($prefill as $key => $value) {
+                if ($value === null) {
+                    continue;
+                }
+
+                if (is_string($value)) {
+                    $value = trim($value);
+                }
+
+                if ($value === '' && $key !== 'rj_rcs') {
+                    continue;
+                }
+
+                $defaults[$key] = $value;
+            }
+        }
+
+        if (!isset($defaults['rj_employee_id']) || !isset($defaults['rj_employee_name']) || '' === trim((string) ($defaults['rj_employee_name'] ?? ''))) {
+            $employee = Context::getContext()->employee ?? null;
+            if (null !== $employee) {
+                if (!isset($defaults['rj_employee_id']) && isset($employee->id)) {
+                    $defaults['rj_employee_id'] = (int) $employee->id;
+                }
+
+                if (!isset($defaults['rj_employee_name']) || '' === trim((string) $defaults['rj_employee_name'])) {
+                    $fullName = trim(sprintf('%s %s', (string) ($employee->firstname ?? ''), (string) ($employee->lastname ?? '')));
+                    if ('' === $fullName && isset($employee->email)) {
+                        $fullName = (string) $employee->email;
+                    }
+                    if ('' !== $fullName) {
+                        $defaults['rj_employee_name'] = $fullName;
+                    }
+                }
+            }
+        }
+
+        return $defaults;
     }
 
     public function indexAction(Request $request, InfoShipmentFilters $filters): Response
@@ -149,6 +231,8 @@ final class InfoShipmentController extends FrameworkBundleAdminController
             'height' => $data['height'] ?? null,
             'cash_ondelivery' => $data['cashOnDelivery'] ?? null,
             'message' => $data['message'] ?? null,
+            'id_employee' => $data['employeeId'] ?? null,
+            'employee_name' => $data['employeeName'] ?? null,
             'hour_from' => $data['hourFrom'] ?? null,
             'hour_until' => $data['hourUntil'] ?? null,
             'retorno' => $data['retorno'] ?? null,
@@ -252,6 +336,8 @@ final class InfoShipmentController extends FrameworkBundleAdminController
             'height' => $data['height'],
             'cashOnDelivery' => $data['cashOnDelivery'],
             'message' => $data['message'],
+            'employeeId' => $data['employeeId'],
+            'employeeName' => $data['employeeName'],
             'hourFrom' => $data['hourFrom'],
             'hourUntil' => $data['hourUntil'],
             'retorno' => $data['retorno'],
@@ -390,6 +476,8 @@ final class InfoShipmentController extends FrameworkBundleAdminController
                 'DORIG',
                 'Creado',
                 'Actualizado',
+                'ID Empleado',
+                'Empleado',
             ]);
             foreach ($infoShipments as $infoShipment) {
                 if (method_exists($infoShipment, 'toCsvRow')) {
@@ -522,6 +610,121 @@ final class InfoShipmentController extends FrameworkBundleAdminController
     private function translate(string $message, array $parameters = []): string
     {
         return $this->translator->trans($message, $parameters, self::TRANSLATION_DOMAIN);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mapPackageToFormValues(array $package): array
+    {
+        $mapping = [
+            'id_info_shipment' => 'id_info_shipment',
+            'id_reference_carrier' => 'id_reference_carrier',
+            'id_type_shipment' => 'id_type_shipment',
+            'id_carrier' => 'carrier_id',
+            'quantity' => 'rj_quantity',
+            'weight' => 'rj_weight',
+            'length' => 'rj_length',
+            'width' => 'rj_width',
+            'height' => 'rj_height',
+            'cash_ondelivery' => 'rj_cash_ondelivery',
+            'message' => 'rj_message',
+            'hour_from' => 'rj_hour_from',
+            'hour_until' => 'rj_hour_until',
+            'retorno' => 'rj_retorno',
+            'rcs' => 'rj_rcs',
+            'vsec' => 'rj_vsec',
+            'dorig' => 'rj_dorig',
+            'id_employee' => 'rj_employee_id',
+            'employee_name' => 'rj_employee_name',
+        ];
+
+        $mapped = [];
+
+        foreach ($mapping as $packageKey => $formKey) {
+            if (!array_key_exists($packageKey, $package)) {
+                continue;
+            }
+
+            $value = $package[$packageKey];
+
+            if ($value instanceof \DateTimeInterface) {
+                $value = $value->format('H:i:s');
+            }
+
+            if ($formKey === 'rj_rcs') {
+                $value = (int) ((bool) $value);
+            } elseif (in_array($formKey, ['id_info_shipment', 'id_reference_carrier', 'id_type_shipment', 'carrier_id', 'rj_quantity', 'rj_retorno', 'rj_employee_id'], true)) {
+                $value = (int) $value;
+            }
+
+            $mapped[$formKey] = $value;
+        }
+
+        return $mapped;
+    }
+
+    /**
+     * @return array<string, scalar>
+     */
+    private function resolvePrefillValues(Request $request): array
+    {
+        $encoded = (string) $request->query->get('prefill', '');
+
+        if ('' === trim($encoded)) {
+            return [];
+        }
+
+        $normalizedEncoded = str_replace([" ", "\t", "\n", "\r"], '', $encoded);
+        $normalizedEncoded = strtr($normalizedEncoded, '-_', '+/');
+        $length = strlen($normalizedEncoded);
+        $remainder = $length % 4;
+        if (0 !== $remainder) {
+            $normalizedEncoded .= str_repeat('=', 4 - $remainder);
+        }
+
+        $decoded = base64_decode($normalizedEncoded, true);
+
+        if (false === $decoded || '' === trim($decoded)) {
+            return [];
+        }
+
+        $data = json_decode($decoded, true);
+
+        if (!is_array($data)) {
+            return [];
+        }
+
+        $normalized = [];
+
+        foreach (self::FORM_FIELD_WHITELIST as $key) {
+            if (!array_key_exists($key, $data)) {
+                continue;
+            }
+
+            $value = $data[$key];
+
+            if (in_array($key, ['id_info_shipment', 'id_reference_carrier', 'id_type_shipment', 'carrier_id', 'rj_quantity', 'rj_retorno', 'rj_rcs', 'rj_employee_id'], true)) {
+                $normalized[$key] = (int) $value;
+                continue;
+            }
+
+            if (null === $value) {
+                continue;
+            }
+
+            if (is_string($value)) {
+                $value = trim($value);
+            }
+
+            if ($value === '' && $key !== 'rj_rcs') {
+                continue;
+            }
+
+            $normalized[$key] = $value;
+        }
+
+        return $normalized;
     }
 
     /**

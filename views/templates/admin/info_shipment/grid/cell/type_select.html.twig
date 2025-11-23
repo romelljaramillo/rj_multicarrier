@@ -1,0 +1,24 @@
+{% set currentValue = record.inline_form.id_type_shipment|default('') %}
+{% set referenceValue = record.inline_form.id_reference_carrier|default('') %}
+{% set inputId = 'inline-type-' ~ record.id_order ~ '-' ~ record.id_info_shipment_raw|default('0') %}
+{% set choices = column.options.type_choices|default([]) %}
+
+<select id="{{ inputId }}"
+        class="form-select form-select-sm js-inline-input js-inline-type"
+        data-field="id_type_shipment"
+        data-reference-input="inline-reference-{{ record.id_order }}-{{ record.id_info_shipment_raw|default('0') }}">
+  <option value="">{{ 'Selecciona tipo'|trans({}, 'Modules.RjMulticarrier.Admin') }}</option>
+  {% for choice in choices %}
+    <option value="{{ choice.id }}"
+            data-carrier-id="{{ choice.carrier_id }}"
+            data-reference-carrier="{{ choice.reference_carrier_id }}"
+            {% if choice.id == currentValue %}selected{% endif %}>
+      {{ choice.label }}
+    </option>
+  {% endfor %}
+</select>
+<input type="hidden"
+       id="inline-reference-{{ record.id_order }}-{{ record.id_info_shipment_raw|default('0') }}"
+       class="js-inline-input"
+       data-field="id_reference_carrier"
+       value="{{ referenceValue }}">

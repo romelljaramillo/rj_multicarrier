@@ -3,6 +3,11 @@
 {% set currentOrderId = orderId|default(0)|intCast %}
 {% set mode = mode|default('form') %}
 {% set isPreviewOnly = mode == 'preview' %}
+{% set display_mode = display|default('modal') %}
+{% set isInlineDisplay = display_mode == 'inline' %}
+{% set employee_defaults = current_employee|default({'id': null, 'name': null}) %}
+{% set selected_employee_id = request_values.rj_employee_id|default(info_package.id_employee|default(employee_defaults.id|default(''))) %}
+{% set selected_employee_name = request_values.rj_employee_name|default(info_package.employee_name|default(employee_defaults.name|default(''))) %}
 
 {% for message in notifications.errors %}
 	<div class="alert alert-danger" role="alert">{{ message }}</div>
@@ -17,13 +22,22 @@
 	<div class="alert alert-info" role="alert">{{ message }}</div>
 {% endfor %}
 
-<div class="row g-4" data-rj-order-panel-root>
+<div class="{{ isInlineDisplay ? 'rj-inline-panel' : 'row g-4' }}" data-rj-order-panel-root data-display="{{ display_mode }}">
 	{% if not isPreviewOnly %}
-	<div class="col-12 col-lg-7">
-		<div class="card">
+	{% set formColumnClasses = isInlineDisplay ? 'rj-inline-panel__form-col' : 'col-12 col-lg-7' %}
+	{% set formCardClasses = isInlineDisplay ? 'card shadow-none border rj-inline-panel__card' : 'card' %}
+	<div class="{{ formColumnClasses }}">
+		<div class="{{ formCardClasses }}">
+			{% if not isInlineDisplay %}
 			<h3 class="card-header">{{ 'RJ Multi-carrier'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
+			{% else %}
+			<div class="rj-inline-panel__header px-3 pt-3">
+				<p class="h6 mb-1">{{ 'Generar envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+				<p class="text-muted small mb-0">{{ 'Completa los campos y genera la etiqueta sin salir del listado.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+			</div>
+			{% endif %}
 			<div class="card-body">
-				{% if hasShipment %}
+				{% if hasShipment and not isInlineDisplay %}
 					<div class="mb-4">
 						<dl class="row mb-0">
 							<dt class="col-sm-4">{{ 'Número de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
@@ -235,6 +249,18 @@
 								<option value="2" {% if retornoValue == 2 %}selected{% endif %}>{{ 'Retorno opcional'|trans({}, 'Modules.RjMulticarrier.Admin') }}</option>
 							</select>
 						</div>
+
+						<div class="row mb-3">
+							<div class="col-md-3">
+								<label class="form-label">{{ 'ID empleado'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+								<input type="number" name="rj_employee_id" value="{{ selected_employee_id|default('') }}" class="form-control" min="0" />
+							</div>
+							<div class="col-md-9">
+								<label class="form-label">{{ 'Nombre del empleado'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+								<input type="text" name="rj_employee_name" value="{{ selected_employee_name|default('') }}" class="form-control" />
+								<small class="form-text text-muted">{{ 'Se completa automáticamente con el empleado conectado, pero puedes editarlo.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
+							</div>
+						</div>
 						<div class="col-md-4 d-flex align-items-end">
 							<div class="form-check">
 								<input class="form-check-input" type="checkbox" name="rj_rcs" id="rj_rcs_checkbox" {% if request_values.rj_rcs is defined %}checked{% elseif info_package.rcs|default(0) %}checked{% endif %}>
@@ -297,7 +323,9 @@
 	</div>
 	{% endif %}
 
+	{% if not isInlineDisplay %}
 	{% include '@Modules/rj_multicarrier/views/templates/admin/order/label_preview.html.twig' %}
+	{% endif %}
 </div>
 <script>
 (function (global) {

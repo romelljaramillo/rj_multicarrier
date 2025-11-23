@@ -11,12 +11,18 @@
               <span class="badge badge-secondary ml-2">{{ grid.data.records_total }}</span>
             </div>
             <div class="d-flex align-items-center">
-              <a
-                href="{{ path('admin_rj_multicarrier_validation_rule_create') }}"
-                class="btn btn-outline-primary btn-sm mr-2"
-              >
-                {{ 'Nueva regla'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-              </a>
+              {% if canManageRules %}
+                <a
+                  href="{{ path('admin_rj_multicarrier_validation_rule_create') }}"
+                  class="btn btn-outline-primary btn-sm mr-2"
+                >
+                  {{ 'Nueva regla'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                </a>
+              {% else %}
+                <button type="button" class="btn btn-outline-secondary btn-sm mr-2" disabled>
+                  {{ 'Nueva regla'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                </button>
+              {% endif %}
               {{ include('@PrestaShop/Admin/Common/Grid/Blocks/grid_actions.html.twig', { grid: grid }) }}
             </div>
           </div>
@@ -24,6 +30,15 @@
 
         {% block grid_panel_body %}
           <div class="card-body">
+            {% if not canManageRules %}
+              <div class="alert alert-warning">
+                {{ 'Selecciona una tienda concreta en el selector multitienda para gestionar y crear reglas.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+              </div>
+            {% elseif currentShopName %}
+              <div class="alert alert-info">
+                {{ 'Mostrando reglas de la tienda: %shop%'|trans({'%shop%': currentShopName}, 'Modules.RjMulticarrier.Admin') }}
+              </div>
+            {% endif %}
             {{ include('@PrestaShop/Admin/Common/Grid/grid.html.twig', { grid: grid }) }}
           </div>
         {% endblock %}

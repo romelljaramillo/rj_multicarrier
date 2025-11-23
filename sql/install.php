@@ -47,7 +47,6 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_validat
     `priority` INT NOT NULL DEFAULT 0,
     `active` TINYINT(1) NOT NULL DEFAULT 1,
     `shop_id` INT(11) NULL DEFAULT NULL,
-    `shop_group_id` INT(11) NULL DEFAULT NULL,
     `product_ids` JSON NULL,
     `category_ids` JSON NULL,
     `zone_ids` JSON NULL,
@@ -57,14 +56,12 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_validat
     `allow_ids` JSON NULL,
     `deny_ids` JSON NULL,
     `add_ids` JSON NULL,
-    `prefer_ids` JSON NULL,
     `created_at` DATETIME NULL,
     `updated_at` DATETIME NULL,
     PRIMARY KEY (`id_validation_rule`),
     INDEX `idx_validation_rule_active` (`active`),
     INDEX `idx_validation_rule_priority` (`priority`),
-    INDEX `idx_validation_rule_shop` (`shop_id`),
-    INDEX `idx_validation_rule_shop_group` (`shop_group_id`)
+    INDEX `idx_validation_rule_shop` (`shop_id`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
 $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_carrier` (
@@ -104,6 +101,8 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_info_sh
     `id_order` INT(10) NOT NULL,
     `id_reference_carrier` INT(10) NOT NULL,
     `id_type_shipment` INT(10) UNSIGNED NOT NULL,
+    `id_employee` INT(10) NULL DEFAULT NULL,
+    `employee_name` VARCHAR(255) NULL DEFAULT NULL,
     `quantity` INT(10) NOT NULL DEFAULT 1,
     `weight` DECIMAL(20,6) NOT NULL DEFAULT 0.000000,
     `length` DECIMAL(20,6) NULL DEFAULT NULL,
@@ -122,7 +121,8 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_info_sh
     PRIMARY KEY (`id_info_shipment`),
     INDEX `idx_order` (`id_order`),
     INDEX `idx_reference` (`id_reference_carrier`),
-    INDEX `idx_type_shipment` (`id_type_shipment`)
+    INDEX `idx_type_shipment` (`id_type_shipment`),
+    INDEX `idx_employee` (`id_employee`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
 $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_info_shipment_shop` (
@@ -138,6 +138,8 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_shipmen
     `num_shipment` VARCHAR(100) NULL DEFAULT NULL,
     `id_carrier` INT(10) UNSIGNED NULL DEFAULT NULL,
     `id_info_shipment` INT(10) NOT NULL,
+    `id_employee` INT(10) NULL DEFAULT NULL,
+    `employee_name` VARCHAR(255) NULL DEFAULT NULL,
     `account` VARCHAR(100) NULL DEFAULT NULL,
     `product` VARCHAR(100) NULL DEFAULT NULL,
     `request` LONGTEXT NULL DEFAULT NULL,
@@ -148,7 +150,8 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_shipmen
     PRIMARY KEY (`id_shipment`),
     INDEX `idx_order` (`id_order`),
     INDEX `idx_package` (`id_info_shipment`),
-    INDEX `idx_carrier` (`id_carrier`)
+    INDEX `idx_carrier` (`id_carrier`),
+    INDEX `idx_shipment_employee` (`id_employee`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
 $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_shipment_shop` (

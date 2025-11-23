@@ -24,17 +24,17 @@ final class ValidationRuleProvider implements ValidationRuleProviderInterface
     /**
      * @return array<int, array{priority:int,name:string,conditions:array<string, mixed>,actions:array<string, array<int>>}>
      */
-    public function getActiveRules(?int $shopId, ?int $shopGroupId): array
+    public function getActiveRules(?int $shopId): array
     {
         $this->referenceNormalizer->normalizeAll();
 
-        $cacheKey = sprintf('%s|%s', (string) ($shopGroupId ?? 'g0'), (string) ($shopId ?? 's0'));
+        $cacheKey = sprintf('shop-%s', (string) ($shopId ?? '0'));
 
         if (isset($this->cache[$cacheKey])) {
             return $this->cache[$cacheKey];
         }
 
-        $rules = $this->repository->findActiveRulesForContext($shopId, $shopGroupId);
+        $rules = $this->repository->findActiveRulesForShop($shopId);
 
         if (empty($rules)) {
             return $this->cache[$cacheKey] = [];
@@ -66,7 +66,6 @@ final class ValidationRuleProvider implements ValidationRuleProviderInterface
                 'allow' => $this->toIntArray($rule->getAllowIds()),
                 'deny' => $this->toIntArray($rule->getDenyIds()),
                 'add' => $this->toIntArray($rule->getAddIds()),
-                'prefer' => $this->toIntArray($rule->getPreferIds()),
             ],
         ];
     }

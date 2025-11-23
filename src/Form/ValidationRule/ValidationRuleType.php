@@ -41,12 +41,6 @@ final class ValidationRuleType extends AbstractType
                     new Assert\Type(['type' => 'integer']),
                 ],
             ])
-            ->add('scope', ChoiceType::class, [
-                'label' => 'Ámbito',
-                'choices' => $options['scope_choices'],
-                'placeholder' => false,
-                'required' => true,
-            ])
             ->add('active', SwitchType::class, [
                 'label' => 'Activa',
                 'required' => false,
@@ -166,22 +160,7 @@ final class ValidationRuleType extends AbstractType
                     'data-toggle' => 'select2',
                 ],
             ])
-            ->add('prefer_ids', ChoiceType::class, [
-                'label' => 'Transportistas preferentes',
-                'choices' => $options['carrier_choices'],
-                'required' => false,
-                'multiple' => true,
-                'attr' => [
-                    'class' => 'form-control js-validation-rule-select2',
-                    'data-placeholder' => 'Selecciona transportistas preferentes',
-                    'data-allow-clear' => 'true',
-                    'data-width' => '100%',
-                    'data-toggle' => 'select2',
-                ],
-            ])
-            ->add('save', SubmitType::class, [
-                'label' => 'Guardar regla',
-            ]);
+            ->add('save', SubmitType::class);
     }
 
     public function configureOptions(OptionsResolver $resolver): void
@@ -189,7 +168,6 @@ final class ValidationRuleType extends AbstractType
         $resolver->setDefaults([
             'data_class' => null,
             'translation_domain' => 'Modules.RjMulticarrier.Admin',
-            'scope_choices' => [],
             'carrier_choices' => [],
             'product_choices' => [],
             'category_choices' => [],
@@ -197,7 +175,6 @@ final class ValidationRuleType extends AbstractType
             'country_choices' => [],
         ]);
 
-        $resolver->setAllowedTypes('scope_choices', 'array');
         $resolver->setAllowedTypes('carrier_choices', 'array');
         $resolver->setAllowedTypes('product_choices', 'array');
         $resolver->setAllowedTypes('category_choices', 'array');

@@ -1,1 +1,156 @@
-/* Placeholder admin stylesheet for RJ Multi-carrier module. */
+/* Inline grid enhancements */
+.rj-inline-grid {
+	background: #fff;
+}
+
+.rj-inline-grid .table {
+	margin-bottom: 0;
+	table-layout: fixed;
+}
+.rj-inline-grid th[data-column-id],
+.rj-inline-grid td[class*='column-'] {
+	white-space: nowrap;
+}
+
+.rj-inline-grid th[data-column-id="info_shipment_bulk"],
+.rj-inline-grid td.column-info_shipment_bulk {
+	width: 36px;
+}
+
+.rj-inline-grid th[data-column-id="package_id"],
+.rj-inline-grid td.column-package_id {
+	width: 90px;
+}
+
+.rj-inline-grid th[data-column-id="order_context"],
+.rj-inline-grid td.column-order_context {
+	width: 160px;
+}
+
+.rj-inline-grid th[data-column-id="reference_order"],
+.rj-inline-grid td.column-reference_order {
+	width: 150px;
+}
+
+.rj-inline-grid th[data-column-id="type_shipment"],
+.rj-inline-grid td.column-type_shipment {
+	width: 170px;
+}
+
+.rj-inline-grid th[data-column-id="quantity"],
+.rj-inline-grid td.column-quantity,
+.rj-inline-grid th[data-column-id="weight"],
+.rj-inline-grid td.column-weight,
+.rj-inline-grid th[data-column-id="cash_ondelivery"],
+.rj-inline-grid td.column-cash_ondelivery {
+	width: 120px;
+}
+
+.rj-inline-grid th[data-column-id="dimensions"],
+.rj-inline-grid td.column-dimensions {
+	width: 200px;
+}
+
+.rj-inline-grid th[data-column-id="hour_from"],
+.rj-inline-grid td.column-hour_from,
+.rj-inline-grid th[data-column-id="hour_until"],
+.rj-inline-grid td.column-hour_until {
+	width: 130px;
+}
+
+.rj-inline-grid th[data-column-id="retorno"],
+.rj-inline-grid td.column-retorno {
+	width: 140px;
+}
+
+.rj-inline-grid th[data-column-id="rcs"],
+.rj-inline-grid td.column-rcs {
+	width: 70px;
+}
+
+.rj-inline-grid th[data-column-id="employee"],
+.rj-inline-grid td.column-employee {
+	width: 170px;
+}
+
+.rj-inline-grid th[data-column-id="message"],
+.rj-inline-grid td.column-message {
+	width: 200px;
+}
+
+.rj-inline-grid th[data-column-id="date_add"],
+.rj-inline-grid td.column-date_add {
+	width: 140px;
+}
+
+.rj-inline-grid th[data-column-id="inline_actions"],
+.rj-inline-grid td.column-inline_actions {
+	width: 170px;
+}
+
+.rj-inline-grid .table thead th {
+	font-size: 0.8125rem;
+	font-weight: 600;
+	color: #4a4a4a;
+	background-color: #f5f8fb;
+	border-bottom: 1px solid #dbe3ee;
+}
+
+.rj-inline-grid .table tbody td {
+	vertical-align: middle;
+	padding: 0.5rem 0.75rem;
+	border-color: #f0f2f5;
+}
+
+.rj-inline-grid .table tbody tr:nth-of-type(odd) {
+	background-color: #fbfcfe;
+}
+
+.rj-inline-grid .form-control-sm,
+.rj-inline-grid .form-select-sm {
+	font-size: 0.8125rem;
+	line-height: 1.2;
+	min-height: 32px;
+	padding: 0.25rem 0.5rem;
+}
+
+.rj-inline-grid textarea.form-control {
+	min-height: 34px;
+	font-size: 0.8125rem;
+}
+
+.rj-inline-grid .btn-group .btn {
+	min-width: 110px;
+}
+
+.rj-inline-order-cell {
+	min-width: 140px;
+}
+
+.rj-inline-order-cell .fw-bold {
+	font-size: 0.875rem;
+}
+
+.rj-inline-order-cell .text-muted {
+	font-size: 0.75rem;
+}
+
+.rj-inline-dimensions {
+	display: flex;
+	gap: 0.35rem;
+}
+
+
+.rj-inline-grid .js-inline-input,
+.rj-inline-grid .js-inline-employee-select,
+.rj-inline-grid .js-inline-employee-name {
+	width: 100%;
+}
+
+.rj-inline-dimensions input {
+	width: 70px;
+}
+
+.rj-inline-employee select {
+	min-width: 160px;
+}

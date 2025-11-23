@@ -63,12 +63,6 @@ final class ValidationRuleReferenceNormalizer
                 $updated = true;
             }
 
-            $preferIds = $this->normalizeReferences($rule->getPreferIds());
-            if ($preferIds !== $rule->getPreferIds()) {
-                $rule->setPreferIds($preferIds);
-                $updated = true;
-            }
-
             if ($updated) {
                 $rule->setUpdatedAt(new DateTimeImmutable());
                 $this->entityManager->persist($rule);

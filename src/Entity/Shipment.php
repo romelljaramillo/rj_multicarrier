@@ -39,6 +39,12 @@ class Shipment
     #[ORM\JoinColumn(name: 'id_info_shipment', referencedColumnName: 'id_info_shipment', nullable: false, onDelete: 'CASCADE')]
     private InfoShipment $infoPackage;
 
+    #[ORM\Column(name: 'id_employee', type: 'integer', nullable: true)]
+    private ?int $employeeId = null;
+
+    #[ORM\Column(name: 'employee_name', type: 'string', length: 255, nullable: true)]
+    private ?string $employeeName = null;
+
     #[ORM\Column(name: 'account', type: 'string', length: 100, nullable: true)]
     private ?string $account = null;
 
@@ -133,6 +139,30 @@ class Shipment
     public function setInfoShipment(InfoShipment $infoPackage): self
     {
         $this->infoPackage = $infoPackage;
+
+        return $this;
+    }
+
+    public function getEmployeeId(): ?int
+    {
+        return $this->employeeId;
+    }
+
+    public function setEmployeeId(?int $employeeId): self
+    {
+        $this->employeeId = $employeeId;
+
+        return $this;
+    }
+
+    public function getEmployeeName(): ?string
+    {
+        return $this->employeeName;
+    }
+
+    public function setEmployeeName(?string $employeeName): self
+    {
+        $this->employeeName = $employeeName;
 
         return $this;
     }

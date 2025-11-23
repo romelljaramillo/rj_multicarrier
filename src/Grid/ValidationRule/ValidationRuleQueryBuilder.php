@@ -23,6 +23,7 @@ final class ValidationRuleQueryBuilder extends AbstractDoctrineQueryBuilder
     {
         $qb = $this->getBaseQueryBuilder();
         $this->applyFilters($qb, $searchCriteria->getFilters());
+        $this->applyContextRestrictions($qb);
         $this->applySorting($searchCriteria, $qb);
 
         $this->searchCriteriaApplicator->applyPagination($searchCriteria, $qb);
@@ -35,10 +36,10 @@ final class ValidationRuleQueryBuilder extends AbstractDoctrineQueryBuilder
         $qb = $this->connection->createQueryBuilder()
             ->select('COUNT(*)')
             ->from($this->dbPrefix . 'rj_multicarrier_validation_rule', 'vr')
-            ->leftJoin('vr', $this->dbPrefix . 'shop', 's', 'vr.shop_id = s.id_shop')
-            ->leftJoin('vr', $this->dbPrefix . 'shop_group', 'sg', 'vr.shop_group_id = sg.id_shop_group');
+            ->leftJoin('vr', $this->dbPrefix . 'shop', 's', 'vr.shop_id = s.id_shop');
 
         $this->applyFilters($qb, $searchCriteria->getFilters(), 'count_');
+        $this->applyContextRestrictions($qb);
 
         return $qb;
     }
@@ -86,23 +87,6 @@ final class ValidationRuleQueryBuilder extends AbstractDoctrineQueryBuilder
                             ->setParameter($parameter, (int) $value);
                     }
                     break;
-                case 'scope':
-                    $value = $this->resolveScalarFilterValue($filterValue);
-                    if (null !== $value) {
-                        [$shopGroupId, $shopId] = $this->parseScopeValue($value);
-                        if (null !== $shopGroupId) {
-                            $parameter = $parameterPrefix . 'shop_group_id';
-                            $qb->andWhere(sprintf('vr.shop_group_id = :%s', $parameter))
-                                ->setParameter($parameter, $shopGroupId);
-                        }
-
-                        if (null !== $shopId) {
-                            $parameter = $parameterPrefix . 'shop_id';
-                            $qb->andWhere(sprintf('vr.shop_id = :%s', $parameter))
-                                ->setParameter($parameter, $shopId);
-                        }
-                    }
-                    break;
             }
         }
     }
@@ -114,7 +98,7 @@ final class ValidationRuleQueryBuilder extends AbstractDoctrineQueryBuilder
             'name' => 'vr.name',
             'priority' => 'vr.priority',
             'active' => 'vr.active',
-            'scope' => 'vr.shop_id',
+            'shop_label' => 's.name',
             'updated_at' => 'vr.updated_at',
         ];
 
@@ -143,32 +127,34 @@ final class ValidationRuleQueryBuilder extends AbstractDoctrineQueryBuilder
                 'vr.priority',
                 'vr.active',
                 'vr.shop_id',
-                'vr.shop_group_id',
                 'vr.created_at',
                 'vr.updated_at',
-                's.name AS shop_name',
-                'sg.name AS shop_group_name'
+                's.name AS shop_name'
             )
             ->from($this->dbPrefix . 'rj_multicarrier_validation_rule', 'vr')
-            ->leftJoin('vr', $this->dbPrefix . 'shop', 's', 'vr.shop_id = s.id_shop')
-            ->leftJoin('vr', $this->dbPrefix . 'shop_group', 'sg', 'vr.shop_group_id = sg.id_shop_group');
+            ->leftJoin('vr', $this->dbPrefix . 'shop', 's', 'vr.shop_id = s.id_shop');
     }
 
-    private function parseScopeValue(string $value): array
+    private function applyContextRestrictions(QueryBuilder $qb): void
     {
-        if (str_starts_with($value, 'group-')) {
-            $id = (int) substr($value, 6);
-
-            return [$id > 0 ? $id : null, null];
+        if (!class_exists('\Shop')) {
+            return;
         }
 
-        if (str_starts_with($value, 'shop-')) {
-            $id = (int) substr($value, 5);
+        $context = (int) \Shop::getContext();
 
-            return [null, $id > 0 ? $id : null];
+        if ($context === \Shop::CONTEXT_SHOP) {
+            $shopId = (int) \Shop::getContextShopID();
+
+            if ($shopId > 0) {
+                $qb->andWhere('(vr.shop_id = :context_shop_id OR vr.shop_id IS NULL)')
+                    ->setParameter('context_shop_id', $shopId);
+            }
+
+            return;
         }
 
-        return [null, null];
+        $qb->andWhere('1 = 0');
     }
 
     /**

@@ -215,6 +215,14 @@ final class ModuleInstaller
             if (!$this->ensureValidationRuleSchema($schemaManager)) {
                 return false;
             }
+
+            if (!$this->ensureInfoShipmentSchema($schemaManager)) {
+                return false;
+            }
+
+            if (!$this->ensureShipmentSchema($schemaManager)) {
+                return false;
+            }
         } catch (\Throwable $exception) {
             return false;
         }
@@ -231,6 +239,16 @@ final class ModuleInstaller
         $tableName = _DB_PREFIX_ . 'rj_multicarrier_validation_rule';
 
         if ($schemaManager->tablesExist([$tableName])) {
+            $columns = $schemaManager->listTableColumns($tableName);
+
+            if (isset($columns['shop_group_id'])) {
+                $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` DROP COLUMN `shop_group_id`');
+            }
+
+            if (isset($columns['prefer_ids'])) {
+                $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` DROP COLUMN `prefer_ids`');
+            }
+
             return true;
         }
 
@@ -250,17 +268,77 @@ final class ModuleInstaller
     `allow_ids` JSON NULL,
     `deny_ids` JSON NULL,
     `add_ids` JSON NULL,
-    `prefer_ids` JSON NULL,
     `created_at` DATETIME NULL,
     `updated_at` DATETIME NULL,
     PRIMARY KEY (`id_validation_rule`),
     INDEX `idx_validation_rule_active` (`active`),
     INDEX `idx_validation_rule_priority` (`priority`),
-    INDEX `idx_validation_rule_shop` (`shop_id`),
-    INDEX `idx_validation_rule_shop_group` (`shop_group_id`)
+    INDEX `idx_validation_rule_shop` (`shop_id`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
         $this->connection->executeStatement($sql);
+
+        return true;
+    }
+
+    private function ensureInfoShipmentSchema(AbstractSchemaManager $schemaManager): bool
+    {
+        if (null === $this->connection) {
+            return true;
+        }
+
+        $tableName = _DB_PREFIX_ . 'rj_multicarrier_info_shipment';
+
+        if (!$schemaManager->tablesExist([$tableName])) {
+            return true;
+        }
+
+        $columns = $schemaManager->listTableColumns($tableName);
+
+        if (!isset($columns['id_employee'])) {
+            $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` ADD `id_employee` INT(10) NULL DEFAULT NULL AFTER `id_type_shipment`');
+        }
+
+        if (!isset($columns['employee_name'])) {
+            $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` ADD `employee_name` VARCHAR(255) NULL DEFAULT NULL AFTER `id_employee`');
+        }
+
+        $indexes = $schemaManager->listTableIndexes($tableName);
+
+        if (!isset($indexes['idx_employee'])) {
+            $this->connection->executeStatement('CREATE INDEX `idx_employee` ON `' . $tableName . '` (`id_employee`)');
+        }
+
+        return true;
+    }
+
+    private function ensureShipmentSchema(AbstractSchemaManager $schemaManager): bool
+    {
+        if (null === $this->connection) {
+            return true;
+        }
+
+        $tableName = _DB_PREFIX_ . 'rj_multicarrier_shipment';
+
+        if (!$schemaManager->tablesExist([$tableName])) {
+            return true;
+        }
+
+        $columns = $schemaManager->listTableColumns($tableName);
+
+        if (!isset($columns['id_employee'])) {
+            $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` ADD `id_employee` INT(10) NULL DEFAULT NULL AFTER `id_info_shipment`');
+        }
+
+        if (!isset($columns['employee_name'])) {
+            $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` ADD `employee_name` VARCHAR(255) NULL DEFAULT NULL AFTER `id_employee`');
+        }
+
+        $indexes = $schemaManager->listTableIndexes($tableName);
+
+        if (!isset($indexes['idx_shipment_employee'])) {
+            $this->connection->executeStatement('CREATE INDEX `idx_shipment_employee` ON `' . $tableName . '` (`id_employee`)');
+        }
 
         return true;
     }

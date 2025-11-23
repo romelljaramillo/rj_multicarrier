@@ -12,15 +12,11 @@ use PrestaShop\PrestaShop\Core\Grid\Action\Bulk\BulkActionCollection;
 use PrestaShop\PrestaShop\Core\Grid\Action\Bulk\Type\SubmitBulkAction;
 use PrestaShop\PrestaShop\Core\Grid\Action\GridActionCollection;
 use PrestaShop\PrestaShop\Core\Grid\Action\GridActionCollectionInterface;
-use PrestaShop\PrestaShop\Core\Grid\Action\Row\RowActionCollection;
-use PrestaShop\PrestaShop\Core\Grid\Action\Row\Type\LinkRowAction;
-use PrestaShop\PrestaShop\Core\Grid\Action\Row\Type\SubmitRowAction;
 use PrestaShop\PrestaShop\Core\Grid\Action\Type\SimpleGridAction;
 use PrestaShop\PrestaShop\Core\Grid\Action\Type\SubmitGridAction;
 use PrestaShop\PrestaShop\Core\Grid\Column\ColumnCollection;
-use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\ActionColumn;
-use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn;
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\BulkActionColumn;
+use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn;
 use PrestaShop\PrestaShop\Core\Grid\Definition\Factory\BulkDeleteActionTrait;
 use PrestaShop\PrestaShop\Core\Grid\Definition\Factory\DeleteActionTrait;
 use PrestaShop\PrestaShop\Core\Grid\Filter\Filter;
@@ -28,6 +24,8 @@ use PrestaShop\PrestaShop\Core\Grid\Filter\FilterCollection;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use PrestaShopBundle\Form\Admin\Type\SearchAndResetType;
 use Roanja\Module\RjMulticarrier\Grid\AbstractModuleGridDefinitionFactory;
+use Roanja\Module\RjMulticarrier\Grid\Column\Type\InlineEditableColumn;
+use Roanja\Module\RjMulticarrier\Service\InlineEntry\InlineFieldChoicesProvider;
 
 final class InfoShipmentGridDefinitionFactory extends AbstractModuleGridDefinitionFactory
 {
@@ -35,6 +33,13 @@ final class InfoShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
     use DeleteActionTrait;
 
     public const GRID_ID = 'rj_multicarrier_info_shipment';
+
+    public function __construct(
+        $hookDispatcher,
+        private readonly InlineFieldChoicesProvider $inlineFieldChoicesProvider
+    ) {
+        parent::__construct($hookDispatcher);
+    }
 
     protected function getId(): string
     {
@@ -48,6 +53,9 @@ final class InfoShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
 
     protected function getColumns(): ColumnCollection
     {
+        $typeChoices = $this->inlineFieldChoicesProvider->getTypeShipmentChoices();
+        $employeeChoices = $this->inlineFieldChoicesProvider->getEmployeeChoices();
+
         $columns = new ColumnCollection();
 
         $columns
@@ -55,55 +63,152 @@ final class InfoShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                 ->setOptions([
                     'bulk_field' => 'id_info_shipment',
                 ]))
-            ->add((new DataColumn('id_order'))
-                ->setName($this->transString('Order ID'))
-                ->setOptions([
-                    'field' => 'id_order',
-                ]))
-            ->add((new DataColumn('reference_order'))
-                ->setName($this->transString('Order reference'))
-                ->setOptions([
-                    'field' => 'reference_order',
-                ]))
-            ->add((new DataColumn('id_info_shipment'))
-                ->setName($this->transString('Package ID'))
+            ->add((new DataColumn('package_id'))
+                ->setName($this->transString('ID paquete'))
                 ->setOptions([
                     'field' => 'id_info_shipment',
+                    'sortable' => true,
                 ]))
-            ->add((new DataColumn('carrier_name'))
-                ->setName($this->transString('Carrier'))
+            ->add((new InlineEditableColumn('order_context'))
+                ->setName($this->transString('Pedido'))
                 ->setOptions([
-                    'field' => 'carrier_name',
+                    'field' => 'id_order',
+                    'sortable' => true,
+                    'template' => '@Modules/rj_multicarrier/views/templates/admin/info_shipment/grid/cell/order_info.html.twig',
                 ]))
-            ->add((new DataColumn('company_shortname'))
-                ->setName($this->transString('Carrier'))
+            ->add((new InlineEditableColumn('reference_order'))
+                ->setName($this->transString('Referencia'))
                 ->setOptions([
-                    'field' => 'company_shortname',
+                    'field' => 'reference_order',
+                    'sortable' => true,
+                    'template' => '@Modules/rj_multicarrier/views/templates/admin/info_shipment/grid/cell/reference_field.html.twig',
                 ]))
-            ->add((new DataColumn('cash_ondelivery'))
-                ->setName($this->transString('Cash on delivery'))
+            ->add((new InlineEditableColumn('type_shipment'))
+                ->setName($this->transString('Tipo de envío'))
                 ->setOptions([
-                    'field' => 'cash_ondelivery',
+                    'field' => 'id_type_shipment',
+                    'sortable' => false,
+                    'template' => '@Modules/rj_multicarrier/views/templates/admin/info_shipment/grid/cell/type_select.html.twig',
+                    'type_choices' => $typeChoices,
                 ]))
-            ->add((new DataColumn('quantity'))
-                ->setName($this->transString('Packages'))
+            ->add((new InlineEditableColumn('quantity'))
+                ->setName($this->transString('Bultos'))
                 ->setOptions([
                     'field' => 'quantity',
+                    'sortable' => false,
+                    'template' => '@Modules/rj_multicarrier/views/templates/admin/info_shipment/grid/cell/input_field.html.twig',
+                    'input' => [
+                        'field' => 'rj_quantity',
+                        'type' => 'number',
+                        'min' => 1,
+                        'step' => 1,
+                    ],
                 ]))
-            ->add((new DataColumn('weight'))
-                ->setName($this->transString('Weight'))
+            ->add((new InlineEditableColumn('weight'))
+                ->setName($this->transString('Peso'))
                 ->setOptions([
                     'field' => 'weight',
+                    'sortable' => false,
+                    'template' => '@Modules/rj_multicarrier/views/templates/admin/info_shipment/grid/cell/input_field.html.twig',
+                    'input' => [
+                        'field' => 'rj_weight',
+                        'type' => 'number',
+                        'step' => '0.01',
+                    ],
+                ]))
+            ->add((new InlineEditableColumn('dimensions'))
+                ->setName($this->transString('Dimensiones (cm)'))
+                ->setOptions([
+                    'field' => 'length',
+                    'sortable' => false,
+                    'template' => '@Modules/rj_multicarrier/views/templates/admin/info_shipment/grid/cell/dimensions_group.html.twig',
+                ]))
+            ->add((new InlineEditableColumn('cash_ondelivery'))
+                ->setName($this->transString('Contra reembolso'))
+                ->setOptions([
+                    'field' => 'cash_ondelivery',
+                    'sortable' => false,
+                    'template' => '@Modules/rj_multicarrier/views/templates/admin/info_shipment/grid/cell/input_field.html.twig',
+                    'input' => [
+                        'field' => 'rj_cash_ondelivery',
+                        'type' => 'number',
+                        'step' => '0.01',
+                    ],
+                ]))
+            ->add((new InlineEditableColumn('hour_from'))
+                ->setName($this->transString('Hora desde'))
+                ->setOptions([
+                    'field' => 'hour_from',
+                    'sortable' => false,
+                    'template' => '@Modules/rj_multicarrier/views/templates/admin/info_shipment/grid/cell/input_field.html.twig',
+                    'input' => [
+                        'field' => 'rj_hour_from',
+                        'type' => 'time',
+                    ],
+                ]))
+            ->add((new InlineEditableColumn('hour_until'))
+                ->setName($this->transString('Hora hasta'))
+                ->setOptions([
+                    'field' => 'hour_until',
+                    'sortable' => false,
+                    'template' => '@Modules/rj_multicarrier/views/templates/admin/info_shipment/grid/cell/input_field.html.twig',
+                    'input' => [
+                        'field' => 'rj_hour_until',
+                        'type' => 'time',
+                    ],
+                ]))
+            ->add((new InlineEditableColumn('retorno'))
+                ->setName($this->transString('Retorno'))
+                ->setOptions([
+                    'field' => 'retorno',
+                    'sortable' => false,
+                    'template' => '@Modules/rj_multicarrier/views/templates/admin/info_shipment/grid/cell/select_field.html.twig',
+                    'select' => [
+                        'field' => 'rj_retorno',
+                        'choices' => [
+                            ['value' => 0, 'label' => $this->transString('Sin retorno')],
+                            ['value' => 1, 'label' => $this->transString('Retorno obligatorio')],
+                            ['value' => 2, 'label' => $this->transString('Retorno opcional')],
+                        ],
+                    ],
+                ]))
+            ->add((new InlineEditableColumn('rcs'))
+                ->setName($this->transString('RCS'))
+                ->setOptions([
+                    'field' => 'rcs',
+                    'sortable' => false,
+                    'template' => '@Modules/rj_multicarrier/views/templates/admin/info_shipment/grid/cell/checkbox_field.html.twig',
+                    'checkbox' => [
+                        'field' => 'rj_rcs',
+                    ],
+                ]))
+            ->add((new InlineEditableColumn('employee'))
+                ->setName($this->transString('Empleado'))
+                ->setOptions([
+                    'field' => 'employee_name',
+                    'sortable' => false,
+                    'template' => '@Modules/rj_multicarrier/views/templates/admin/info_shipment/grid/cell/employee_field.html.twig',
+                    'employee_choices' => $employeeChoices,
+                ]))
+            ->add((new InlineEditableColumn('message'))
+                ->setName($this->transString('Mensaje'))
+                ->setOptions([
+                    'field' => 'message',
+                    'sortable' => false,
+                    'template' => '@Modules/rj_multicarrier/views/templates/admin/info_shipment/grid/cell/textarea_field.html.twig',
                 ]))
             ->add((new DataColumn('date_add'))
-                ->setName($this->transString('Created at'))
+                ->setName($this->transString('Creado el'))
                 ->setOptions([
                     'field' => 'date_add',
+                    'sortable' => true,
                 ]))
-            ->add((new ActionColumn('actions'))
-                ->setName($this->transString('Actions', [], 'Admin.Global'))
+            ->add((new InlineEditableColumn('inline_actions'))
+                ->setName($this->transString('Acciones', [], 'Admin.Global'))
                 ->setOptions([
-                    'actions' => $this->getRowActions(),
+                    'field' => 'id_info_shipment',
+                    'sortable' => false,
+                    'template' => '@Modules/rj_multicarrier/views/templates/admin/info_shipment/grid/cell/actions.html.twig',
                 ]));
 
         return $columns;
@@ -116,6 +221,7 @@ final class InfoShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
         $filters
             ->add((new Filter('reference_order', TextType::class))
                 ->setTypeOptions([
+                    'required' => false,
                     'attr' => [
                         'placeholder' => $this->transString('Reference'),
                     ],
@@ -123,34 +229,23 @@ final class InfoShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                 ->setAssociatedColumn('reference_order'))
             ->add((new Filter('id_info_shipment', TextType::class))
                 ->setTypeOptions([
+                    'required' => false,
                     'attr' => [
                         'placeholder' => $this->transString('Package ID'),
                     ],
                 ])
-                ->setAssociatedColumn('id_info_shipment'))
+                ->setAssociatedColumn('package_id'))
             ->add((new Filter('id_order', TextType::class))
                 ->setTypeOptions([
+                    'required' => false,
                     'attr' => [
                         'placeholder' => $this->transString('Order ID'),
                     ],
                 ])
-                ->setAssociatedColumn('id_order'))
-            ->add((new Filter('carrier_name', TextType::class))
-                ->setTypeOptions([
-                    'attr' => [
-                        'placeholder' => $this->transString('Carrier'),
-                    ],
-                ])
-                ->setAssociatedColumn('carrier_name'))
-            ->add((new Filter('company_shortname', TextType::class))
-                ->setTypeOptions([
-                    'attr' => [
-                        'placeholder' => $this->transString('Carrier'),
-                    ],
-                ])
-                ->setAssociatedColumn('company_shortname'))
+                ->setAssociatedColumn('order_context'))
             ->add((new Filter('cash_ondelivery', TextType::class))
                 ->setTypeOptions([
+                    'required' => false,
                     'attr' => [
                         'placeholder' => $this->transString('COD amount'),
                     ],
@@ -158,6 +253,7 @@ final class InfoShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                 ->setAssociatedColumn('cash_ondelivery'))
             ->add((new Filter('date_add', TextType::class))
                 ->setTypeOptions([
+                    'required' => false,
                     'attr' => [
                         'placeholder' => $this->transString('YYYY-MM-DD'),
                     ],
@@ -171,53 +267,11 @@ final class InfoShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                     ],
                     'redirect_route' => 'admin_rj_multicarrier_info_shipments_index',
                 ])
-                ->setAssociatedColumn('actions'));
+                ->setAssociatedColumn('inline_actions'));
 
         return $filters;
     }
 
-    private function getRowActions(): RowActionCollection
-    {
-        $rowActions = new RowActionCollection();
-
-        $rowActions
-            ->add((new LinkRowAction('edit_info'))
-                ->setName($this->transString('Información de envío'))
-                ->setIcon('edit')
-                ->setOptions([
-                    'route' => 'admin_rj_multicarrier_info_shipments_panel',
-                    'route_param_name' => 'orderId',
-                    'route_param_field' => 'id_order',
-                    'extra_route_params' => [
-                        'infoShipmentId' => 'id_info_shipment',
-                        'mode' => 'form',
-                    ],
-                    'attr' => [
-                        'class' => 'js-info-shipment-create-row-action',
-                        'data-modal-title' => $this->transString('Información de envío'),
-                    ],
-                    'use_inline_display' => true,
-                ]))
-            ->add((new LinkRowAction('generate'))
-                ->setName($this->transString('Generate shipment'))
-                ->setIcon('local_shipping')
-                ->setOptions([
-                    'route' => 'admin_rj_multicarrier_info_shipments_panel',
-                    'route_param_name' => 'orderId',
-                    'route_param_field' => 'id_order',
-                    'extra_route_params' => [
-                        'infoShipmentId' => 'id_info_shipment',
-                        'mode' => 'preview',
-                    ],
-                    'attr' => [
-                        'class' => 'js-info-shipment-generate-row-action',
-                        'data-modal-title' => $this->transString('Generar envío'),
-                    ],
-                    'use_inline_display' => true,
-                ]));
-
-        return $rowActions;
-    }
 
     protected function getGridActions(): GridActionCollectionInterface
     {

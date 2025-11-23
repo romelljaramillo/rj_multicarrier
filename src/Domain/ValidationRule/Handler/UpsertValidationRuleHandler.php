@@ -45,7 +45,6 @@ final class UpsertValidationRuleHandler
             ->setPriority($command->getPriority())
             ->setActive($command->isActive())
             ->setShopId($command->getShopId())
-            ->setShopGroupId($command->getShopGroupId())
             ->setProductIds($this->normalizeArray($command->getProductIds()))
             ->setCategoryIds($this->normalizeArray($command->getCategoryIds()))
             ->setZoneIds($this->normalizeArray($command->getZoneIds()))
@@ -54,8 +53,7 @@ final class UpsertValidationRuleHandler
             ->setMaxWeight($command->getMaxWeight())
             ->setAllowIds($this->normalizeCarrierIds($command->getAllowIds()))
             ->setDenyIds($this->normalizeCarrierIds($command->getDenyIds()))
-            ->setAddIds($this->normalizeCarrierIds($command->getAddIds()))
-            ->setPreferIds($this->normalizeCarrierIds($command->getPreferIds()));
+            ->setAddIds($this->normalizeCarrierIds($command->getAddIds()));
 
         $this->entityManager->persist($rule);
         $this->entityManager->flush();

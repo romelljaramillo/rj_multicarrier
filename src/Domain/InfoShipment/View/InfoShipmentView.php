@@ -21,6 +21,8 @@ final class InfoShipmentView
         private readonly ?float $length,
         private readonly ?float $width,
         private readonly ?float $height,
+        private readonly ?int $employeeId,
+        private readonly ?string $employeeName,
         private readonly ?string $cashOnDelivery,
         private readonly ?string $message,
         private readonly ?string $hourFrom,
@@ -65,6 +67,8 @@ final class InfoShipmentView
             $infoShipment->getLength(),
             $infoShipment->getWidth(),
             $infoShipment->getHeight(),
+            $infoShipment->getEmployeeId(),
+            $infoShipment->getEmployeeName(),
             $infoShipment->getCashOnDelivery(),
             $infoShipment->getMessage(),
             $infoShipment->getHourFrom()?->format('H:i:s'),
@@ -98,6 +102,8 @@ final class InfoShipmentView
             isset($row['length']) ? (float)$row['length'] : null,
             isset($row['width']) ? (float)$row['width'] : null,
             isset($row['height']) ? (float)$row['height'] : null,
+            isset($row['id_employee']) ? (int)$row['id_employee'] : null,
+            isset($row['employee_name']) ? (string)$row['employee_name'] : null,
             isset($row['cash_ondelivery']) ? (string)$row['cash_ondelivery'] : null,
             isset($row['message']) ? (string)$row['message'] : null,
             isset($row['hour_from']) ? (string)$row['hour_from'] : null,
@@ -138,6 +144,8 @@ final class InfoShipmentView
             'dorig' => $this->dorig,
             'createdAt' => $this->createdAt,
             'updatedAt' => $this->updatedAt,
+            'employeeId' => $this->employeeId,
+            'employeeName' => $this->employeeName,
         ];
     }
 
@@ -167,6 +175,8 @@ final class InfoShipmentView
             $this->dorig,
             $this->createdAt,
             $this->updatedAt,
+            $this->employeeId,
+            $this->employeeName,
         ];
     }
 }

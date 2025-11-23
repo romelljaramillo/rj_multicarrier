@@ -845,7 +845,9 @@ class CarrierCompany extends Module
             throw new RuntimeException('Missing info package identifier to persist shipment');
         }
 
-    $command = new CreateShipmentCommand(
+        [$employeeId, $employeeName] = $this->resolveCurrentEmployee();
+
+        $command = new CreateShipmentCommand(
             (int) ($shipmentData['id_order'] ?? 0),
             $order->reference ?? null,
             $shipmentData['num_shipment'] ?? null,
@@ -856,10 +858,34 @@ class CarrierCompany extends Module
             $shipmentData['name_carrier'] ?? null,
             $shipmentData,
             $responseData,
-            $labels
+            $labels,
+            $employeeId,
+            $employeeName
         );
 
         return $this->getCreateShipmentHandler()->handle($command);
+    }
+
+    /**
+     * @return array{0:?int,1:?string}
+     */
+    private function resolveCurrentEmployee(): array
+    {
+        $context = Context::getContext();
+        $employee = $context->employee ?? null;
+
+        if (null === $employee) {
+            return [null, null];
+        }
+
+        $employeeId = isset($employee->id) ? (int) $employee->id : null;
+        $fullName = trim(sprintf('%s %s', (string) ($employee->firstname ?? ''), (string) ($employee->lastname ?? '')));
+
+        if ('' === $fullName && isset($employee->email)) {
+            $fullName = (string) $employee->email;
+        }
+
+        return [$employeeId, '' !== $fullName ? $fullName : null];
     }
 
     private function getCreateShipmentHandler(): CreateShipmentHandler

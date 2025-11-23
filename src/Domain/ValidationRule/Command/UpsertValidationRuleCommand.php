@@ -16,7 +16,6 @@ final class UpsertValidationRuleCommand
      * @param int[] $allowIds
      * @param int[] $denyIds
      * @param int[] $addIds
-     * @param int[] $preferIds
      */
     public function __construct(
         private readonly ?int $validationRuleId,
@@ -24,7 +23,6 @@ final class UpsertValidationRuleCommand
         private readonly int $priority,
         private readonly bool $active,
         private readonly ?int $shopId,
-        private readonly ?int $shopGroupId,
         private readonly array $productIds,
         private readonly array $categoryIds,
         private readonly array $zoneIds,
@@ -33,8 +31,7 @@ final class UpsertValidationRuleCommand
         private readonly ?float $maxWeight,
         private readonly array $allowIds,
         private readonly array $denyIds,
-        private readonly array $addIds,
-        private readonly array $preferIds
+        private readonly array $addIds
     ) {
     }
 
@@ -61,11 +58,6 @@ final class UpsertValidationRuleCommand
     public function getShopId(): ?int
     {
         return $this->shopId;
-    }
-
-    public function getShopGroupId(): ?int
-    {
-        return $this->shopGroupId;
     }
 
     /**
@@ -134,11 +126,4 @@ final class UpsertValidationRuleCommand
         return $this->addIds;
     }
 
-    /**
-     * @return int[]
-     */
-    public function getPreferIds(): array
-    {
-        return $this->preferIds;
-    }
 }

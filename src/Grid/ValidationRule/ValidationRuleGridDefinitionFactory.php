@@ -24,7 +24,6 @@ use PrestaShop\PrestaShop\Core\Grid\Filter\FilterCollection;
 use PrestaShop\PrestaShop\Core\Hook\HookDispatcherInterface;
 use PrestaShop\PrestaShop\Core\Grid\Action\Type\SimpleGridAction;
 use PrestaShopBundle\Form\Admin\Type\SearchAndResetType;
-use Roanja\Module\RjMulticarrier\Form\ValidationRule\ValidationRuleFormOptionsProvider;
 use Roanja\Module\RjMulticarrier\Grid\AbstractModuleGridDefinitionFactory;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
@@ -38,8 +37,7 @@ final class ValidationRuleGridDefinitionFactory extends AbstractModuleGridDefini
     public const GRID_ID = 'rj_multicarrier_validation_rule';
 
     public function __construct(
-        HookDispatcherInterface $hookDispatcher,
-        private readonly ValidationRuleFormOptionsProvider $formOptionsProvider
+        HookDispatcherInterface $hookDispatcher
     ) {
         parent::__construct($hookDispatcher);
     }
@@ -78,10 +76,10 @@ final class ValidationRuleGridDefinitionFactory extends AbstractModuleGridDefini
                 ->setOptions([
                     'field' => 'priority',
                 ]))
-            ->add((new DataColumn('scope_label'))
-                ->setName($this->transString('Ámbito'))
+            ->add((new DataColumn('shop_label'))
+                ->setName($this->transString('Tienda'))
                 ->setOptions([
-                    'field' => 'scope_label',
+                    'field' => 'shop_label',
                 ]))
             ->add((new ToggleColumn('active'))
                 ->setName($this->transString('Activa'))
@@ -143,13 +141,6 @@ final class ValidationRuleGridDefinitionFactory extends AbstractModuleGridDefini
                         $this->transString('No', [], 'Admin.Global') => 0,
                     ],
                     'placeholder' => $this->transString('Cualquiera', [], 'Admin.Global'),
-                ]))
-            ->add((new Filter('scope', ChoiceType::class))
-                ->setAssociatedColumn('scope_label')
-                ->setTypeOptions([
-                    'required' => false,
-                    'choices' => $this->formOptionsProvider->getScopeChoices(),
-                    'placeholder' => $this->transString('Cualquier ámbito'),
                 ]))
             ->add((new Filter('actions', SearchAndResetType::class))
                 ->setTypeOptions([

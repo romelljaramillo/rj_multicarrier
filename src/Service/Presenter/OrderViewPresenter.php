@@ -7,6 +7,10 @@ declare(strict_types=1);
 namespace Roanja\Module\RjMulticarrier\Service\Presenter;
 
 use Context;
+use \Address;
+use \Currency;
+use \Customer;
+use \Order;
 use PrestaShop\PrestaShop\Core\CommandBus\CommandBusInterface;
 use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Query\GetCarrierConfigurationsForCarrier;
 use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\View\CarrierConfigurationView;
@@ -22,8 +26,10 @@ use Roanja\Module\RjMulticarrier\Entity\Carrier as CarrierEntity;
 use Roanja\Module\RjMulticarrier\Entity\TypeShipment;
 use Roanja\Module\RjMulticarrier\Repository\ConfigurationRepository;
 use Roanja\Module\RjMulticarrier\Entity\Configuration;
-use Shop;
+use \Shop;
+use \State;
 use Twig\Environment;
+use \Validate;
 
 final class OrderViewPresenter
 {
@@ -80,8 +86,8 @@ final class OrderViewPresenter
 
         $order = null;
         try {
-            $candidateOrder = new \Order($orderId);
-            if (\Validate::isLoadedObject($candidateOrder)) {
+            $candidateOrder = new Order($orderId);
+            if (Validate::isLoadedObject($candidateOrder)) {
                 $order = $candidateOrder;
             }
         } catch (\Throwable) {
@@ -246,6 +252,7 @@ final class OrderViewPresenter
             'order_currency' => $currencyData,
             'mode' => $mode,
             'info_shipment_id' => $context['infoShipmentId'] ?? ($infoPackage['id_info_shipment'] ?? null),
+            'display' => $context['display'] ?? 'modal',
         ]);
     }
 
@@ -356,15 +363,15 @@ final class OrderViewPresenter
         ];
     }
 
-    private function buildCustomerInfo(?\Order $order, int $languageId): array
+    private function buildCustomerInfo(?Order $order, int $languageId): array
     {
-        if (!$order instanceof \Order || !\Validate::isLoadedObject($order)) {
+        if (!$order instanceof Order || !Validate::isLoadedObject($order)) {
             return [];
         }
 
         try {
-            $address = new \Address((int) $order->id_address_delivery);
-            if (!\Validate::isLoadedObject($address)) {
+            $address = new Address((int) $order->id_address_delivery);
+            if (!Validate::isLoadedObject($address)) {
                 return [];
             }
 
@@ -377,10 +384,10 @@ final class OrderViewPresenter
 
             $stateName = '';
             if ($address->id_state) {
-                $stateName = \State::getNameById((int) $address->id_state) ?: '';
+                $stateName = State::getNameById((int) $address->id_state) ?: '';
             }
 
-            $customer = new \Customer((int) $order->id_customer);
+            $customer = new Customer((int) $order->id_customer);
 
             return [
                 'firstname' => (string) $address->firstname,
@@ -394,7 +401,7 @@ final class OrderViewPresenter
                 'countrycode' => $countryIso,
                 'phone' => (string) $address->phone,
                 'phone_mobile' => (string) $address->phone_mobile,
-                'email' => \Validate::isLoadedObject($customer) ? (string) $customer->email : '',
+                'email' => Validate::isLoadedObject($customer) ? (string) $customer->email : '',
                 'vat_number' => (string) $address->vat_number,
                 'dni' => (string) $address->dni,
                 'other' => (string) $address->other,
@@ -407,14 +414,14 @@ final class OrderViewPresenter
     /**
      * @return array<string, string|float>
      */
-    private function resolveOrderCurrency(?\Order $order): array
+    private function resolveOrderCurrency(?Order $order): array
     {
-        if (!$order instanceof \Order || !$order->id_currency) {
+        if (!$order instanceof Order || !$order->id_currency) {
             return [];
         }
 
         try {
-            $currency = \Currency::getCurrencyInstance((int) $order->id_currency);
+            $currency = Currency::getCurrencyInstance((int) $order->id_currency);
             return [
                 'symbol' => $currency->sign ?? '',
                 'iso_code' => $currency->iso_code ?? '',
