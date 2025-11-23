@@ -750,6 +750,7 @@ services:
       - '@?Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository'
       - '@?Roanja\Module\RjMulticarrier\Repository\ConfigurationRepository'
       - '@prestashop.core.query_bus'
+      - '@?Roanja\Module\RjMulticarrier\Service\InlineEntry\InlineFieldChoicesProvider'
     public: true
 
   roanja.module.rj_multicarrier.widget.presenter:

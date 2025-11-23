@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Roanja\Module\RjMulticarrier\Domain\InfoShipment\View;
 
 use Roanja\Module\RjMulticarrier\Entity\InfoShipment;
+use Roanja\Module\RjMulticarrier\Util\EmployeeFormatter;
 
 final class InfoShipmentView
 {
@@ -23,6 +24,8 @@ final class InfoShipmentView
         private readonly ?float $height,
         private readonly ?int $employeeId,
         private readonly ?string $employeeName,
+        private readonly ?int $loggedEmployeeId,
+        private readonly ?string $loggedEmployeeName,
         private readonly ?string $cashOnDelivery,
         private readonly ?string $message,
         private readonly ?string $hourFrom,
@@ -53,6 +56,9 @@ final class InfoShipmentView
         $dorigRaw = $infoShipment->getDorig();
         $dorig = ($dorigRaw !== null && $dorigRaw !== '') ? $dorigRaw : null;
 
+        $employeeName = EmployeeFormatter::resolveName($infoShipment->getEmployeeId());
+        $loggedEmployeeName = EmployeeFormatter::resolveName($infoShipment->getLoggedEmployeeId());
+
         return new self(
             $infoShipment->getId() ?? 0,
             $infoShipment->getOrderId(),
@@ -68,7 +74,9 @@ final class InfoShipmentView
             $infoShipment->getWidth(),
             $infoShipment->getHeight(),
             $infoShipment->getEmployeeId(),
-            $infoShipment->getEmployeeName(),
+            $employeeName,
+            $infoShipment->getLoggedEmployeeId(),
+            $loggedEmployeeName,
             $infoShipment->getCashOnDelivery(),
             $infoShipment->getMessage(),
             $infoShipment->getHourFrom()?->format('H:i:s'),
@@ -88,6 +96,12 @@ final class InfoShipmentView
      */
     public static function fromArray(array $row): self
     {
+        $employeeId = isset($row['id_employee']) ? (int)$row['id_employee'] : null;
+        $employeeName = isset($row['employee_name']) ? (string)$row['employee_name'] : EmployeeFormatter::resolveName($employeeId);
+
+        $loggedEmployeeId = isset($row['logged_employee_id']) ? (int)$row['logged_employee_id'] : null;
+        $loggedEmployeeName = isset($row['logged_employee_name']) ? (string)$row['logged_employee_name'] : EmployeeFormatter::resolveName($loggedEmployeeId);
+
         return new self(
             (int)($row['id_info_shipment'] ?? 0),
             (int)($row['id_order'] ?? 0),
@@ -102,8 +116,10 @@ final class InfoShipmentView
             isset($row['length']) ? (float)$row['length'] : null,
             isset($row['width']) ? (float)$row['width'] : null,
             isset($row['height']) ? (float)$row['height'] : null,
-            isset($row['id_employee']) ? (int)$row['id_employee'] : null,
-            isset($row['employee_name']) ? (string)$row['employee_name'] : null,
+            $employeeId,
+            $employeeName,
+            $loggedEmployeeId,
+            $loggedEmployeeName,
             isset($row['cash_ondelivery']) ? (string)$row['cash_ondelivery'] : null,
             isset($row['message']) ? (string)$row['message'] : null,
             isset($row['hour_from']) ? (string)$row['hour_from'] : null,
@@ -146,6 +162,8 @@ final class InfoShipmentView
             'updatedAt' => $this->updatedAt,
             'employeeId' => $this->employeeId,
             'employeeName' => $this->employeeName,
+            'loggedEmployeeId' => $this->loggedEmployeeId,
+            'loggedEmployeeName' => $this->loggedEmployeeName,
         ];
     }
 
@@ -177,6 +195,8 @@ final class InfoShipmentView
             $this->updatedAt,
             $this->employeeId,
             $this->employeeName,
+            $this->loggedEmployeeId,
+            $this->loggedEmployeeName,
         ];
     }
 }

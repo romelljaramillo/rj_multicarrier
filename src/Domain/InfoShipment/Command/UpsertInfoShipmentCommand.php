@@ -30,7 +30,7 @@ final class UpsertInfoShipmentCommand
         private readonly ?string $vsec,
         private readonly ?string $dorig,
         private readonly ?int $employeeId,
-        private readonly ?string $employeeName,
+        private readonly ?int $loggedEmployeeId,
         private readonly int $shopId
     ) {
     }
@@ -125,9 +125,9 @@ final class UpsertInfoShipmentCommand
         return $this->employeeId;
     }
 
-    public function getEmployeeName(): ?string
+    public function getLoggedEmployeeId(): ?int
     {
-        return $this->employeeName;
+        return $this->loggedEmployeeId;
     }
 
     public function getShopId(): int

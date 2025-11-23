@@ -1,7 +1,7 @@
 {% extends '@PrestaShop/Admin/layout.html.twig' %}
 
 {% block content %}
-  <div class="card">
+  <div class="card rj-select2-scope">
     <div class="card-header d-flex justify-content-between align-items-center">
       <h3 class="mb-0">
         {{ isEdit ? 'Editar regla de validación'|trans({}, 'Modules.RjMulticarrier.Admin') : 'Nueva regla de validación'|trans({}, 'Modules.RjMulticarrier.Admin') }}
@@ -96,59 +96,63 @@
   </div>
 {% endblock %}
 
-{% block stylesheets %}
-  {{ parent() }}
-  <style>
-    .select2-container--bootstrap .select2-selection--multiple,
-    .select2-container--default .select2-selection--multiple {
-      min-height: calc(2.25rem + 2px);
-      padding: 0.25rem 0.5rem;
-      border: 1px solid #ced4da;
-      border-radius: 0.25rem;
-      transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-    }
-
-    .select2-container--bootstrap .select2-selection--multiple:focus,
-    .select2-container--default .select2-selection--multiple:focus {
-      border-color: #80bdff;
-      outline: 0;
-      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    }
-
-    .select2-container--bootstrap .select2-selection--multiple .select2-selection__choice,
-    .select2-container--default .select2-selection--multiple .select2-selection__choice {
-      background-color: #f8f9fa;
-      border: 1px solid #ced4da;
-      border-radius: 0.2rem;
-      color: #212529;
-      padding: 0.15rem 0.5rem;
-      margin-top: 0.15rem;
-      margin-bottom: 0.15rem;
-    }
-
-    .select2-container--bootstrap .select2-selection--multiple .select2-selection__choice__remove,
-    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
-      color: #6c757d;
-      margin-right: 0.35rem;
-    }
-
-    .select2-container--bootstrap .select2-selection--multiple .select2-search__field,
-    .select2-container--default .select2-selection--multiple .select2-search__field {
-      margin-top: 0.2rem;
-      font-size: 0.95rem;
-    }
-  </style>
-{% endblock %}
-
 {% block javascripts %}
   {{ parent() }}
   <script>
     (function () {
-      function initValidationRuleSelect2() {
+      var select2InitRequested = false;
+
+      function addDropdownThemeClass() {
+        if (typeof document === 'undefined') {
+          return;
+        }
+
+        var dropdowns = document.querySelectorAll('.select2-container--open .select2-dropdown');
+        dropdowns.forEach(function (dropdown) {
+          dropdown.classList.add('rj-select2-theme-dropdown');
+        });
+      }
+
+      function removeDropdownThemeClass() {
+        if (typeof document === 'undefined') {
+          return;
+        }
+
+        var dropdowns = document.querySelectorAll('.select2-dropdown.rj-select2-theme-dropdown');
+        dropdowns.forEach(function (dropdown) {
+          dropdown.classList.remove('rj-select2-theme-dropdown');
+        });
+      }
+
+      function addContainerThemeClass($element) {
+        if (!$element || typeof $element !== 'object' || !$element.data) {
+          return;
+        }
+
+        var instance = $element.data('select2');
+        if (instance && instance.$container) {
+          instance.$container.addClass('rj-select2-theme');
+        }
+      }
+
+      function initValidationRuleSelect2(attempt) {
+        var currentAttempt = typeof attempt === 'number' ? attempt : 0;
+        var maxAttempts = 10;
+        var retryDelay = 150;
         var $ = window.jQuery || window.$;
 
         var bootstrapSelect2 = function () {
           if (typeof $ !== 'function' || !$.fn || typeof $.fn.select2 !== 'function') {
+            if (!select2InitRequested && window.prestashop && window.prestashop.component && typeof window.prestashop.component.initComponents === 'function') {
+              select2InitRequested = true;
+              window.prestashop.component.initComponents(['Select2']);
+            }
+
+            if (currentAttempt < maxAttempts) {
+              setTimeout(function () {
+                initValidationRuleSelect2(currentAttempt + 1);
+              }, retryDelay);
+            }
             return;
           }
 
@@ -169,15 +173,18 @@
               allowClear: allowClear,
               closeOnSelect: false,
             });
+            addContainerThemeClass($element);
+
+            $element.off('select2:open.rjTheme select2:close.rjTheme select2:closing.rjTheme');
+            $element.on('select2:open.rjTheme', function () {
+              addContainerThemeClass($element);
+              addDropdownThemeClass();
+            });
+            $element.on('select2:close.rjTheme select2:closing.rjTheme', removeDropdownThemeClass);
           });
         };
 
-        if (window.prestashop && window.prestashop.component && typeof window.prestashop.component.initComponents === 'function') {
-          window.prestashop.component.initComponents(['Select2']);
-          setTimeout(bootstrapSelect2, 0);
-        } else {
-          bootstrapSelect2();
-        }
+        bootstrapSelect2();
       }
 
       document.addEventListener('DOMContentLoaded', initValidationRuleSelect2);

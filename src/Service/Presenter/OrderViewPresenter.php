@@ -10,6 +10,7 @@ use Context;
 use \Address;
 use \Currency;
 use \Customer;
+use \Employee;
 use \Order;
 use PrestaShop\PrestaShop\Core\CommandBus\CommandBusInterface;
 use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Query\GetCarrierConfigurationsForCarrier;
@@ -26,6 +27,8 @@ use Roanja\Module\RjMulticarrier\Entity\Carrier as CarrierEntity;
 use Roanja\Module\RjMulticarrier\Entity\TypeShipment;
 use Roanja\Module\RjMulticarrier\Repository\ConfigurationRepository;
 use Roanja\Module\RjMulticarrier\Entity\Configuration;
+use Roanja\Module\RjMulticarrier\Service\InlineEntry\InlineFieldChoicesProvider;
+use Roanja\Module\RjMulticarrier\Util\EmployeeFormatter;
 use \Shop;
 use \State;
 use Twig\Environment;
@@ -41,6 +44,7 @@ final class OrderViewPresenter
         private readonly ?TypeShipmentRepository $typeShipmentRepository = null,
         private readonly ?ConfigurationRepository $configurationRepository = null,
         private readonly ?CommandBusInterface $queryBus = null,
+        private readonly ?InlineFieldChoicesProvider $inlineFieldChoicesProvider = null,
     ) {
     }
 
@@ -122,6 +126,10 @@ final class OrderViewPresenter
 
         if (is_array($packageOverride) && !empty($packageOverride)) {
             $infoPackage = array_merge($infoPackage, $packageOverride);
+        }
+
+        if (!empty($infoPackage)) {
+            $infoPackage = $this->withEmployeeNames($infoPackage);
         }
 
         if ((empty($infoPackage) || !isset($infoPackage['id_info_shipment'])) && $this->infoShipmentRepository instanceof InfoShipmentRepository) {
@@ -230,6 +238,38 @@ final class OrderViewPresenter
             }
         }
 
+        $employeeChoices = [];
+        if ($this->inlineFieldChoicesProvider instanceof InlineFieldChoicesProvider) {
+            try {
+                $employeeChoices = $this->inlineFieldChoicesProvider->getEmployeeChoices();
+            } catch (\Throwable) {
+                $employeeChoices = [];
+            }
+        }
+
+        $currentEmployeeData = [
+            'id' => null,
+            'name' => null,
+        ];
+
+        try {
+            $contextEmployee = Context::getContext()->employee ?? null;
+        } catch (\Throwable) {
+            $contextEmployee = null;
+        }
+
+        if ($contextEmployee instanceof Employee) {
+            $fullName = trim(sprintf('%s %s', (string) $contextEmployee->firstname, (string) $contextEmployee->lastname));
+            if ('' === $fullName) {
+                $fullName = sprintf('#%d', (int) $contextEmployee->id);
+            }
+
+            $currentEmployeeData = [
+                'id' => (int) $contextEmployee->id,
+                'name' => $fullName,
+            ];
+        }
+
         return $this->twig->render('@Modules/rj_multicarrier/views/templates/admin/order/panel.html.twig', [
             'orderId' => $orderId,
             'shipment' => $shipmentArray,
@@ -253,7 +293,26 @@ final class OrderViewPresenter
             'mode' => $mode,
             'info_shipment_id' => $context['infoShipmentId'] ?? ($infoPackage['id_info_shipment'] ?? null),
             'display' => $context['display'] ?? 'modal',
+            'employee_choices' => $employeeChoices,
+            'current_employee' => $currentEmployeeData,
+            'order_cod' => $context['order_cod'] ?? null,
         ]);
+    }
+
+    private function withEmployeeNames(array $package): array
+    {
+        $employeeId = isset($package['id_employee']) ? (int) $package['id_employee'] : (isset($package['employeeId']) ? (int) $package['employeeId'] : null);
+        $loggedEmployeeId = isset($package['logged_employee_id']) ? (int) $package['logged_employee_id'] : (isset($package['loggedEmployeeId']) ? (int) $package['loggedEmployeeId'] : null);
+
+        if (!isset($package['employee_name'])) {
+            $package['employee_name'] = EmployeeFormatter::resolveName($employeeId);
+        }
+
+        if (!isset($package['logged_employee_name'])) {
+            $package['logged_employee_name'] = EmployeeFormatter::resolveName($loggedEmployeeId);
+        }
+
+        return $package;
     }
 
     /**

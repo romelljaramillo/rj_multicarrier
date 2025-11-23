@@ -50,6 +50,7 @@ use RuntimeException;
 use Shop;
 use Tools;
 use Validate;
+use \Employee;
 
 /**
  * Class CarrierCompany.
@@ -845,7 +846,7 @@ class CarrierCompany extends Module
             throw new RuntimeException('Missing info package identifier to persist shipment');
         }
 
-        [$employeeId, $employeeName] = $this->resolveCurrentEmployee();
+        [$employeeId, $employeeName] = self::resolveCurrentEmployee();
 
         $command = new CreateShipmentCommand(
             (int) ($shipmentData['id_order'] ?? 0),
@@ -869,7 +870,7 @@ class CarrierCompany extends Module
     /**
      * @return array{0:?int,1:?string}
      */
-    private function resolveCurrentEmployee(): array
+    private static function resolveCurrentEmployee(): array
     {
         $context = Context::getContext();
         $employee = $context->employee ?? null;
@@ -1278,6 +1279,23 @@ class CarrierCompany extends Module
         return (float) $value;
     }
 
+    private static function toPositiveIntOrNull($value): ?int
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim((string) $value);
+
+        if ('' === $trimmed) {
+            return null;
+        }
+
+        $candidate = (int) $trimmed;
+
+        return $candidate > 0 ? $candidate : null;
+    }
+
     private static function normalizeInfoShipmentResponse(InfoShipmentEntity $infoPackage): array
     {
         $retorno = $infoPackage->getRetorno();
@@ -1353,6 +1371,16 @@ class CarrierCompany extends Module
         $dorigRaw = Tools::getValue('rj_dorig');
         $dorig = ($dorigRaw === null) ? '' : (string) $dorigRaw;
 
+        $employeeId = self::toPositiveIntOrNull(Tools::getValue('rj_employee_id'));
+        if (null === $employeeId) {
+            [$employeeId] = self::resolveCurrentEmployee();
+        }
+
+        $loggedEmployeeId = self::toPositiveIntOrNull(Tools::getValue('rj_logged_employee_id'));
+        if (null === $loggedEmployeeId) {
+            [$loggedEmployeeId] = self::resolveCurrentEmployee();
+        }
+
         try {
             $infoPackage = self::getUpsertInfoShipmentHandler()->handle(
                 new UpsertInfoShipmentCommand(
@@ -1373,6 +1401,8 @@ class CarrierCompany extends Module
                     $rcs,
                     $vsec,
                     $dorig,
+                    $employeeId,
+                    $loggedEmployeeId,
                     $shopId
                 )
             );

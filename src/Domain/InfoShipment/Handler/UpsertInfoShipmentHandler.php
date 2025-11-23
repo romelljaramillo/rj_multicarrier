@@ -53,7 +53,7 @@ final class UpsertInfoShipmentHandler
             ->setVsec($command->getVsec())
             ->setDorig($command->getDorig())
             ->setEmployeeId($command->getEmployeeId())
-            ->setEmployeeName($command->getEmployeeName())
+            ->setLoggedEmployeeId($command->getLoggedEmployeeId())
             ->touch(); // Update timestamp
 
         $this->entityManager->flush();

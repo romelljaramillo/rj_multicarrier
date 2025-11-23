@@ -27,8 +27,7 @@ final class CreateShipmentCommand
         private readonly array $requestPayload,
         private readonly ?array $responsePayload,
         private readonly array $labels,
-        private readonly ?int $employeeId,
-        private readonly ?string $employeeName
+        private readonly ?int $employeeId
     ) {
     }
 
@@ -94,10 +93,5 @@ final class CreateShipmentCommand
     public function getEmployeeId(): ?int
     {
         return $this->employeeId;
-    }
-
-    public function getEmployeeName(): ?string
-    {
-        return $this->employeeName;
     }
 }

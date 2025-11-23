@@ -24,6 +24,7 @@ namespace Roanja\Module\RjMulticarrier\Domain\Shipment\Handler;
 
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetShipmentsByIds;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\View\ShipmentView;
+use Roanja\Module\RjMulticarrier\Util\EmployeeFormatter;
 
 /**
  * Handler for getting shipments by their IDs.
@@ -67,7 +68,7 @@ final class GetShipmentsByIdsHandler
                 'account' => $shipment->getAccount(),
                 'product' => $shipment->getProduct(),
                 'employeeId' => $shipment->getEmployeeId(),
-                'employeeName' => $shipment->getEmployeeName(),
+                'employeeName' => EmployeeFormatter::resolveName($shipment->getEmployeeId()),
                 'requestPayload' => $shipment->getRequestPayload(),
                 'responsePayload' => $shipment->getResponsePayload(),
                 'deleted' => $shipment->isDeleted(),

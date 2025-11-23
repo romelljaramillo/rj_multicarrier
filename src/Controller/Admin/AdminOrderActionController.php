@@ -78,14 +78,13 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
         $vsec = $this->normalizeStringValue($request->request->get('rj_vsec'));
         $dorig = $this->normalizeStringValue($request->request->get('rj_dorig'));
         $employeeId = $this->normalizeEmployeeId($request->request->get('rj_employee_id'));
-        $employeeName = $this->normalizeStringValue($request->request->get('rj_employee_name'));
-
-        if (null === $employeeName && null !== $employeeId) {
-            $employeeName = $this->resolveEmployeeNameById($employeeId);
+        if (null === $employeeId) {
+            [$employeeId] = $this->resolveCurrentEmployee();
         }
 
-        if (null === $employeeId && null === $employeeName) {
-            [$employeeId, $employeeName] = $this->resolveCurrentEmployee();
+        $loggedEmployeeId = $this->normalizeEmployeeId($request->request->get('rj_logged_employee_id'));
+        if (null === $loggedEmployeeId) {
+            [$loggedEmployeeId] = $this->resolveCurrentEmployee();
         }
 
         /** @var ShipmentRepository $shipmentRepository */
@@ -113,7 +112,7 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
                 $vsec,
                 $dorig,
                 $employeeId,
-                $employeeName,
+                $loggedEmployeeId,
                 $shopId
             ));
 
@@ -258,29 +257,6 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
         $candidate = (int) $value;
 
         return $candidate > 0 ? $candidate : null;
-    }
-
-    private function resolveEmployeeNameById(int $employeeId): ?string
-    {
-        if ($employeeId <= 0) {
-            return null;
-        }
-
-        try {
-            $employee = new Employee($employeeId);
-            if (Validate::isLoadedObject($employee)) {
-                $name = trim(sprintf('%s %s', (string) ($employee->firstname ?? ''), (string) ($employee->lastname ?? '')));
-                if ('' === $name && isset($employee->email)) {
-                    $name = (string) $employee->email;
-                }
-
-                return '' === $name ? null : $name;
-            }
-        } catch (\Throwable) {
-            return null;
-        }
-
-        return null;
     }
 
     /**

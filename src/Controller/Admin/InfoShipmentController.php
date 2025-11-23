@@ -9,6 +9,10 @@ declare(strict_types=1);
 namespace Roanja\Module\RjMulticarrier\Controller\Admin;
 
 use Context;
+use Module;
+use Order;
+use Shop;
+use Validate;
 use Roanja\Module\RjMulticarrier\Domain\InfoShipment\Query\GetInfoShipmentsForExport;
 use Roanja\Module\RjMulticarrier\Domain\InfoShipment\Query\GetInfoShipmentsByIds;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -23,6 +27,9 @@ use Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentFilters;
 use Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentGridFactory;
 use Roanja\Module\RjMulticarrier\Service\Shipment\ShipmentGenerationService;
 use Roanja\Module\RjMulticarrier\Service\Presenter\OrderViewPresenter;
+use Roanja\Module\RjMulticarrier\Repository\ConfigurationRepository;
+use Roanja\Module\RjMulticarrier\Entity\Configuration as SenderConfiguration;
+use Roanja\Module\RjMulticarrier\Util\EmployeeFormatter;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -52,7 +59,7 @@ final class InfoShipmentController extends FrameworkBundleAdminController
         'rj_vsec',
         'rj_dorig',
         'rj_employee_id',
-        'rj_employee_name',
+        'rj_logged_employee_id',
     ];
 
     public function __construct(
@@ -60,7 +67,8 @@ final class InfoShipmentController extends FrameworkBundleAdminController
         private readonly GridPresenterInterface $gridPresenter,
         private readonly ShipmentGenerationService $shipmentGenerationService,
         private readonly TranslatorInterface $translator,
-        private readonly OrderViewPresenter $orderViewPresenter
+        private readonly OrderViewPresenter $orderViewPresenter,
+        private readonly ?ConfigurationRepository $configurationRepository = null
     ) {}
 
     /**
@@ -89,6 +97,8 @@ final class InfoShipmentController extends FrameworkBundleAdminController
             'infoShipmentId' => $infoShipmentId,
             'display' => $display,
         ];
+
+        $packageArray = null;
 
         if ($infoShipmentId > 0) {
             /** @var InfoShipmentView|null $packageView */
@@ -119,7 +129,29 @@ final class InfoShipmentController extends FrameworkBundleAdminController
             }
         }
 
-        $context['submitted'] = $this->buildDefaultFormValues($context['package'] ?? null, $prefillValues);
+        if (isset($context['package']) && is_array($context['package'])) {
+            $packageArray = $context['package'];
+        } else {
+            $packageArray = null;
+        }
+
+        $autoPrefill = [];
+        $orderCodMetadata = $this->buildEmptyCashOnDeliveryMetadata();
+
+        if (null === $packageArray) {
+            $prefillPayload = $this->resolveOrderAutoPrefillValues($orderId);
+            $autoPrefill = $prefillPayload['values'];
+            $orderCodMetadata = $prefillPayload['cod'];
+        } else {
+            $orderCodMetadata = $this->resolveOrderCashOnDeliveryMetadataById($orderId);
+        }
+
+        if (!empty($autoPrefill)) {
+            $prefillValues = array_merge($autoPrefill, $prefillValues);
+        }
+
+        $context['submitted'] = $this->buildDefaultFormValues($packageArray, $prefillValues);
+        $context['order_cod'] = $orderCodMetadata;
 
         try {
             $html = $this->orderViewPresenter->present($orderId, $context);
@@ -178,22 +210,14 @@ final class InfoShipmentController extends FrameworkBundleAdminController
             }
         }
 
-        if (!isset($defaults['rj_employee_id']) || !isset($defaults['rj_employee_name']) || '' === trim((string) ($defaults['rj_employee_name'] ?? ''))) {
-            $employee = Context::getContext()->employee ?? null;
-            if (null !== $employee) {
-                if (!isset($defaults['rj_employee_id']) && isset($employee->id)) {
-                    $defaults['rj_employee_id'] = (int) $employee->id;
-                }
+        $employee = Context::getContext()->employee ?? null;
+        if (null !== $employee) {
+            if (!isset($defaults['rj_employee_id']) && isset($employee->id)) {
+                $defaults['rj_employee_id'] = (int) $employee->id;
+            }
 
-                if (!isset($defaults['rj_employee_name']) || '' === trim((string) $defaults['rj_employee_name'])) {
-                    $fullName = trim(sprintf('%s %s', (string) ($employee->firstname ?? ''), (string) ($employee->lastname ?? '')));
-                    if ('' === $fullName && isset($employee->email)) {
-                        $fullName = (string) $employee->email;
-                    }
-                    if ('' !== $fullName) {
-                        $defaults['rj_employee_name'] = $fullName;
-                    }
-                }
+            if (!isset($defaults['rj_logged_employee_id']) && isset($employee->id)) {
+                $defaults['rj_logged_employee_id'] = (int) $employee->id;
             }
         }
 
@@ -203,6 +227,8 @@ final class InfoShipmentController extends FrameworkBundleAdminController
     public function indexAction(Request $request, InfoShipmentFilters $filters): Response
     {
         $filters->setNeedsToBePersisted(false);
+        $filters->set('orderBy', 'id_order');
+        $filters->set('sortOrder', 'desc');
         $grid = $this->gridFactory->getGrid($filters);
         $gridView = $this->gridPresenter->present($grid);
 
@@ -218,6 +244,12 @@ final class InfoShipmentController extends FrameworkBundleAdminController
     {
         $data = $view->toArray();
 
+        $employeeId = isset($data['employeeId']) ? (int) $data['employeeId'] : null;
+        $loggedEmployeeId = isset($data['loggedEmployeeId']) ? (int) $data['loggedEmployeeId'] : null;
+
+        $employeeName = $data['employeeName'] ?? EmployeeFormatter::resolveName($employeeId);
+        $loggedEmployeeName = $data['loggedEmployeeName'] ?? EmployeeFormatter::resolveName($loggedEmployeeId);
+
         return [
             'id_info_shipment' => $data['id'] ?? null,
             'id_order' => $data['orderId'] ?? null,
@@ -231,8 +263,10 @@ final class InfoShipmentController extends FrameworkBundleAdminController
             'height' => $data['height'] ?? null,
             'cash_ondelivery' => $data['cashOnDelivery'] ?? null,
             'message' => $data['message'] ?? null,
-            'id_employee' => $data['employeeId'] ?? null,
-            'employee_name' => $data['employeeName'] ?? null,
+            'id_employee' => $employeeId,
+            'employee_name' => $employeeName,
+            'logged_employee_id' => $loggedEmployeeId,
+            'logged_employee_name' => $loggedEmployeeName,
             'hour_from' => $data['hourFrom'] ?? null,
             'hour_until' => $data['hourUntil'] ?? null,
             'retorno' => $data['retorno'] ?? null,
@@ -320,6 +354,12 @@ final class InfoShipmentController extends FrameworkBundleAdminController
     {
         $data = $view->toArray();
 
+        $employeeId = $data['employeeId'] ?? null;
+        $loggedEmployeeId = $data['loggedEmployeeId'] ?? null;
+
+        $employeeName = $data['employeeName'] ?? EmployeeFormatter::resolveName(is_int($employeeId) ? $employeeId : null);
+        $loggedEmployeeName = $data['loggedEmployeeName'] ?? EmployeeFormatter::resolveName(is_int($loggedEmployeeId) ? $loggedEmployeeId : null);
+
         return [
             'id' => $data['id'],
             'orderId' => $data['orderId'],
@@ -336,8 +376,10 @@ final class InfoShipmentController extends FrameworkBundleAdminController
             'height' => $data['height'],
             'cashOnDelivery' => $data['cashOnDelivery'],
             'message' => $data['message'],
-            'employeeId' => $data['employeeId'],
-            'employeeName' => $data['employeeName'],
+            'employeeId' => $employeeId,
+            'employeeName' => $employeeName,
+            'loggedEmployeeId' => $loggedEmployeeId,
+            'loggedEmployeeName' => $loggedEmployeeName,
             'hourFrom' => $data['hourFrom'],
             'hourUntil' => $data['hourUntil'],
             'retorno' => $data['retorno'],
@@ -478,7 +520,10 @@ final class InfoShipmentController extends FrameworkBundleAdminController
                 'Actualizado',
                 'ID Empleado',
                 'Empleado',
+                'ID Empleado logado',
+                'Empleado logado',
             ]);
+
             foreach ($infoShipments as $infoShipment) {
                 if (method_exists($infoShipment, 'toCsvRow')) {
                     fputcsv($handle, $infoShipment->toCsvRow());
@@ -486,13 +531,16 @@ final class InfoShipmentController extends FrameworkBundleAdminController
                     fputcsv($handle, is_array($infoShipment) ? $infoShipment : []);
                 }
             }
+
             fclose($handle);
         });
+
         $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
         $response->headers->set('Content-Disposition', $response->headers->makeDisposition(
             ResponseHeaderBag::DISPOSITION_ATTACHMENT,
             $fileName
         ));
+
         return $response;
     }
 
@@ -636,7 +684,7 @@ final class InfoShipmentController extends FrameworkBundleAdminController
             'vsec' => 'rj_vsec',
             'dorig' => 'rj_dorig',
             'id_employee' => 'rj_employee_id',
-            'employee_name' => 'rj_employee_name',
+            'logged_employee_id' => 'rj_logged_employee_id',
         ];
 
         $mapped = [];
@@ -654,7 +702,7 @@ final class InfoShipmentController extends FrameworkBundleAdminController
 
             if ($formKey === 'rj_rcs') {
                 $value = (int) ((bool) $value);
-            } elseif (in_array($formKey, ['id_info_shipment', 'id_reference_carrier', 'id_type_shipment', 'carrier_id', 'rj_quantity', 'rj_retorno', 'rj_employee_id'], true)) {
+            } elseif (in_array($formKey, ['id_info_shipment', 'id_reference_carrier', 'id_type_shipment', 'carrier_id', 'rj_quantity', 'rj_retorno', 'rj_employee_id', 'rj_logged_employee_id'], true)) {
                 $value = (int) $value;
             }
 
@@ -704,7 +752,7 @@ final class InfoShipmentController extends FrameworkBundleAdminController
 
             $value = $data[$key];
 
-            if (in_array($key, ['id_info_shipment', 'id_reference_carrier', 'id_type_shipment', 'carrier_id', 'rj_quantity', 'rj_retorno', 'rj_rcs', 'rj_employee_id'], true)) {
+            if (in_array($key, ['id_info_shipment', 'id_reference_carrier', 'id_type_shipment', 'carrier_id', 'rj_quantity', 'rj_retorno', 'rj_rcs', 'rj_employee_id', 'rj_logged_employee_id'], true)) {
                 $normalized[$key] = (int) $value;
                 continue;
             }
@@ -725,6 +773,391 @@ final class InfoShipmentController extends FrameworkBundleAdminController
         }
 
         return $normalized;
+    }
+
+    /**
+     * @return array{values: array<string, scalar>, cod: array{amount: ?string, has_cod: bool, source: ?string, payment_label: ?string}}
+     */
+    private function resolveOrderAutoPrefillValues(int $orderId): array
+    {
+        $order = $this->loadOrder($orderId);
+
+        if (null === $order) {
+            return [
+                'values' => [],
+                'cod' => $this->buildEmptyCashOnDeliveryMetadata(),
+            ];
+        }
+
+        $prefill = [];
+
+        $metrics = $this->collectOrderProductMetrics($order);
+
+        if ($metrics['quantity'] > 0) {
+            $prefill['rj_quantity'] = (int) $metrics['quantity'];
+        }
+
+        if ($metrics['length'] > 0) {
+            $prefill['rj_length'] = $this->formatNumericValue($metrics['length'], 3);
+        }
+
+        if ($metrics['width'] > 0) {
+            $prefill['rj_width'] = $this->formatNumericValue($metrics['width'], 3);
+        }
+
+        if ($metrics['height'] > 0) {
+            $prefill['rj_height'] = $this->formatNumericValue($metrics['height'], 3);
+        }
+
+        $weight = (float) $order->getTotalWeight();
+        if ($weight > 0) {
+            $prefill['rj_weight'] = $this->formatNumericValue($weight, 3);
+        }
+
+        $codMetadata = $this->buildCashOnDeliveryMetadata($order);
+        if (null !== $codMetadata['amount']) {
+            $prefill['rj_cash_ondelivery'] = $codMetadata['amount'];
+            if (!isset($prefill['rj_vsec'])) {
+                $prefill['rj_vsec'] = $codMetadata['amount'];
+            }
+        }
+
+        $originDocument = trim((string) $order->reference);
+        if ('' !== $originDocument) {
+            $prefill['rj_dorig'] = $originDocument;
+        }
+
+        $message = $this->resolveOrderMessage($order);
+        if (null !== $message) {
+            $prefill['rj_message'] = $message;
+        }
+
+        return [
+            'values' => $prefill,
+            'cod' => $codMetadata,
+        ];
+    }
+
+    private function resolveOrderCashOnDeliveryMetadataById(int $orderId): array
+    {
+        $order = $this->loadOrder($orderId);
+
+        if (null === $order) {
+            return $this->buildEmptyCashOnDeliveryMetadata();
+        }
+
+        return $this->buildCashOnDeliveryMetadata($order);
+    }
+
+    private function buildCashOnDeliveryMetadata(Order $order): array
+    {
+        $codPaymentsAmount = $this->resolveCashOnDeliveryPaymentTotal($order);
+
+        if (null !== $codPaymentsAmount) {
+            return [
+                'amount' => $codPaymentsAmount,
+                'has_cod' => true,
+                'source' => 'payments',
+                'payment_label' => $this->resolveOrderPaymentLabel($order),
+            ];
+        }
+
+        $codAmount = $this->resolveOrderTotalAmount($order);
+
+        return [
+            'amount' => $codAmount,
+            'has_cod' => false,
+            'source' => null === $codAmount ? null : 'order_total',
+            'payment_label' => $this->resolveOrderPaymentLabel($order),
+        ];
+    }
+
+    private function buildEmptyCashOnDeliveryMetadata(): array
+    {
+        return [
+            'amount' => null,
+            'has_cod' => false,
+            'source' => null,
+            'payment_label' => null,
+        ];
+    }
+
+    private function resolveOrderPaymentLabel(Order $order): ?string
+    {
+        $label = null;
+
+        if (property_exists($order, 'payment')) {
+            $label = (string) ($order->payment ?? '');
+        }
+
+        $label = trim((string) $label);
+
+        return '' === $label ? null : $label;
+    }
+
+    private function loadOrder(int $orderId): ?Order
+    {
+        if ($orderId <= 0 || !class_exists('Order')) {
+            return null;
+        }
+
+        try {
+            $order = new Order($orderId);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return Validate::isLoadedObject($order) ? $order : null;
+    }
+
+    /**
+     * @return array{quantity: int, length: float, width: float, height: float}
+     */
+    private function collectOrderProductMetrics(Order $order): array
+    {
+        $metrics = [
+            'quantity' => 0,
+            'length' => 0.0,
+            'width' => 0.0,
+            'height' => 0.0,
+        ];
+
+        try {
+            $products = $order->getProducts(false, false, false, false);
+        } catch (\Throwable) {
+            return $metrics;
+        }
+
+        if (!is_array($products)) {
+            return $metrics;
+        }
+
+        foreach ($products as $product) {
+            if (!is_array($product)) {
+                continue;
+            }
+
+            $quantity = (int) ($product['product_quantity'] ?? 0);
+            if ($quantity <= 0) {
+                continue;
+            }
+
+            $metrics['quantity'] += $quantity;
+            $metrics['length'] += max(0.0, (float) ($product['depth'] ?? 0)) * $quantity;
+            $metrics['width'] += max(0.0, (float) ($product['width'] ?? 0)) * $quantity;
+            $metrics['height'] += max(0.0, (float) ($product['height'] ?? 0)) * $quantity;
+        }
+
+        return $metrics;
+    }
+
+    private function resolveOrderTotalAmount(Order $order): ?string
+    {
+        $candidates = [
+            (float) $order->total_paid_tax_incl,
+            (float) $order->total_paid,
+            (float) $order->total_products_wt,
+        ];
+
+        foreach ($candidates as $amount) {
+            if ($amount > 0) {
+                return $this->formatNumericValue($amount, 2);
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveOrderMessage(Order $order): ?string
+    {
+        $message = '';
+
+        try {
+            $message = (string) $order->getFirstMessage();
+        } catch (\Throwable) {
+            $message = '';
+        }
+
+        if ('' === trim($message) && property_exists($order, 'gift_message')) {
+            $message = (string) ($order->gift_message ?? '');
+        }
+
+        $message = trim($message);
+
+        return '' === $message ? null : $message;
+    }
+
+    private function resolveCashOnDeliveryPaymentTotal(Order $order): ?string
+    {
+        $matchers = $this->resolveCashOnDeliveryPaymentMatchers();
+
+        if ([] === $matchers) {
+            return null;
+        }
+
+        try {
+            $payments = $order->getOrderPayments();
+        } catch (\Throwable) {
+            $payments = [];
+        }
+
+        if (!is_array($payments) || [] === $payments) {
+            return null;
+        }
+
+        $total = 0.0;
+
+        foreach ($payments as $payment) {
+            $method = '';
+            $amount = 0.0;
+
+            if (is_object($payment)) {
+                $methodValue = $payment->payment_method ?? ($payment->paymentMethod ?? '');
+                $amountValue = $payment->amount ?? 0;
+
+                if (is_scalar($methodValue)) {
+                    $method = (string) $methodValue;
+                }
+
+                if (is_scalar($amountValue)) {
+                    $amount = (float) $amountValue;
+                }
+            } elseif (is_array($payment)) {
+                $method = (string) ($payment['payment_method'] ?? '');
+                $amount = (float) ($payment['amount'] ?? 0);
+            } else {
+                continue;
+            }
+
+            if (!$this->isCashOnDeliveryPaymentMethod($method, $matchers)) {
+                continue;
+            }
+
+            $total += $amount;
+        }
+
+        if ($total <= 0) {
+            return null;
+        }
+
+        return $this->formatNumericValue($total, 2);
+    }
+
+    /**
+     * @return string[]
+     */
+    private function resolveCashOnDeliveryPaymentMatchers(): array
+    {
+        $matchers = [];
+
+        $configuredModule = $this->resolveCashOnDeliveryModule();
+
+        if (null !== $configuredModule && '' !== trim($configuredModule)) {
+            $matchers[] = $this->normalizePaymentLabel($configuredModule);
+
+            if (class_exists(Module::class)) {
+                try {
+                    $moduleInstance = Module::getInstanceByName($configuredModule);
+                } catch (\Throwable) {
+                    $moduleInstance = null;
+                }
+
+                if (null !== $moduleInstance) {
+                    if (isset($moduleInstance->displayName)) {
+                        $matchers[] = $this->normalizePaymentLabel((string) $moduleInstance->displayName);
+                    }
+
+                    if (isset($moduleInstance->name)) {
+                        $matchers[] = $this->normalizePaymentLabel((string) $moduleInstance->name);
+                    }
+                }
+            }
+        }
+
+        $genericKeywords = ['contra reembolso', 'contrareembolso', 'cash on delivery', 'cashondelivery', 'cod'];
+
+        foreach ($genericKeywords as $keyword) {
+            $matchers[] = $this->normalizePaymentLabel($keyword);
+        }
+
+        $matchers = array_values(array_unique(array_filter($matchers)));
+
+        return $matchers;
+    }
+
+    private function isCashOnDeliveryPaymentMethod(string $label, array $matchers): bool
+    {
+        if ([] === $matchers) {
+            return false;
+        }
+
+        $normalized = $this->normalizePaymentLabel($label);
+
+        if ('' === $normalized) {
+            return false;
+        }
+
+        foreach ($matchers as $matcher) {
+            if ('' === $matcher) {
+                continue;
+            }
+
+            if (str_contains($normalized, $matcher)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizePaymentLabel(string $value): string
+    {
+        $lower = function_exists('mb_strtolower') ? mb_strtolower(trim($value)) : strtolower(trim($value));
+
+        if ('' === $lower) {
+            return '';
+        }
+
+        $normalized = preg_replace('/[^a-z0-9]/', '', $lower);
+
+        return (string) ($normalized ?? '');
+    }
+
+    private function resolveCashOnDeliveryModule(): ?string
+    {
+        if (!$this->configurationRepository instanceof ConfigurationRepository) {
+            return null;
+        }
+
+        $shopId = Shop::getContextShopID();
+        if ($shopId <= 0) {
+            $shopId = (int) (Context::getContext()->shop->id ?? 0);
+        }
+
+        $configuration = null;
+        if ($shopId > 0) {
+            $configuration = $this->configurationRepository->findOneByShop($shopId);
+        }
+
+        if (!$configuration instanceof SenderConfiguration) {
+            $configuration = $this->configurationRepository->findFirst();
+        }
+
+        if (!$configuration instanceof SenderConfiguration) {
+            return null;
+        }
+
+        $moduleName = $configuration->getCashOnDeliveryModule();
+
+        return (null === $moduleName || '' === trim((string) $moduleName)) ? null : $moduleName;
+    }
+
+    private function formatNumericValue(float $value, int $decimals = 2): string
+    {
+        $formatted = number_format($value, $decimals, '.', '');
+        $trimmed = rtrim(rtrim($formatted, '0'), '.');
+
+        return '' === $trimmed ? '0' : $trimmed;
     }
 
     /**

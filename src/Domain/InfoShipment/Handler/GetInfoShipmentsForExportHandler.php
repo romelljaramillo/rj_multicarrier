@@ -19,7 +19,7 @@ final class GetInfoShipmentsForExportHandler
      */
     public function handle(GetInfoShipmentsForExport $query): array
     {
-    $rows = $this->infoShipmentRepository->findForExport($query->getFilters());
+        $rows = $this->infoShipmentRepository->findForExport($query->getFilters());
 
         $views = [];
         foreach ($rows as $row) {

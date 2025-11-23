@@ -11,12 +11,13 @@ use Roanja\Module\RjMulticarrier\Domain\Shipment\View\ShipmentView;
 use Roanja\Module\RjMulticarrier\Entity\InfoShipment;
 use Roanja\Module\RjMulticarrier\Repository\LabelRepository;
 use Roanja\Module\RjMulticarrier\Repository\ShipmentRepository;
+use Roanja\Module\RjMulticarrier\Util\EmployeeFormatter;
 
 final class GetShipmentForViewHandler
 {
     public function __construct(
-    private readonly ShipmentRepository $shipmentRepository,
-    private readonly LabelRepository $labelRepository
+        private readonly ShipmentRepository $shipmentRepository,
+        private readonly LabelRepository $labelRepository
     ) {
     }
 
@@ -36,7 +37,7 @@ final class GetShipmentForViewHandler
             'account' => $shipment->getAccount(),
             'product' => $shipment->getProduct(),
             'employeeId' => $shipment->getEmployeeId(),
-            'employeeName' => $shipment->getEmployeeName(),
+            'employeeName' => EmployeeFormatter::resolveName($shipment->getEmployeeId()),
             'requestPayload' => $shipment->getRequestPayload(),
             'responsePayload' => $shipment->getResponsePayload(),
             'deleted' => $shipment->isDeleted(),
@@ -50,46 +51,46 @@ final class GetShipmentForViewHandler
         );
     }
 
-        private function buildPackageView(?InfoShipment $infoPackage): array
-        {
-            if (!$infoPackage) {
-                return [];
-            }
-
-            $hourFrom = $infoPackage->getHourFrom()?->format('H:i:s');
-            $hourUntil = $infoPackage->getHourUntil()?->format('H:i:s');
-
-            $retorno = $infoPackage->getRetorno();
-
-            $vsecRaw = $infoPackage->getVsec();
-            $vsec = null;
-            if (null !== $vsecRaw) {
-                $vsecFloat = (float) $vsecRaw;
-                if ($vsecFloat > 0.0) {
-                    $vsec = $vsecFloat;
-                }
-            }
-
-            $dorigRaw = $infoPackage->getDorig();
-            $dorig = ($dorigRaw !== null && $dorigRaw !== '') ? $dorigRaw : null;
-
-            return [
-                'id' => $infoPackage->getId(),
-                'quantity' => $infoPackage->getQuantity(),
-                'weight' => $infoPackage->getWeight(),
-                'cash_on_delivery' => $infoPackage->getCashOnDelivery(),
-                'dimensions' => [
-                    'length' => $infoPackage->getLength(),
-                    'width' => $infoPackage->getWidth(),
-                    'height' => $infoPackage->getHeight(),
-                ],
-                'message' => $infoPackage->getMessage(),
-                'hour_from' => $hourFrom,
-                'hour_until' => $hourUntil,
-                'retorno' => $retorno,
-                'rcs' => $infoPackage->isRcsEnabled(),
-                'vsec' => $vsec,
-                'dorig' => $dorig,
-            ];
+    private function buildPackageView(?InfoShipment $infoPackage): array
+    {
+        if (!$infoPackage) {
+            return [];
         }
+
+        $hourFrom = $infoPackage->getHourFrom()?->format('H:i:s');
+        $hourUntil = $infoPackage->getHourUntil()?->format('H:i:s');
+
+        $retorno = $infoPackage->getRetorno();
+
+        $vsecRaw = $infoPackage->getVsec();
+        $vsec = null;
+        if (null !== $vsecRaw) {
+            $vsecFloat = (float) $vsecRaw;
+            if ($vsecFloat > 0.0) {
+                $vsec = $vsecFloat;
+            }
+        }
+
+        $dorigRaw = $infoPackage->getDorig();
+        $dorig = ($dorigRaw !== null && $dorigRaw !== '') ? $dorigRaw : null;
+
+        return [
+            'id' => $infoPackage->getId(),
+            'quantity' => $infoPackage->getQuantity(),
+            'weight' => $infoPackage->getWeight(),
+            'cash_on_delivery' => $infoPackage->getCashOnDelivery(),
+            'dimensions' => [
+                'length' => $infoPackage->getLength(),
+                'width' => $infoPackage->getWidth(),
+                'height' => $infoPackage->getHeight(),
+            ],
+            'message' => $infoPackage->getMessage(),
+            'hour_from' => $hourFrom,
+            'hour_until' => $hourUntil,
+            'retorno' => $retorno,
+            'rcs' => $infoPackage->isRcsEnabled(),
+            'vsec' => $vsec,
+            'dorig' => $dorig,
+        ];
+    }
 }

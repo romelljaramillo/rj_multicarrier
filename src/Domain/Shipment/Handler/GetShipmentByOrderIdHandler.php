@@ -11,6 +11,7 @@ use Roanja\Module\RjMulticarrier\Domain\Shipment\View\ShipmentView;
 use Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\LabelRepository;
 use Roanja\Module\RjMulticarrier\Repository\ShipmentRepository;
+use Roanja\Module\RjMulticarrier\Util\EmployeeFormatter;
 
 final class GetShipmentByOrderIdHandler
 {
@@ -34,7 +35,7 @@ final class GetShipmentByOrderIdHandler
             'account' => $shipment->getAccount(),
             'product' => $shipment->getProduct(),
             'employeeId' => $shipment->getEmployeeId(),
-            'employeeName' => $shipment->getEmployeeName(),
+            'employeeName' => EmployeeFormatter::resolveName($shipment->getEmployeeId()),
             'requestPayload' => $shipment->getRequestPayload(),
             'responsePayload' => $shipment->getResponsePayload(),
             'deleted' => $shipment->isDeleted(),

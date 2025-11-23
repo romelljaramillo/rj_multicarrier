@@ -6,8 +6,18 @@
 {% set display_mode = display|default('modal') %}
 {% set isInlineDisplay = display_mode == 'inline' %}
 {% set employee_defaults = current_employee|default({'id': null, 'name': null}) %}
+{% set order_cod_meta = order_cod|default({'amount': null, 'has_cod': false, 'payment_label': null}) %}
+{% set order_cod_amount = order_cod_meta.amount|default('') %}
+{% set order_cod_flag = order_cod_meta.has_cod|default(false) %}
+{% set order_cod_payment_label = order_cod_meta.payment_label|default('') %}
 {% set selected_employee_id = request_values.rj_employee_id|default(info_package.id_employee|default(employee_defaults.id|default(''))) %}
-{% set selected_employee_name = request_values.rj_employee_name|default(info_package.employee_name|default(employee_defaults.name|default(''))) %}
+{% set employeeChoices = employee_choices|default([]) %}
+{% set employeeChoiceMap = {} %}
+{% for employee in employeeChoices %}
+	{% set mapKey = employee.id|default('') ~ '' %}
+	{% set employeeChoiceMap = employeeChoiceMap|merge({ (mapKey): employee.label|default('') }) %}
+{% endfor %}
+{% set selected_employee_name = employeeChoiceMap[selected_employee_id|default('') ~ '']|default(info_package.employee_name|default(employee_defaults.name|default(''))) %}
 
 {% for message in notifications.errors %}
 	<div class="alert alert-danger" role="alert">{{ message }}</div>
@@ -22,7 +32,14 @@
 	<div class="alert alert-info" role="alert">{{ message }}</div>
 {% endfor %}
 
-<div class="{{ isInlineDisplay ? 'rj-inline-panel' : 'row g-4' }}" data-rj-order-panel-root data-display="{{ display_mode }}">
+<div
+	class="{{ isInlineDisplay ? 'rj-inline-panel' : 'row g-4' }}"
+	data-rj-order-panel-root
+	data-display="{{ display_mode }}"
+	data-order-cod-amount="{{ order_cod_amount|default('')|e('html_attr') }}"
+	data-order-has-cod="{{ order_cod_flag ? '1' : '0' }}"
+	data-order-payment="{{ order_cod_payment_label|default('')|e('html_attr') }}"
+>
 	{% if not isPreviewOnly %}
 	{% set formColumnClasses = isInlineDisplay ? 'rj-inline-panel__form-col' : 'col-12 col-lg-7' %}
 	{% set formCardClasses = isInlineDisplay ? 'card shadow-none border rj-inline-panel__card' : 'card' %}
@@ -158,6 +175,40 @@
 					<input type="hidden" name="id_reference_carrier" id="rj-reference-carrier" value="{{ request_values.id_reference_carrier|default(info_package.id_reference_carrier|default('')) }}" />
 
 					<div class="row mb-3">
+						<div class="col-12">
+							<label class="form-label">{{ 'Empleado'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+							{% if employeeChoices is not empty %}
+								{% set selectedEmployeeIdValue = selected_employee_id|default('') ~ '' %}
+								<select
+									name="rj_employee_id"
+									class="form-select js-rj-select2"
+									id="rj-employee-select"
+									data-placeholder="{{ 'Selecciona empleado'|trans({}, 'Modules.RjMulticarrier.Admin') }}"
+									data-allow-clear="true"
+								>
+									<option value="">{{ 'Selecciona empleado'|trans({}, 'Modules.RjMulticarrier.Admin') }}</option>
+									{% for employee in employeeChoices %}
+										{% set choiceId = employee.id|default('') %}
+										{% set choiceLabel = employee.label|default('') %}
+										<option value="{{ choiceId }}" data-employee-name="{{ choiceLabel|e('html_attr') }}" {% if (choiceId ~ '') == selectedEmployeeIdValue %}selected{% endif %}>{{ choiceLabel }}</option>
+									{% endfor %}
+								</select>
+								<small class="form-text text-muted d-block mt-1">
+									{{ 'Seleccionado:'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+									<strong id="rj-employee-display" data-employee-name-display>{{ selected_employee_name|default('-') }}</strong>
+								</small>
+								<small class="form-text text-muted">{{ 'Selecciona un empleado de la lista; por defecto se marca el usuario conectado.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
+							{% else %}
+								<input type="number" name="rj_employee_id" value="{{ selected_employee_id|default('') }}" class="form-control" min="0" />
+								<small class="form-text text-muted">
+									{{ 'Empleado detectado:'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+									<strong data-employee-name-display>{{ selected_employee_name|default('-') }}</strong>
+								</small>
+							{% endif %}
+						</div>
+					</div>
+
+					<div class="row mb-3">
 						<div class="col-md-6">
 							<label class="form-label">{{ 'Compañía'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
 							<select name="carrier_id" class="form-select form-control" id="rj-carrier-select">
@@ -249,19 +300,7 @@
 								<option value="2" {% if retornoValue == 2 %}selected{% endif %}>{{ 'Retorno opcional'|trans({}, 'Modules.RjMulticarrier.Admin') }}</option>
 							</select>
 						</div>
-
-						<div class="row mb-3">
-							<div class="col-md-3">
-								<label class="form-label">{{ 'ID empleado'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-								<input type="number" name="rj_employee_id" value="{{ selected_employee_id|default('') }}" class="form-control" min="0" />
-							</div>
-							<div class="col-md-9">
-								<label class="form-label">{{ 'Nombre del empleado'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-								<input type="text" name="rj_employee_name" value="{{ selected_employee_name|default('') }}" class="form-control" />
-								<small class="form-text text-muted">{{ 'Se completa automáticamente con el empleado conectado, pero puedes editarlo.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
-							</div>
-						</div>
-						<div class="col-md-4 d-flex align-items-end">
+						<div class="col-md-8 d-flex align-items-end">
 							<div class="form-check">
 								<input class="form-check-input" type="checkbox" name="rj_rcs" id="rj_rcs_checkbox" {% if request_values.rj_rcs is defined %}checked{% elseif info_package.rcs|default(0) %}checked{% endif %}>
 								<label class="form-check-label" for="rj_rcs_checkbox">
@@ -355,6 +394,87 @@
 
 		panelRoot.dataset.rjPanelReady = '1';
 
+		const datasetCodAmount = panelRoot.dataset.orderCodAmount ? panelRoot.dataset.orderCodAmount.trim() : '';
+		const datasetHasCod = panelRoot.dataset.orderHasCod === '1';
+
+		const $ = global.jQuery || global.$;
+		const $panelRoot = typeof $ === 'function' ? $(panelRoot) : null;
+
+		const addDropdownThemeClass = () => {
+			if (!global.document) {
+				return;
+			}
+
+			const dropdowns = global.document.querySelectorAll('.select2-container--open .select2-dropdown');
+			dropdowns.forEach((dropdown) => dropdown.classList.add('rj-select2-theme-dropdown'));
+		};
+
+		const addContainerThemeClass = ($element) => {
+			if (!$element || typeof $element !== 'object' || !$element.data) {
+				return;
+			}
+
+			const instance = $element.data('select2');
+			if (instance && instance.$container) {
+				instance.$container.addClass('rj-select2-theme');
+			}
+		};
+
+		const removeDropdownThemeClass = () => {
+			if (!global.document) {
+				return;
+			}
+
+			const dropdowns = global.document.querySelectorAll('.select2-dropdown.rj-select2-theme-dropdown');
+			dropdowns.forEach((dropdown) => dropdown.classList.remove('rj-select2-theme-dropdown'));
+		};
+
+		let select2InitRequested = false;
+		const initSelect2Element = (element, config, attempt = 0) => {
+			if (!element) {
+				return;
+			}
+
+			const maxAttempts = 10;
+			const retryDelay = 150;
+			const $Current = global.jQuery || global.$;
+
+			if (typeof $Current !== 'function' || !$Current.fn || typeof $Current.fn.select2 !== 'function') {
+				if (!select2InitRequested && global.prestashop && global.prestashop.component && typeof global.prestashop.component.initComponents === 'function') {
+					select2InitRequested = true;
+					global.prestashop.component.initComponents(['Select2']);
+				}
+
+				if (attempt < maxAttempts) {
+					global.setTimeout(() => initSelect2Element(element, config, attempt + 1), retryDelay);
+				}
+				return;
+			}
+
+			const $element = $Current(element);
+			if ($element.hasClass('select2-hidden-accessible')) {
+				$element.select2('destroy');
+			}
+
+			const selectConfig = Object.assign({
+				theme: 'bootstrap',
+				width: element.dataset.width || '100%',
+				allowClear: element.dataset.allowClear !== 'false',
+				placeholder: element.dataset.placeholder || '',
+				dropdownParent: $panelRoot || undefined,
+			}, config || {});
+
+			$element.select2(selectConfig);
+			addContainerThemeClass($element);
+
+			$element.off('select2:open.rjTheme select2:close.rjTheme select2:closing.rjTheme');
+			$element.on('select2:open.rjTheme', (evt) => {
+				addContainerThemeClass($element);
+				addDropdownThemeClass(evt);
+			});
+			$element.on('select2:close.rjTheme select2:closing.rjTheme', removeDropdownThemeClass);
+		};
+
 		const carrierSelect = panelRoot.querySelector('#rj-carrier-select');
 		const typeSelect = panelRoot.querySelector('#rj-type-select');
 		const referenceInput = panelRoot.querySelector('#rj-reference-carrier');
@@ -416,9 +536,37 @@
 		updateTypeOptions();
 		updateReferenceCarrier();
 
+		const employeeSelect = panelRoot.querySelector('#rj-employee-select');
+		const employeeNameDisplay = panelRoot.querySelector('[data-employee-name-display]');
+		initSelect2Element(employeeSelect);
+
+		const updateEmployeeNameFromSelect = () => {
+			if (!employeeSelect || !employeeNameDisplay) {
+				return;
+			}
+
+			const selectedOption = employeeSelect.options[employeeSelect.selectedIndex] || null;
+			const selectedName = selectedOption && selectedOption.dataset.employeeName ? selectedOption.dataset.employeeName : '';
+			employeeNameDisplay.textContent = selectedName || '-';
+		};
+
+		if (employeeSelect) {
+			employeeSelect.addEventListener('change', updateEmployeeNameFromSelect);
+		}
+
+		updateEmployeeNameFromSelect();
+
 		const contrareembolsoCheckbox = panelRoot.querySelector('#rj_contrareembolso');
 		const cashOnDeliveryInput = panelRoot.querySelector('#rj_cash_ondelivery');
 		const defaultCod = '{{ info_package.cash_ondelivery|default('')|e('js') }}';
+
+		if (datasetHasCod && contrareembolsoCheckbox) {
+			contrareembolsoCheckbox.checked = true;
+		}
+
+		if (datasetHasCod && cashOnDeliveryInput && (!cashOnDeliveryInput.value || cashOnDeliveryInput.value.trim() === '')) {
+			cashOnDeliveryInput.value = datasetCodAmount || cashOnDeliveryInput.value;
+		}
 
 		function parseNumberFromText(text) {
 			if (!text) {
@@ -460,6 +608,11 @@
 
 			if (defaultCod !== '' && defaultCod !== '0') {
 				cashOnDeliveryInput.value = defaultCod;
+				return;
+			}
+
+			if (datasetCodAmount !== '') {
+				cashOnDeliveryInput.value = datasetCodAmount;
 				return;
 			}
 

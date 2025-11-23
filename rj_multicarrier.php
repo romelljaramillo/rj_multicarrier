@@ -157,6 +157,7 @@ class Rj_Multicarrier extends Module implements WidgetInterface
     public function hookDisplayBackOfficeHeader(): void
     {
         $this->context->controller->addCSS($this->_path . 'views/css/admin.css');
+        $this->context->controller->addCSS($this->_path . 'views/css/select2.css');
         $this->context->controller->addJS($this->_path . 'views/js/admin.js');
     }
 
@@ -697,14 +698,13 @@ class Rj_Multicarrier extends Module implements WidgetInterface
         $vsec = $this->normalizeStringValue(Tools::getValue('rj_vsec'));
         $dorig = $this->normalizeStringValue(Tools::getValue('rj_dorig'));
         $employeeId = $this->normalizeEmployeeId(Tools::getValue('rj_employee_id'));
-        $employeeName = $this->normalizeStringValue(Tools::getValue('rj_employee_name'));
-
-        if (null === $employeeName && null !== $employeeId) {
-            $employeeName = $this->resolveEmployeeNameById($employeeId);
+        if (null === $employeeId) {
+            [$employeeId] = $this->resolveCurrentEmployee();
         }
 
-        if (null === $employeeId && null === $employeeName) {
-            [$employeeId, $employeeName] = $this->resolveCurrentEmployee();
+        $loggedEmployeeId = $this->normalizeEmployeeId(Tools::getValue('rj_logged_employee_id'));
+        if (null === $loggedEmployeeId) {
+            [$loggedEmployeeId] = $this->resolveCurrentEmployee();
         }
 
         /** @var UpsertInfoShipmentHandler $handler */
@@ -729,7 +729,7 @@ class Rj_Multicarrier extends Module implements WidgetInterface
                 $vsec,
                 $dorig,
                 $employeeId,
-                $employeeName,
+                $loggedEmployeeId,
                 $shopId
             )
         );
@@ -831,36 +831,6 @@ class Rj_Multicarrier extends Module implements WidgetInterface
         $candidate = (int) $value;
 
         return $candidate > 0 ? $candidate : null;
-    }
-
-    private function resolveEmployeeNameById(int $employeeId): ?string
-    {
-        if ($employeeId <= 0) {
-            return null;
-        }
-
-        try {
-            $db = \Db::getInstance();
-            $sql = sprintf(
-                'SELECT firstname, lastname, email FROM %semployee WHERE id_employee = %d LIMIT 1',
-                _DB_PREFIX_,
-                (int) $employeeId
-            );
-
-            $row = $db->getRow($sql);
-            if (!is_array($row)) {
-                return null;
-            }
-
-            $name = trim(sprintf('%s %s', (string) ($row['firstname'] ?? ''), (string) ($row['lastname'] ?? '')));
-            if ('' === $name && isset($row['email'])) {
-                $name = (string) $row['email'];
-            }
-
-            return '' === $name ? null : $name;
-        } catch (\Throwable) {
-            return null;
-        }
     }
 
     /**

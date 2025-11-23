@@ -11,6 +11,7 @@ use PrestaShop\PrestaShop\Core\Grid\Data\Factory\GridDataFactoryInterface;
 use PrestaShop\PrestaShop\Core\Grid\Data\GridData;
 use PrestaShop\PrestaShop\Core\Grid\Record\RecordCollection;
 use PrestaShop\PrestaShop\Core\Grid\Search\SearchCriteriaInterface;
+use Roanja\Module\RjMulticarrier\Util\EmployeeFormatter;
 
 final class InfoShipmentGridDataFactoryDecorator implements GridDataFactoryInterface
 {
@@ -33,7 +34,6 @@ final class InfoShipmentGridDataFactoryDecorator implements GridDataFactoryInter
         'rj_vsec' => 'vsec',
         'rj_dorig' => 'dorig',
         'rj_employee_id' => 'id_employee',
-        'rj_employee_name' => 'employee_name',
     ];
 
     public function __construct(
@@ -52,6 +52,10 @@ final class InfoShipmentGridDataFactoryDecorator implements GridDataFactoryInter
 
             $record['id_info_shipment_raw'] = $rawId;
             $record['id_info_shipment'] = $rawId > 0 ? (string) $rawId : '-';
+
+            if (!isset($record['employee_name'])) {
+                $record['employee_name'] = EmployeeFormatter::resolveName(isset($record['id_employee']) ? (int) $record['id_employee'] : null);
+            }
 
             $inlineValues = $this->buildInlineValues($record);
             $record['inline_form'] = $inlineValues;
@@ -102,10 +106,6 @@ final class InfoShipmentGridDataFactoryDecorator implements GridDataFactoryInter
 
         if ((!isset($payload['rj_employee_id']) || (int) $payload['rj_employee_id'] <= 0) && null !== $defaultEmployee['id']) {
             $payload['rj_employee_id'] = $defaultEmployee['id'];
-        }
-
-        if ((!isset($payload['rj_employee_name']) || '' === trim((string) ($payload['rj_employee_name'] ?? ''))) && null !== $defaultEmployee['name']) {
-            $payload['rj_employee_name'] = $defaultEmployee['name'];
         }
 
         return $payload;

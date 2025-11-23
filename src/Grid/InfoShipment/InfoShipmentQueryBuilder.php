@@ -301,7 +301,7 @@ final class InfoShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
                 'info.dorig',
                 'info.message',
                 'info.id_employee',
-                'info.employee_name',
+                $this->getEmployeeNameSqlExpression() . ' AS employee_name',
                 'COALESCE(info.date_add, orders.date_add) AS date_add',
                 'carrier.name AS carrier_name',
                 'company.shortname AS company_shortname'
@@ -312,7 +312,15 @@ final class InfoShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
             ->leftJoin('info', $this->dbPrefix . 'rj_multicarrier_type_shipment', 'type_shipment', 'type_shipment.id_type_shipment = info.id_type_shipment')
             ->leftJoin('info', $this->dbPrefix . 'rj_multicarrier_carrier', 'company', 'company.id_carrier = type_shipment.id_carrier')
             ->leftJoin('info', $this->dbPrefix . 'carrier', 'carrier', 'carrier.id_reference = info.id_reference_carrier AND carrier.deleted = 0')
+            ->leftJoin('info', $this->dbPrefix . 'employee', 'employee', 'info.id_employee = employee.id_employee')
             ->andWhere('shipment.id_shipment IS NULL');
+    }
+
+    private function getEmployeeNameSqlExpression(): string
+    {
+        $fullName = "TRIM(CONCAT(COALESCE(employee.firstname, ''), ' ', COALESCE(employee.lastname, '')))";
+
+        return "COALESCE(NULLIF($fullName, ''), employee.email, CONCAT('#', COALESCE(info.id_employee, 0)))";
     }
 
     private function applyShopRestriction(QueryBuilder $qb): void

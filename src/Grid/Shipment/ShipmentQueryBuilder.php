@@ -45,6 +45,7 @@ final class ShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
             ->innerJoin('shipment', $this->dbPrefix . 'rj_multicarrier_carrier', 'company', 'shipment.id_carrier = company.id_carrier')
             ->leftJoin('shipment', $this->dbPrefix . 'orders', 'order_table', 'shipment.id_order = order_table.id_order')
             ->leftJoin('order_table', $this->dbPrefix . 'shop', 'shop', 'order_table.id_shop = shop.id_shop')
+            ->leftJoin('shipment', $this->dbPrefix . 'employee', 'employee', 'shipment.id_employee = employee.id_employee')
             ->andWhere('shipment.`delete` = 0');
 
         $this->applyShopRestriction($qb);
@@ -129,7 +130,8 @@ final class ShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
                     $value = $this->resolveScalarFilterValue($filterValue);
                     if (null !== $value) {
                         $parameter = $parameterPrefix . 'employee_name';
-                        $qb->andWhere(sprintf('shipment.employee_name LIKE :%s', $parameter))
+                        $expression = $this->getEmployeeNameSqlExpression();
+                        $qb->andWhere(sprintf('%s LIKE :%s', $expression, $parameter))
                             ->setParameter($parameter, $this->buildContainsPattern($value));
                     }
                     break;
@@ -187,7 +189,7 @@ final class ShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
             'id_order' => 'shipment.id_order',
             'shop_name' => 'shop.name',
             'company_shortname' => 'company.shortname',
-            'employee_name' => 'shipment.employee_name',
+            'employee_name' => $this->getEmployeeNameSqlExpression(),
             'reference_order' => 'shipment.reference_order',
             'num_shipment' => 'shipment.num_shipment',
             'product' => 'shipment.product',
@@ -252,7 +254,7 @@ final class ShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
                 'shipment.reference_order',
                 'shipment.num_shipment',
                 'shipment.id_employee',
-                'shipment.employee_name',
+                $this->getEmployeeNameSqlExpression() . ' AS employee_name',
                 'shipment.product',
                 'shipment.date_add',
                 'company.name AS company_name',
@@ -269,6 +271,7 @@ final class ShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
             ->innerJoin('shipment', $this->dbPrefix . 'rj_multicarrier_carrier', 'company', 'shipment.id_carrier = company.id_carrier')
             ->leftJoin('shipment', $this->dbPrefix . 'orders', 'order_table', 'shipment.id_order = order_table.id_order')
             ->leftJoin('order_table', $this->dbPrefix . 'shop', 'shop', 'order_table.id_shop = shop.id_shop')
+            ->leftJoin('shipment', $this->dbPrefix . 'employee', 'employee', 'shipment.id_employee = employee.id_employee')
             ->andWhere('shipment.`delete` = 0');
     }
 
@@ -358,5 +361,12 @@ final class ShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
                     ->setParameter($parameter, $value);
             }
         }
+    }
+
+    private function getEmployeeNameSqlExpression(): string
+    {
+        $fullName = "TRIM(CONCAT(COALESCE(employee.firstname, ''), ' ', COALESCE(employee.lastname, '')))";
+
+        return "COALESCE(NULLIF($fullName, ''), employee.email, CONCAT('#', COALESCE(shipment.id_employee, 0)))";
     }
 }

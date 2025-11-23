@@ -59,8 +59,8 @@ class InfoShipment
     #[ORM\Column(name: 'id_employee', type: 'integer', nullable: true)]
     private ?int $employeeId = null;
 
-    #[ORM\Column(name: 'employee_name', type: 'string', length: 255, nullable: true)]
-    private ?string $employeeName = null;
+    #[ORM\Column(name: 'logged_employee_id', type: 'integer', nullable: true)]
+    private ?int $loggedEmployeeId = null;
 
     #[ORM\Column(name: 'cash_ondelivery', type: 'decimal', precision: 20, scale: 6, nullable: true)]
     private ?string $cashOnDelivery = null;
@@ -318,15 +318,14 @@ class InfoShipment
         return $this;
     }
 
-    public function getEmployeeName(): ?string
+    public function getLoggedEmployeeId(): ?int
     {
-        return $this->employeeName;
+        return $this->loggedEmployeeId;
     }
 
-    public function setEmployeeName(?string $employeeName): self
+    public function setLoggedEmployeeId(?int $loggedEmployeeId): self
     {
-        $trimmed = null === $employeeName ? null : trim($employeeName);
-        $this->employeeName = '' === $trimmed ? null : $trimmed;
+        $this->loggedEmployeeId = null !== $loggedEmployeeId && $loggedEmployeeId > 0 ? $loggedEmployeeId : null;
 
         return $this;
     }

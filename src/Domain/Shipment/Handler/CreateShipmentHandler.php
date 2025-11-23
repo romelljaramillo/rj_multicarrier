@@ -50,8 +50,7 @@ final class CreateShipmentHandler
             ->setProduct($command->getProduct())
             ->setRequestPayload($this->encodePayload($command->getRequestPayload()))
             ->setResponsePayload($this->encodePayload($command->getResponsePayload()))
-            ->setEmployeeId($command->getEmployeeId())
-            ->setEmployeeName($command->getEmployeeName());
+            ->setEmployeeId($command->getEmployeeId());
 
         $shipment->touch();
 

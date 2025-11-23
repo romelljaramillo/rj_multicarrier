@@ -18,6 +18,7 @@ use PrestaShop\PrestaShop\Adapter\Shop\Context as ShopContext;
  */
 
 use Roanja\Module\RjMulticarrier\Entity\InfoShipment;
+use Roanja\Module\RjMulticarrier\Util\EmployeeFormatter;
 
 class InfoShipmentRepository extends ServiceEntityRepository
 {
@@ -54,49 +55,9 @@ class InfoShipmentRepository extends ServiceEntityRepository
             ->setParameter('ids', $ids)
             ->orderBy('package.createdAt', 'DESC');
 
-        // Join type shipment and company to include their names for exports
-        $qb->leftJoin('package.typeShipment', 'ts')
-            ->leftJoin('ts.carrier', 'company')
-            ->addSelect([
-                'ts.name AS type_shipment_name',
-                'company.id AS carrier_id',
-                'company.name AS carrier_name',
-                'company.shortName AS carrier_short_name',
-                'package.employeeId AS id_employee',
-                'package.employeeName AS employee_name',
-            ]);
-
         $this->applyShopRestriction($qb);
 
-        $rows = $qb->getQuery()->getArrayResult();
-
-        // Normalize DateTime fields to string representations for exporter
-        foreach ($rows as &$row) {
-            if (isset($row['hour_from']) && $row['hour_from'] instanceof \DateTimeInterface) {
-                $row['hour_from'] = $row['hour_from']->format('H:i:s');
-            }
-
-            if (isset($row['hour_until']) && $row['hour_until'] instanceof \DateTimeInterface) {
-                $row['hour_until'] = $row['hour_until']->format('H:i:s');
-            }
-
-            if (isset($row['date_add']) && $row['date_add'] instanceof \DateTimeInterface) {
-                $row['date_add'] = $row['date_add']->format('Y-m-d H:i:s');
-            }
-
-            if (isset($row['date_upd']) && $row['date_upd'] instanceof \DateTimeInterface) {
-                $row['date_upd'] = $row['date_upd']->format('Y-m-d H:i:s');
-            }
-
-            // Ensure numeric/nullable fields have expected types
-            if (isset($row['rcs'])) {
-                $row['rcs'] = (bool)$row['rcs'];
-            }
-        }
-
-        unset($row);
-
-        return $rows;
+        return $qb->getQuery()->getResult();
     }
 
     /**
@@ -111,7 +72,18 @@ class InfoShipmentRepository extends ServiceEntityRepository
 
         $this->applyShopRestriction($qb);
 
-        return $qb->getQuery()->getResult();
+        $result = $qb->getQuery()->getResult();
+
+        foreach ($result as &$row) {
+            if (is_array($row)) {
+                $row['employee_name'] = $row['employee_name'] ?? EmployeeFormatter::resolveName(isset($row['id_employee']) ? (int) $row['id_employee'] : null);
+                $row['logged_employee_name'] = $row['logged_employee_name'] ?? EmployeeFormatter::resolveName(isset($row['logged_employee_id']) ? (int) $row['logged_employee_id'] : null);
+            }
+        }
+
+        unset($row);
+
+        return $result;
     }
 
     /**
@@ -134,11 +106,10 @@ class InfoShipmentRepository extends ServiceEntityRepository
                 'package.width AS width',
                 'package.height AS height',
                 'package.employeeId AS id_employee',
-                'package.employeeName AS employee_name',
+                'package.loggedEmployeeId AS logged_employee_id',
                 'package.cashOnDelivery AS cash_ondelivery',
                 'package.message AS message',
                 'package.hourFrom AS hour_from',
-                'package.hourUntil AS hour_until',
                 'package.hourUntil AS hour_until',
                 'package.retorno AS retorno',
                 'package.rcs AS rcs',
@@ -146,7 +117,13 @@ class InfoShipmentRepository extends ServiceEntityRepository
                 'package.dorig AS dorig',
                 'package.createdAt AS date_add',
                 'package.updatedAt AS date_upd',
+                'typeShipment.name AS type_shipment_name',
+                'carrier.id AS carrier_id',
+                'carrier.name AS carrier_name',
+                'carrier.shortName AS carrier_short_name',
             ])
+            ->leftJoin('package.typeShipment', 'typeShipment')
+            ->leftJoin('typeShipment.carrier', 'carrier')
             ->orderBy('package.createdAt', 'DESC');
 
         $this->applyShopRestriction($qb);
@@ -184,7 +161,36 @@ class InfoShipmentRepository extends ServiceEntityRepository
             }
         }
 
-        return $qb->getQuery()->getResult();
+        $rows = $qb->getQuery()->getArrayResult();
+
+        foreach ($rows as &$row) {
+            if (isset($row['hour_from']) && $row['hour_from'] instanceof \DateTimeInterface) {
+                $row['hour_from'] = $row['hour_from']->format('H:i:s');
+            }
+
+            if (isset($row['hour_until']) && $row['hour_until'] instanceof \DateTimeInterface) {
+                $row['hour_until'] = $row['hour_until']->format('H:i:s');
+            }
+
+            if (isset($row['date_add']) && $row['date_add'] instanceof \DateTimeInterface) {
+                $row['date_add'] = $row['date_add']->format('Y-m-d H:i:s');
+            }
+
+            if (isset($row['date_upd']) && $row['date_upd'] instanceof \DateTimeInterface) {
+                $row['date_upd'] = $row['date_upd']->format('Y-m-d H:i:s');
+            }
+
+            if (isset($row['rcs'])) {
+                $row['rcs'] = (bool) $row['rcs'];
+            }
+
+            $row['employee_name'] = EmployeeFormatter::resolveName(isset($row['id_employee']) ? (int) $row['id_employee'] : null);
+            $row['logged_employee_name'] = EmployeeFormatter::resolveName(isset($row['logged_employee_id']) ? (int) $row['logged_employee_id'] : null);
+        }
+
+        unset($row);
+
+        return $rows;
     }
 
     /**
@@ -225,7 +231,9 @@ class InfoShipmentRepository extends ServiceEntityRepository
             'id_type_shipment' => $package->getTypeShipment()?->getId(),
             'id_carrier' => $package->getTypeShipment()?->getCarrier()->getId(),
             'id_employee' => $package->getEmployeeId(),
-            'employee_name' => $package->getEmployeeName(),
+            'employee_name' => EmployeeFormatter::resolveName($package->getEmployeeId()),
+            'logged_employee_id' => $package->getLoggedEmployeeId(),
+            'logged_employee_name' => EmployeeFormatter::resolveName($package->getLoggedEmployeeId()),
             'quantity' => $package->getQuantity(),
             'weight' => $package->getWeight(),
             'length' => $package->getLength(),

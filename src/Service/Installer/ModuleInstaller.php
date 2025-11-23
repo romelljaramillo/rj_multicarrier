@@ -299,8 +299,16 @@ final class ModuleInstaller
             $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` ADD `id_employee` INT(10) NULL DEFAULT NULL AFTER `id_type_shipment`');
         }
 
-        if (!isset($columns['employee_name'])) {
-            $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` ADD `employee_name` VARCHAR(255) NULL DEFAULT NULL AFTER `id_employee`');
+        if (!isset($columns['logged_employee_id'])) {
+            $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` ADD `logged_employee_id` INT(10) NULL DEFAULT NULL AFTER `id_employee`');
+        }
+
+        if (isset($columns['employee_name'])) {
+            $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` DROP COLUMN `employee_name`');
+        }
+
+        if (isset($columns['logged_employee_name'])) {
+            $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` DROP COLUMN `logged_employee_name`');
         }
 
         $indexes = $schemaManager->listTableIndexes($tableName);
@@ -330,8 +338,16 @@ final class ModuleInstaller
             $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` ADD `id_employee` INT(10) NULL DEFAULT NULL AFTER `id_info_shipment`');
         }
 
-        if (!isset($columns['employee_name'])) {
-            $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` ADD `employee_name` VARCHAR(255) NULL DEFAULT NULL AFTER `id_employee`');
+        if (!isset($columns['logged_employee_id'])) {
+            $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` ADD `logged_employee_id` INT(10) NULL DEFAULT NULL AFTER `id_employee`');
+        }
+
+        if (isset($columns['employee_name'])) {
+            $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` DROP COLUMN `employee_name`');
+        }
+
+        if (isset($columns['logged_employee_name'])) {
+            $this->connection->executeStatement('ALTER TABLE `' . $tableName . '` DROP COLUMN `logged_employee_name`');
         }
 
         $indexes = $schemaManager->listTableIndexes($tableName);

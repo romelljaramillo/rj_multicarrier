@@ -42,8 +42,8 @@ class Shipment
     #[ORM\Column(name: 'id_employee', type: 'integer', nullable: true)]
     private ?int $employeeId = null;
 
-    #[ORM\Column(name: 'employee_name', type: 'string', length: 255, nullable: true)]
-    private ?string $employeeName = null;
+    #[ORM\Column(name: 'logged_employee_id', type: 'integer', nullable: true)]
+    private ?int $loggedEmployeeId = null;
 
     #[ORM\Column(name: 'account', type: 'string', length: 100, nullable: true)]
     private ?string $account = null;
@@ -155,14 +155,14 @@ class Shipment
         return $this;
     }
 
-    public function getEmployeeName(): ?string
+    public function getLoggedEmployeeId(): ?int
     {
-        return $this->employeeName;
+        return $this->loggedEmployeeId;
     }
 
-    public function setEmployeeName(?string $employeeName): self
+    public function setLoggedEmployeeId(?int $loggedEmployeeId): self
     {
-        $this->employeeName = $employeeName;
+        $this->loggedEmployeeId = $loggedEmployeeId;
 
         return $this;
     }

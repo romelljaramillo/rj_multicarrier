@@ -1,6 +1,5 @@
 {% set selectId = 'inline-employee-' ~ record.id_order ~ '-' ~ record.id_info_shipment_raw|default('0') %}
 {% set currentId = (record.inline_form.rj_employee_id|default('')) ~ '' %}
-{% set currentName = record.inline_form.rj_employee_name|default('') %}
 {% set choices = column.options.employee_choices|default([]) %}
 
 <div class="rj-inline-employee">
@@ -14,9 +13,4 @@
                      <option value="{{ choiceValue }}" {% if choiceValue == currentId %}selected{% endif %}>{{ choice.label }}</option>
               {% endfor %}
        </select>
-       <input type="hidden"
-                             id="{{ selectId }}-name"
-                             class="js-inline-input js-inline-employee-name"
-                             data-field="rj_employee_name"
-                             value="{{ currentName }}">
 </div>
