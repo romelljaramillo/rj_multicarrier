@@ -409,7 +409,7 @@
 			dropdowns.forEach((dropdown) => dropdown.classList.add('rj-select2-theme-dropdown'));
 		};
 
-		const addContainerThemeClass = ($element) => {
+		const addContainerThemeClass = ($element, attempt = 0) => {
 			if (!$element || typeof $element !== 'object' || !$element.data) {
 				return;
 			}
@@ -417,7 +417,16 @@
 			const instance = $element.data('select2');
 			if (instance && instance.$container) {
 				instance.$container.addClass('rj-select2-theme');
+				return;
 			}
+
+			const maxThemeAttempts = 5;
+			if (attempt >= maxThemeAttempts) {
+				return;
+			}
+
+			const schedule = global.requestAnimationFrame || ((cb) => global.setTimeout(cb, 50));
+			schedule(() => addContainerThemeClass($element, attempt + 1));
 		};
 
 		const removeDropdownThemeClass = () => {
@@ -435,8 +444,8 @@
 				return;
 			}
 
-			const maxAttempts = 10;
-			const retryDelay = 150;
+			const maxAttempts = 40;
+			const retryDelay = 200;
 			const $Current = global.jQuery || global.$;
 
 			if (typeof $Current !== 'function' || !$Current.fn || typeof $Current.fn.select2 !== 'function') {

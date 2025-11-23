@@ -55,35 +55,70 @@
           </div>
 
           <div class="col-md-6">
-            <div class="form-group">
-              {{ form_row(form.allow_ids) }}
+            <div class="rj-select2-field">
+              {{ form_label(form.allow_ids) }}
+              <div class="rj-select2-field__control">
+                {{ form_widget(form.allow_ids) }}
+              </div>
+              {{ form_errors(form.allow_ids) }}
+              {{ form_help(form.allow_ids) }}
             </div>
-            <div class="form-group">
-              {{ form_row(form.deny_ids) }}
+            <div class="rj-select2-field">
+              {{ form_label(form.deny_ids) }}
+              <div class="rj-select2-field__control">
+                {{ form_widget(form.deny_ids) }}
+              </div>
+              {{ form_errors(form.deny_ids) }}
+              {{ form_help(form.deny_ids) }}
             </div>
-            <div class="form-group">
-              {{ form_row(form.add_ids) }}
+            <div class="rj-select2-field">
+              {{ form_label(form.add_ids) }}
+              <div class="rj-select2-field__control">
+                {{ form_widget(form.add_ids) }}
+              </div>
+              {{ form_errors(form.add_ids) }}
+              {{ form_help(form.add_ids) }}
             </div>
           </div>
         </div>
 
         <hr class="my-4" />
 
-        <div class="row">
+        <div class="row rj-select2-grid g-4">
           <div class="col-md-6">
-            <div class="form-group">
-              {{ form_row(form.product_ids) }}
+            <div class="rj-select2-field">
+              {{ form_label(form.product_ids) }}
+              <div class="rj-select2-field__control">
+                {{ form_widget(form.product_ids) }}
+              </div>
+              {{ form_errors(form.product_ids) }}
+              {{ form_help(form.product_ids) }}
             </div>
-            <div class="form-group">
-              {{ form_row(form.category_ids) }}
+            <div class="rj-select2-field">
+              {{ form_label(form.category_ids) }}
+              <div class="rj-select2-field__control">
+                {{ form_widget(form.category_ids) }}
+              </div>
+              {{ form_errors(form.category_ids) }}
+              {{ form_help(form.category_ids) }}
             </div>
           </div>
           <div class="col-md-6">
-            <div class="form-group">
-              {{ form_row(form.zone_ids) }}
+            <div class="rj-select2-field">
+              {{ form_label(form.zone_ids) }}
+              <div class="rj-select2-field__control">
+                {{ form_widget(form.zone_ids) }}
+              </div>
+              {{ form_errors(form.zone_ids) }}
+              {{ form_help(form.zone_ids) }}
             </div>
-            <div class="form-group">
-              {{ form_row(form.country_ids) }}
+            <div class="rj-select2-field">
+              {{ form_label(form.country_ids) }}
+              <div class="rj-select2-field__control">
+                {{ form_widget(form.country_ids) }}
+              </div>
+              {{ form_errors(form.country_ids) }}
+              {{ form_help(form.country_ids) }}
             </div>
           </div>
         </div>
@@ -124,7 +159,8 @@
         });
       }
 
-      function addContainerThemeClass($element) {
+      function addContainerThemeClass($element, attempt) {
+        var currentAttempt = typeof attempt === 'number' ? attempt : 0;
         if (!$element || typeof $element !== 'object' || !$element.data) {
           return;
         }
@@ -132,13 +168,24 @@
         var instance = $element.data('select2');
         if (instance && instance.$container) {
           instance.$container.addClass('rj-select2-theme');
+          return;
         }
+
+        var maxThemeAttempts = 5;
+        if (currentAttempt >= maxThemeAttempts) {
+          return;
+        }
+
+        var schedule = window.requestAnimationFrame || function (cb) { return setTimeout(cb, 50); };
+        schedule(function () {
+          addContainerThemeClass($element, currentAttempt + 1);
+        });
       }
 
       function initValidationRuleSelect2(attempt) {
         var currentAttempt = typeof attempt === 'number' ? attempt : 0;
-        var maxAttempts = 10;
-        var retryDelay = 150;
+        var maxAttempts = 40;
+        var retryDelay = 200;
         var $ = window.jQuery || window.$;
 
         var bootstrapSelect2 = function () {
