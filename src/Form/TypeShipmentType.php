@@ -68,9 +68,7 @@ final class TypeShipmentType extends AbstractType
                 'label' => 'Activo',
                 'required' => false,
             ])
-            ->add('save', SubmitType::class, [
-                'label' => 'Guardar tipo de envío',
-            ]);
+            ->add('save', SubmitType::class);
     }
 
     public function configureOptions(OptionsResolver $resolver): void
