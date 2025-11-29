@@ -121,15 +121,6 @@ final class CarrierGridDefinitionFactory extends AbstractModuleGridDefinitionFac
                 'attr' => ['class' => 'js-carrier-view-row-action'],
             ]));
 
-        $rowActions->add((new LinkRowAction('configure'))
-            ->setName($this->transString('Settings', [], 'Admin.Actions'))
-            ->setIcon('settings')
-            ->setOptions([
-                'route' => 'admin_rj_multicarrier_carriers_configuration',
-                'route_param_name' => 'id',
-                'route_param_field' => 'id_carrier',
-            ]));
-
         $rowActions->add((new LinkRowAction('edit'))
             ->setName($this->transString('Edit', [], 'Admin.Actions'))
             ->setIcon('edit')

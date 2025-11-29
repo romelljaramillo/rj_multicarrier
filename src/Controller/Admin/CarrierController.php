@@ -144,6 +144,8 @@ final class CarrierController extends FrameworkBundleAdminController
             'action' => 'create',
             'iconUrl' => null,
             'configurationEntries' => [],
+            'defaultConfigurations' => [],
+            'extraConfigurations' => [],
         ]);
     }
 
@@ -195,11 +197,15 @@ final class CarrierController extends FrameworkBundleAdminController
             }
         }
 
+        [$defaultConfigurations, $extraConfigurations] = $this->getCarrierConfigurationSections($carrierId);
+
         return $this->render('@Modules/rj_multicarrier/views/templates/admin/carrier/form.html.twig', [
             'carrier' => $carrierData,
             'action' => 'edit',
             'iconUrl' => $carrierData['icon'] ?? null,
             'configurationEntries' => $this->getCarrierConfigurationEntries($carrierId),
+            'defaultConfigurations' => $defaultConfigurations,
+            'extraConfigurations' => $extraConfigurations,
         ]);
     }
 
@@ -471,6 +477,39 @@ final class CarrierController extends FrameworkBundleAdminController
                 'value' => $view->getValue(),
             ];
         }, $views);
+    }
+
+    /**
+     * @return array{0: array<int, array<string, mixed>>, 1: array<int, array<string, mixed>>}
+     */
+    private function getCarrierConfigurationSections(int $carrierId): array
+    {
+        if ($carrierId <= 0) {
+            return [[], []];
+        }
+
+        try {
+            /** @var CarrierConfigurationView[] $views */
+            $views = $this->getQueryBus()->handle(new GetCarrierConfigurationsForCarrier($carrierId));
+        } catch (\Throwable $exception) {
+            return [[], []];
+        }
+
+        $defaultConfigurations = [];
+        $extraConfigurations = [];
+
+        foreach ($views as $view) {
+            $entry = $view->toArray();
+
+            if ($view->isRequired()) {
+                $defaultConfigurations[] = $entry;
+                continue;
+            }
+
+            $extraConfigurations[] = $entry;
+        }
+
+        return [$defaultConfigurations, $extraConfigurations];
     }
 
     /**

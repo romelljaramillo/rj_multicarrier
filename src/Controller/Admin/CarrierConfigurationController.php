@@ -12,7 +12,6 @@ use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Command\DeleteCarri
 use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Command\UpsertCarrierConfigurationCommand;
 use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Exception\CarrierConfigurationException;
 use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Exception\CarrierConfigurationNotFoundException;
-use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Query\GetCarrierConfigurationsForCarrier;
 use Roanja\Module\RjMulticarrier\Domain\Carrier\Query\GetCarrierForView;
 use Roanja\Module\RjMulticarrier\Domain\Carrier\View\CarrierDetailView;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -33,6 +32,7 @@ final class CarrierConfigurationController extends FrameworkBundleAdminControlle
 
         if ($request->isMethod(Request::METHOD_POST)) {
             $token = (string) $request->request->get('_token', '');
+            $redirectTo = trim((string) $request->request->get('redirect_to', ''));
 
             if (!$this->isCsrfTokenValid('carrier_configurations_' . $carrierId, $token)) {
                 $this->addFlash('error', $this->l('La sesión ha caducado, vuelve a intentarlo.'));
@@ -40,29 +40,13 @@ final class CarrierConfigurationController extends FrameworkBundleAdminControlle
                 $this->processConfigurationSubmission($carrierId, $request);
             }
 
-            return $this->redirectToRoute('admin_rj_multicarrier_carriers_configuration', ['id' => $carrierId]);
-        }
-
-        $configurationViews = $this->getQueryBus()->handle(new GetCarrierConfigurationsForCarrier($carrierId));
-        $defaultConfigurations = [];
-        $extraConfigurations = [];
-
-        foreach ($configurationViews as $view) {
-            $entry = $view->toArray();
-
-            if ($view->isRequired()) {
-                $defaultConfigurations[] = $entry;
-                continue;
+            if ('' !== $redirectTo) {
+                return $this->redirect($redirectTo);
             }
 
-            $extraConfigurations[] = $entry;
+            return $this->redirectToRoute('admin_rj_multicarrier_carriers_edit', ['id' => $carrierId]);
         }
-
-        return $this->render('@Modules/rj_multicarrier/views/templates/admin/carrier/configuration.html.twig', [
-            'carrier' => $carrier,
-            'defaultConfigurations' => $defaultConfigurations,
-            'extraConfigurations' => $extraConfigurations,
-        ]);
+        return $this->redirectToRoute('admin_rj_multicarrier_carriers_edit', ['id' => $carrierId]);
     }
 
     /**
@@ -86,7 +70,7 @@ final class CarrierConfigurationController extends FrameworkBundleAdminControlle
             $this->addFlash('error', $this->l('No se pudo eliminar la configuración.'));
         }
 
-        return $this->redirectToRoute('admin_rj_multicarrier_carriers_configuration', ['id' => $carrierId]);
+        return $this->redirectToRoute('admin_rj_multicarrier_carriers_edit', ['id' => $carrierId]);
     }
 
     private function processConfigurationSubmission(int $carrierId, Request $request): void
