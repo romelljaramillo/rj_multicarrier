@@ -30,6 +30,18 @@ final class CarrierGridDataFactory implements GridDataFactoryInterface
             $record['name'] = $record['name'] ?? $this->translator->trans('—', [], 'Modules.RjMulticarrier.Admin');
             $record['shortname'] = $record['shortname'] ?? '';
             $record['icon_thumb'] = $this->buildIconThumb($record['icon'] ?? null);
+
+            if (array_key_exists('is_active', $record)) {
+                $record['is_active'] = (bool) (int) $record['is_active'];
+            }
+
+            if (array_key_exists('supports_api', $record)) {
+                $record['supports_api'] = $this->formatBoolean(
+                    $record['supports_api'],
+                    $this->translator->trans('Yes', [], 'Admin.Global'),
+                    $this->translator->trans('No', [], 'Admin.Global')
+                );
+            }
         }
         unset($record);
 
@@ -72,5 +84,14 @@ final class CarrierGridDataFactory implements GridDataFactoryInterface
         $ext = substr($fileName, $pos + 1);
 
         return $base . '_thumb.' . $ext;
+    }
+
+    private function formatBoolean(mixed $value, string $trueLabel, string $falseLabel): string
+    {
+        if (null === $value) {
+            return $this->translator->trans('—', [], 'Modules.RjMulticarrier.Admin');
+        }
+
+        return (int) $value ? $trueLabel : $falseLabel;
     }
 }

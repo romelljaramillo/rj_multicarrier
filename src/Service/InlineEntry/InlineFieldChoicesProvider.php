@@ -6,7 +6,6 @@ declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Service\InlineEntry;
 
-use \Employee;
 use Roanja\Module\RjMulticarrier\Entity\Carrier;
 use Roanja\Module\RjMulticarrier\Entity\TypeShipment;
 use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
@@ -47,11 +46,17 @@ final class InlineFieldChoicesProvider
                     continue;
                 }
 
+                $referenceCarrierId = (int) ($type->getReferenceCarrierId() ?? 0);
+
+                if ($referenceCarrierId <= 0) {
+                    continue;
+                }
+
                 $choices[] = [
                     'id' => (int) $type->getId(),
                     'label' => sprintf('%s · %s', $carrier->getShortName(), $type->getName()),
                     'carrier_id' => (int) $carrier->getId(),
-                    'reference_carrier_id' => (int) $type->getReferenceCarrierId(),
+                    'reference_carrier_id' => $referenceCarrierId,
                 ];
             }
         }
@@ -68,11 +73,11 @@ final class InlineFieldChoicesProvider
      */
     public function getEmployeeChoices(): array
     {
-        if (!class_exists(Employee::class)) {
+        if (!class_exists('Employee')) {
             return [];
         }
 
-        $employees = Employee::getEmployees();
+        $employees = call_user_func(['Employee', 'getEmployees']);
 
         if (!is_array($employees) || [] === $employees) {
             return [];

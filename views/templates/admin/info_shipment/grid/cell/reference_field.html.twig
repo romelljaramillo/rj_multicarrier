@@ -1,3 +1,16 @@
+{% set referenceValue = record.reference_order|default('') %}
+{% set orderViewUrl = record.id_order is defined ? path('admin_orders_view', {'orderId': record.id_order}) : null %}
+
 <div class="rj-inline-reference-cell">
-	{{ record.reference_order|default('—') }}
+	{% if referenceValue %}
+		{% if orderViewUrl %}
+			<a href="{{ orderViewUrl }}" class="link-primary">
+				{{ referenceValue }}
+			</a>
+		{% else %}
+			{{ referenceValue }}
+		{% endif %}
+	{% else %}
+		—
+	{% endif %}
 </div>

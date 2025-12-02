@@ -2,16 +2,29 @@
 
 {% block content %}
     {% set hasCarrier = carrier is defined and carrier and carrier.id is defined and carrier.id %}
+    {% set jsonOptions = constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_SLASHES') %}
+    {% set schemaValue = '' %}
+    {% if carrier is defined and carrier and carrier.configurationSchema is defined and carrier.configurationSchema is not empty %}
+        {% set schemaValue = carrier.configurationSchema|json_encode(jsonOptions) %}
+    {% endif %}
+    {% set payloadValue = '' %}
+    {% if carrier is defined and carrier and carrier.defaultPayload is defined and carrier.defaultPayload is not empty %}
+        {% set payloadValue = carrier.defaultPayload|json_encode(jsonOptions) %}
+    {% endif %}
+    {% set payloadSectionVisible = payloadValue is not empty %}
 
     <div class="row g-4">
-        <div class="col-xl-5">
-            <form method="post" enctype="multipart/form-data">
-                <div class="card rj-carrier-form-card">
+        <div class="col-xl-9">
+            <div class="d-flex flex-column gap-4">
+                <form method="post" enctype="multipart/form-data">
+                    <div class="card rj-carrier-form-card">
                     <h3 class="card-header d-flex align-items-center gap-2">
                         <i class="material-icons">local_shipping</i>
                         <span>{{ action == 'create' ? 'Create carrier'|trans({}, 'Modules.RjMulticarrier.Admin') : 'Edit carrier'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
                     </h3>
                     <div class="card-body">
+                        {% set isActiveChecked = carrier is defined and carrier ? carrier.isActive|default(true) : true %}
+                        {% set supportsApiChecked = carrier is defined and carrier ? carrier.supportsApi|default(false) : false %}
                         <div class="mb-3">
                             <label class="form-label">{{ 'Name'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
                             <input type="text" name="name" value="{{ carrier is defined and carrier ? carrier.name : '' }}" class="form-control" />
@@ -32,6 +45,35 @@
                             {% endif %}
                             <input type="file" name="icon" accept="image/*" class="form-control-file" />
                         </div>
+
+                        <div class="mb-3 form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="carrier-is-active" name="is_active" value="1" {% if isActiveChecked %}checked{% endif %}>
+                            <label class="form-check-label" for="carrier-is-active">{{ 'Carrier enabled'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                            <small class="text-muted d-block">{{ 'Si se desactiva, el submódulo no aparecerá en los flujos del back-office.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
+                        </div>
+
+                        <div class="mb-3 form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="carrier-supports-api" name="supports_api" value="1" {% if supportsApiChecked %}checked{% endif %}>
+                            <label class="form-check-label" for="carrier-supports-api">{{ 'Supports API operations'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                            <small class="text-muted d-block">{{ 'Activa campos relacionados con credenciales y peticiones automáticas.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
+                        </div>
+
+                        <input type="hidden" name="adapter_service" value="{{ carrier is defined and carrier ? carrier.adapterService : '' }}" />
+
+                        <textarea name="configuration_schema" class="d-none">{{ schemaValue }}</textarea>
+
+                        <div class="mb-3 form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="carrier-payload-toggle" name="payload_section_enabled" value="1" {% if payloadSectionVisible %}checked{% endif %}>
+                            <label class="form-check-label" for="carrier-payload-toggle">{{ 'Configurar plantilla de payload API'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                            <small class="text-muted d-block">{{ 'Activa este bloque solo si el carrier necesita definir una carga JSON personalizada.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
+                        </div>
+
+                        <div id="carrier-payload-card" class="mb-3 {% if not payloadSectionVisible %}d-none{% endif %}">
+                            <label class="form-label">{{ 'Default payload (JSON)'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                            <textarea name="default_payload" class="form-control font-monospace" rows="6" placeholder="{{ '{ "request": {}, "response": {} }'|e }}">{{ payloadValue }}</textarea>
+                            <small class="text-muted">{{ 'Plantilla opcional que se mezclará con los datos generados por el adaptador antes de enviar la petición.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
+                        </div>
+
                     </div>
                     <div class="card-footer">
                         <div class="d-flex justify-content-between align-items-center">
@@ -41,31 +83,355 @@
                             <button type="submit" class="btn btn-primary">{{ 'Guardar'|trans({}, 'Admin.Actions') }}</button>
                         </div>
                     </div>
-                </div>
-            </form>
+                    </div>
+                </form>
+
+                {% if hasCarrier %}
+                    {% set configurationFormAction = path('admin_rj_multicarrier_carriers_configuration', {'id': carrier.id}) %}
+                    {% set configurationCsrfToken = csrf_token('carrier_configurations_' ~ carrier.id) %}
+
+                    {% include '@Modules/rj_multicarrier/views/templates/admin/carrier/_configuration_form.html.twig' with {
+                        configurationFormAction: configurationFormAction,
+                        configurationCsrfToken: configurationCsrfToken,
+                        defaultConfigurations: defaultConfigurations|default([]),
+                        extraConfigurations: extraConfigurations|default([]),
+                        redirectAfterSubmit: path('admin_rj_multicarrier_carriers_edit', {'id': carrier.id}),
+                        backUrl: path('admin_rj_multicarrier_carriers_index')
+                    } %}
+
+                    <div class="card">
+                        <div class="card-header d-flex align-items-center justify-content-between">
+                            <div>
+                                <h3 class="card-title h5 mb-0">{{ 'Tipos de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
+                                <p class="text-muted small mb-0">{{ 'Gestiona los códigos BC asociados a este carrier sin salir del formulario.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                            </div>
+                            <span class="badge bg-light text-dark">{{ typeShipments|length }}</span>
+                        </div>
+                        <div class="card-body" id="type-shipments-card">
+                            {% if typeShipments is not empty %}
+                                <div class="table-responsive">
+                                    <table class="table align-middle mb-0">
+                                        <thead>
+                                        <tr>
+                                            <th>{{ 'Nombre'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+                                            <th>{{ 'Código de negocio'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+                                            <th>{{ 'Carrier referencia'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+                                            <th class="text-center">{{ 'Estado'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+                                            <th class="text-end">{{ 'Acciones'|trans({}, 'Admin.Global') }}</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for typeShipment in typeShipments %}
+                                            <tr>
+                                                <td>{{ typeShipment.name }}</td>
+                                                <td><code>{{ typeShipment.businessCode }}</code></td>
+                                                <td>
+                                                    {% if typeShipment.referenceCarrierName %}
+                                                        {{ typeShipment.referenceCarrierName }}
+                                                    {% else %}
+                                                        <span class="text-muted">{{ 'Sin asignar'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-center">
+                                                    {% if typeShipment.active %}
+                                                        <span class="badge bg-success">{{ 'Activo'|trans({}, 'Admin.Global') }}</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">{{ 'Inactivo'|trans({}, 'Admin.Global') }}</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-end">
+                                                    <div class="d-flex justify-content-end gap-3 flex-wrap">
+                                                        <a class="btn btn-link p-0"
+                                                           href="{{ path('admin_rj_multicarrier_carriers_edit', {id: carrier.id, typeShipmentId: typeShipment.id}) }}#type-shipment-form">
+                                                            <i class="material-icons align-middle">edit</i>
+                                                            <span class="align-middle">{{ 'Editar'|trans({}, 'Admin.Actions') }}</span>
+                                                        </a>
+                                                        <form method="post" class="d-inline"
+                                                              action="{{ path('admin_rj_multicarrier_carriers_type_shipment_delete', {
+                                                                  carrierId: carrier.id,
+                                                                  typeShipmentId: typeShipment.id
+                                                              }) }}"
+                                                              onsubmit="return confirm('{{ '¿Eliminar este tipo de envío?'|trans({}, 'Modules.RjMulticarrier.Admin') }}');">
+                                                            <input type="hidden" name="_token" value="{{ csrf_token('delete_type_shipment_' ~ typeShipment.id) }}">
+                                                            <button type="submit" class="btn btn-link text-danger p-0">
+                                                                <i class="material-icons align-middle">delete</i>
+                                                                <span class="align-middle">{{ 'Eliminar'|trans({}, 'Admin.Actions') }}</span>
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center text-muted py-4">
+                                    <p class="mb-1">{{ 'Aún no has configurado tipos de envío para este carrier.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                    <small>{{ 'Usa el formulario inferior para registrar los servicios disponibles.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
+                                </div>
+                            {% endif %}
+                        </div>
+                        {% if typeShipmentForm %}
+                            <div class="card-footer" id="type-shipment-form">
+                                <h4 class="h6 mb-3">
+                                    {% if typeShipmentEditing %}
+                                        {{ 'Editar tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                                    {% else %}
+                                        {{ 'Añadir tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                                    {% endif %}
+                                </h4>
+
+                                {% if typeShipmentEditing %}
+                                    <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                        <div>
+                                            <strong class="d-block">{{ 'Editando:'|trans({}, 'Modules.RjMulticarrier.Admin') }}</strong>
+                                            <span>{{ typeShipmentEditing.name }}</span>
+                                        </div>
+                                        <a class="btn btn-sm btn-outline-secondary"
+                                           href="{{ path('admin_rj_multicarrier_carriers_edit', {id: carrier.id}) }}#type-shipment-form">
+                                            {{ 'Cancelar edición'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                                        </a>
+                                    </div>
+                                {% endif %}
+
+                                {{ form_start(typeShipmentForm, { attr: { class: 'row g-3' } }) }}
+                                    <div class="col-md-6">
+                                        {{ form_row(typeShipmentForm.name) }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ form_row(typeShipmentForm.business_code) }}
+                                    </div>
+                                    <div class="col-md-6">
+                                        {{ form_row(typeShipmentForm.reference_carrier_id) }}
+                                    </div>
+                                    <div class="col-md-6 d-flex align-items-center">
+                                        <div class="w-100">
+                                            {{ form_row(typeShipmentForm.active) }}
+                                        </div>
+                                    </div>
+                                    <div class="col-12 text-end">
+                                        {% set submitLabel = typeShipmentEditing ? 'Actualizar'|trans({}, 'Admin.Actions') : 'Guardar'|trans({}, 'Admin.Actions') %}
+                                        {{ form_widget(typeShipmentForm.save, { attr: { class: 'btn btn-primary' }, label: submitLabel }) }}
+                                    </div>
+                                    {{ form_widget(typeShipmentForm.id) }}
+                                    {{ form_widget(typeShipmentForm.carrier_id) }}
+                                    {{ form_widget(typeShipmentForm._token) }}
+                                {{ form_end(typeShipmentForm, { render_rest: false }) }}
+                            </div>
+                        {% else %}
+                            <div class="card-footer text-center text-muted">
+                                {{ 'No hay transportistas de referencia disponibles para crear nuevos tipos.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div class="card h-100">
+                        <div class="card-body d-flex flex-column justify-content-center text-center text-muted">
+                            <p class="mb-2">{{ 'Configura las opciones del transportista una vez lo hayas guardado.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                            <small>{{ 'Primero completa los datos básicos y guarda para habilitar las configuraciones por defecto y adicionales.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
         </div>
 
-        <div class="col-xl-7">
-            {% if hasCarrier %}
-                {% set configurationFormAction = path('admin_rj_multicarrier_carriers_configuration', {'id': carrier.id}) %}
-                {% set configurationCsrfToken = csrf_token('carrier_configurations_' ~ carrier.id) %}
+        <div class="col-xl-3">
+            {% if payloadVariableGroups is defined and payloadVariableGroups|length > 0 %}
+                <div class="card" data-role="payload-variable-panel">
+                    <div class="card-header d-flex align-items-center gap-2">
+                        <i class="material-icons text-secondary">content_copy</i>
+                        <div>
+                            <h3 class="h6 mb-0">{{ 'Variables disponibles'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
+                            <p class="text-muted small mb-0">{{ 'Haz clic para copiar el token y pégalo en tus cabeceras o cuerpo para construir la solicitud.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        {% for group in payloadVariableGroups %}
+                            {% if group.groups is defined and group.groups is not empty %}
+                                {% for subgroup in group.groups %}
+                                    <div class="mb-4">
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <span class="fw-semibold">{{ subgroup.label }}</span>
+                                            <span class="badge bg-light text-dark">{{ subgroup.items|length }}</span>
+                                        </div>
+                                        {% if subgroup.description %}
+                                            <p class="text-muted small mb-2">{{ subgroup.description }}</p>
+                                        {% endif %}
+                                        <div class="row g-2">
+                                            {% for variable, label in subgroup.items %}
+                                                {% set placeholder = '{{ ' ~ variable ~ ' }}' %}
+                                                <div class="col-12">
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-outline-secondary w-100 text-start js-copy-payload-variable"
+                                                        data-variable="{{ placeholder }}"
+                                                    >
+                                                        <div class="d-flex justify-content-between align-items-start gap-3">
+                                                            <div>
+                                                                <span class="d-block fw-semibold font-monospace">{{ placeholder }}</span>
+                                                                <small class="text-muted">{{ label }}</small>
+                                                            </div>
+                                                            <i class="material-icons text-secondary">content_copy</i>
+                                                        </div>
+                                                    </button>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            {% elseif group.items is defined and group.items is not empty %}
+                                <div class="mb-4">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <span class="fw-semibold">{{ group.label }}</span>
+                                        <span class="badge bg-light text-dark">{{ group.items|length }}</span>
+                                    </div>
+                                    {% if group.description %}
+                                        <p class="text-muted small mb-2">{{ group.description }}</p>
+                                    {% endif %}
+                                    <div class="row g-2">
+                                        {% for variable, label in group.items %}
+                                            {% set placeholder = '{{ ' ~ variable ~ ' }}' %}
+                                            <div class="col-12">
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-outline-secondary w-100 text-start js-copy-payload-variable"
+                                                    data-variable="{{ placeholder }}"
+                                                >
+                                                    <div class="d-flex justify-content-between align-items-start gap-3">
+                                                        <div>
+                                                            <span class="d-block fw-semibold font-monospace">{{ placeholder }}</span>
+                                                            <small class="text-muted">{{ label }}</small>
+                                                        </div>
+                                                        <i class="material-icons text-secondary">content_copy</i>
+                                                    </div>
+                                                </button>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
 
-                {% include '@Modules/rj_multicarrier/views/templates/admin/carrier/_configuration_form.html.twig' with {
-                    configurationFormAction: configurationFormAction,
-                    configurationCsrfToken: configurationCsrfToken,
-                    defaultConfigurations: defaultConfigurations|default([]),
-                    extraConfigurations: extraConfigurations|default([]),
-                    redirectAfterSubmit: path('admin_rj_multicarrier_carriers_edit', {'id': carrier.id}),
-                    backUrl: path('admin_rj_multicarrier_carriers_index')
-                } %}
-            {% else %}
-                <div class="card h-100">
-                    <div class="card-body d-flex flex-column justify-content-center text-center text-muted">
-                        <p class="mb-2">{{ 'Configura las opciones del transportista una vez lo hayas guardado.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
-                        <small>{{ 'Primero completa los datos básicos y guarda para habilitar las configuraciones por defecto y adicionales.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
+                        <div class="alert alert-info small mb-0">
+                            {{ 'Estas variables se reemplazarán en tiempo real con los datos del pedido, cliente o paquete antes de llamar a la API del transportista.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                        </div>
                     </div>
                 </div>
             {% endif %}
         </div>
     </div>
+{% endblock %}
+{% block javascripts %}
+    {{ parent() }}
+    <script>
+        (function () {
+            var initPayloadToggle = function () {
+                var toggle = document.getElementById('carrier-payload-toggle');
+                var payloadCard = document.getElementById('carrier-payload-card');
+
+                if (!toggle || !payloadCard) {
+                    return;
+                }
+
+                var updateVisibility = function () {
+                    if (toggle.checked) {
+                        payloadCard.classList.remove('d-none');
+                    } else {
+                        payloadCard.classList.add('d-none');
+                    }
+                };
+
+                toggle.addEventListener('change', updateVisibility);
+                updateVisibility();
+            };
+
+            var initCopyButtons = function () {
+                var buttons = document.querySelectorAll('.js-copy-payload-variable');
+
+                if (!buttons.length) {
+                    return;
+                }
+
+                var fallbackCopy = function (text, onSuccess) {
+                    var textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    textarea.setAttribute('readonly', 'readonly');
+                    textarea.style.position = 'absolute';
+                    textarea.style.left = '-9999px';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+
+                    try {
+                        var succeeded = document.execCommand('copy');
+                        if (succeeded && typeof onSuccess === 'function') {
+                            onSuccess();
+                        }
+                    } catch (error) {
+                        console.warn('Copy command is not available', error);
+                    }
+
+                    document.body.removeChild(textarea);
+                };
+
+                var showFeedback = function (button) {
+                    var icon = button.querySelector('.material-icons');
+                    if (icon && !button.dataset.originalIcon) {
+                        button.dataset.originalIcon = icon.textContent || '';
+                    }
+
+                    button.classList.remove('btn-outline-secondary');
+                    button.classList.add('btn-success');
+
+                    if (icon) {
+                        icon.textContent = 'check';
+                        icon.classList.add('text-white');
+                    }
+
+                    var timeoutId = window.setTimeout(function () {
+                        button.classList.add('btn-outline-secondary');
+                        button.classList.remove('btn-success');
+                        if (icon) {
+                            icon.textContent = button.dataset.originalIcon || 'content_copy';
+                            icon.classList.remove('text-white');
+                        }
+                    }, 1500);
+
+                    button.dataset.copyTimeoutId = String(timeoutId);
+                };
+
+                var copyValue = function (button) {
+                    var value = button.getAttribute('data-variable');
+                    if (!value) {
+                        return;
+                    }
+
+                    var success = function () {
+                        showFeedback(button);
+                    };
+
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(value).then(success).catch(function () {
+                            fallbackCopy(value, success);
+                        });
+                        return;
+                    }
+
+                    fallbackCopy(value, success);
+                };
+
+                buttons.forEach(function (button) {
+                    button.addEventListener('click', function (event) {
+                        event.preventDefault();
+                        copyValue(button);
+                    });
+                });
+            };
+
+            document.addEventListener('DOMContentLoaded', function () {
+                initPayloadToggle();
+                initCopyButtons();
+            });
+        })();
+    </script>
 {% endblock %}

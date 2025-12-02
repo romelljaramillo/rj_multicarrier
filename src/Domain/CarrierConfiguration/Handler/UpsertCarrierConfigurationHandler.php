@@ -45,6 +45,8 @@ final class UpsertCarrierConfigurationHandler
                 ->setCarrier($carrier)
                 ->setTypeShipment(null)
                 ->setName($command->getName())
+                ->setFieldType('text')
+                ->setIsDynamic(true)
                 ->setCreatedAt(new DateTimeImmutable());
         }
 

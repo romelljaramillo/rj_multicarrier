@@ -11,6 +11,8 @@ use PrestaShop\PrestaShop\Core\Grid\Data\Factory\GridDataFactoryInterface;
 use PrestaShop\PrestaShop\Core\Grid\Data\GridData;
 use PrestaShop\PrestaShop\Core\Grid\Record\RecordCollection;
 use PrestaShop\PrestaShop\Core\Grid\Search\SearchCriteriaInterface;
+use Roanja\Module\RjMulticarrier\Service\Order\CashOnDeliveryMetadataResolver;
+use Roanja\Module\RjMulticarrier\Service\Order\OrderTypeShipmentResolver;
 use Roanja\Module\RjMulticarrier\Util\EmployeeFormatter;
 
 final class InfoShipmentGridDataFactoryDecorator implements GridDataFactoryInterface
@@ -37,7 +39,9 @@ final class InfoShipmentGridDataFactoryDecorator implements GridDataFactoryInter
     ];
 
     public function __construct(
-        private readonly GridDataFactoryInterface $infoShipmentDoctrineGridDataFactory
+        private readonly GridDataFactoryInterface $infoShipmentDoctrineGridDataFactory,
+        private readonly ?CashOnDeliveryMetadataResolver $cashOnDeliveryMetadataResolver = null,
+        private readonly ?OrderTypeShipmentResolver $orderTypeShipmentResolver = null
     ) {
     }
 
@@ -106,6 +110,91 @@ final class InfoShipmentGridDataFactoryDecorator implements GridDataFactoryInter
 
         if ((!isset($payload['rj_employee_id']) || (int) $payload['rj_employee_id'] <= 0) && null !== $defaultEmployee['id']) {
             $payload['rj_employee_id'] = $defaultEmployee['id'];
+        }
+
+        $payload = $this->applyCashOnDeliveryDefault($record, $payload);
+
+        return $this->applyTypeShipmentDefault($record, $payload);
+    }
+
+    /**
+     * @param array<string, mixed> $record
+     * @param array<string, scalar|null> $payload
+     *
+     * @return array<string, scalar|null>
+     */
+    private function applyCashOnDeliveryDefault(array $record, array $payload): array
+    {
+        if (!$this->cashOnDeliveryMetadataResolver instanceof CashOnDeliveryMetadataResolver) {
+            return $payload;
+        }
+
+        $currentValue = $payload['rj_cash_ondelivery'] ?? null;
+        $hasValue = is_scalar($currentValue) && '' !== trim((string) $currentValue) && (float) $currentValue > 0;
+
+        if ($hasValue) {
+            return $payload;
+        }
+
+        $orderId = (int) ($record['id_order'] ?? 0);
+        if ($orderId <= 0) {
+            return $payload;
+        }
+
+        try {
+            $metadata = $this->cashOnDeliveryMetadataResolver->resolveMetadataByOrderId($orderId);
+        } catch (\Throwable) {
+            return $payload;
+        }
+
+        if (!is_array($metadata) || empty($metadata['has_cod']) || !isset($metadata['amount'])) {
+            return $payload;
+        }
+
+        $amount = (string) $metadata['amount'];
+        if ('' === trim($amount)) {
+            return $payload;
+        }
+
+        $payload['rj_cash_ondelivery'] = $amount;
+
+        return $payload;
+    }
+
+    /**
+     * @param array<string, mixed> $record
+     * @param array<string, scalar|null> $payload
+     *
+     * @return array<string, scalar|null>
+     */
+    private function applyTypeShipmentDefault(array $record, array $payload): array
+    {
+        if (!$this->orderTypeShipmentResolver instanceof OrderTypeShipmentResolver) {
+            return $payload;
+        }
+
+        $hasType = isset($payload['id_type_shipment']) && (int) $payload['id_type_shipment'] > 0;
+        if ($hasType) {
+            return $payload;
+        }
+
+        $orderCarrierId = isset($record['order_carrier_id']) ? (int) $record['order_carrier_id'] : null;
+        $orderReferenceCarrierId = isset($record['order_reference_carrier_id']) ? (int) $record['order_reference_carrier_id'] : null;
+
+        $match = $this->orderTypeShipmentResolver->resolveForCarrierIds($orderCarrierId, $orderReferenceCarrierId);
+
+        if (null === $match) {
+            return $payload;
+        }
+
+        $payload['id_type_shipment'] = $match['type_id'];
+
+        if (empty($payload['carrier_id'])) {
+            $payload['carrier_id'] = $match['carrier_id'];
+        }
+
+        if (empty($payload['id_reference_carrier']) && $match['reference_id'] > 0) {
+            $payload['id_reference_carrier'] = $match['reference_id'];
         }
 
         return $payload;

@@ -165,7 +165,7 @@ class Rj_Multicarrier extends Module implements WidgetInterface
     {
     }
 
-    public function hookActionCarrierProcess(array $params): void
+    /* public function hookActionCarrierProcess(array $params): void
     {
         $cart = $params['cart'] ?? null;
 
@@ -201,91 +201,9 @@ class Rj_Multicarrier extends Module implements WidgetInterface
                 throw $exception;
             }
         }
-    }
+    } */
 
-    public function hookDisplayAdminOrder(array $params)
-    {
-        $idOrder = (int) ($params['id_order'] ?? 0);
-
-        if (0 === $idOrder) {
-            return '';
-        }
-
-        $actionContext = $this->handleAdminOrderActions($idOrder);
-
-        try {
-            /** @var OrderViewPresenter $presenter */
-            $presenter = $this->get('roanja.module.rj_multicarrier.presenter.order_view');
-
-            return $presenter->present($idOrder, $actionContext);
-        } catch (\Throwable $e) {
-            if (_PS_MODE_DEV_) {
-                return sprintf(
-                    '<div class="alert alert-danger">%s</div>',
-                    Tools::safeOutput($e->getMessage())
-                );
-            }
-
-            return '<div class="alert alert-danger">RJ Multicarrier: unable to render order panel.</div>';
-        }
-    }
-
-    public function hookDisplayBeforeCarrier(array $params)
-    {
-        $params['rj_multicarrier_messages'] = $this->buildBlockedMessages();
-
-        return $this->renderWidget('displayBeforeCarrier', $params);
-    }
-
-    public function hookDisplayAfterCarrier(array $params)
-    {
-        return $this->renderWidget('displayAfterCarrier', $params);
-    }
-
-    public function renderWidget($hookName, array $configuration)
-    {
-        try {
-            $presenter = $this->resolveWidgetPresenter();
-
-            if (null !== $presenter) {
-                return $presenter->render((string) $hookName, $configuration);
-            }
-        } catch (\Throwable $exception) {
-            if (_PS_MODE_DEV_) {
-                return sprintf(
-                    '<div class="alert alert-danger">%s</div>',
-                    Tools::safeOutput($exception->getMessage())
-                );
-            }
-
-            return '';
-        }
-
-        return '';
-    }
-
-    public function getWidgetVariables($hookName, array $configuration)
-    {
-        try {
-            $presenter = $this->resolveWidgetPresenter();
-
-            if (null !== $presenter) {
-                return $presenter->getVariables((string) $hookName, $configuration);
-            }
-        } catch (\Throwable $exception) {
-            if (_PS_MODE_DEV_) {
-                return [
-                    'errors' => [$exception->getMessage()],
-                ];
-            }
-
-            return [];
-        }
-
-        return [];
-    }
-
-    public function hookActionDeliveryOptionListModifier(array &$params): void
+    /* public function hookActionDeliveryOptionListModifier(array &$params): void
     {
         $cart = $params['cart'] ?? null;
 
@@ -424,6 +342,88 @@ class Rj_Multicarrier extends Module implements WidgetInterface
                 throw $exception;
             }
         }
+    } */
+
+    public function hookDisplayAdminOrder(array $params)
+    {
+        $idOrder = (int) ($params['id_order'] ?? 0);
+
+        if (0 === $idOrder) {
+            return '';
+        }
+
+        $actionContext = $this->handleAdminOrderActions($idOrder);
+
+        try {
+            /** @var OrderViewPresenter $presenter */
+            $presenter = $this->get('roanja.module.rj_multicarrier.presenter.order_view');
+
+            return $presenter->present($idOrder, $actionContext);
+        } catch (\Throwable $e) {
+            if (_PS_MODE_DEV_) {
+                return sprintf(
+                    '<div class="alert alert-danger">%s</div>',
+                    Tools::safeOutput($e->getMessage())
+                );
+            }
+
+            return '<div class="alert alert-danger">RJ Multicarrier: unable to render order panel.</div>';
+        }
+    }
+
+    public function hookDisplayBeforeCarrier(array $params)
+    {
+        $params['rj_multicarrier_messages'] = $this->buildBlockedMessages();
+
+        return $this->renderWidget('displayBeforeCarrier', $params);
+    }
+
+    public function hookDisplayAfterCarrier(array $params)
+    {
+        return $this->renderWidget('displayAfterCarrier', $params);
+    }
+
+    public function renderWidget($hookName, array $configuration)
+    {
+        try {
+            $presenter = $this->resolveWidgetPresenter();
+
+            if (null !== $presenter) {
+                return $presenter->render((string) $hookName, $configuration);
+            }
+        } catch (\Throwable $exception) {
+            if (_PS_MODE_DEV_) {
+                return sprintf(
+                    '<div class="alert alert-danger">%s</div>',
+                    Tools::safeOutput($exception->getMessage())
+                );
+            }
+
+            return '';
+        }
+
+        return '';
+    }
+
+    public function getWidgetVariables($hookName, array $configuration)
+    {
+        try {
+            $presenter = $this->resolveWidgetPresenter();
+
+            if (null !== $presenter) {
+                return $presenter->getVariables((string) $hookName, $configuration);
+            }
+        } catch (\Throwable $exception) {
+            if (_PS_MODE_DEV_) {
+                return [
+                    'errors' => [$exception->getMessage()],
+                ];
+            }
+
+            return [];
+        }
+
+        return [];
     }
 
     private function ensureDeliveryOptionModifierHookRegistered(): void

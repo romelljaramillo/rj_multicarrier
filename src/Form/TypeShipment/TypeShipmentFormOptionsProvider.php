@@ -7,15 +7,18 @@ declare(strict_types=1);
 namespace Roanja\Module\RjMulticarrier\Form\TypeShipment;
 
 use Roanja\Module\RjMulticarrier\Entity\Carrier;
+use PrestaShop\PrestaShop\Adapter\Feature\MultistoreFeature;
+use PrestaShop\PrestaShop\Adapter\Shop\Context as ShopContextAdapter;
 use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
-use Shop;
 
 final class TypeShipmentFormOptionsProvider
 {
     public function __construct(
         private readonly CarrierRepository $carrierRepository,
-        private readonly TypeShipmentRepository $typeShipmentRepository
+        private readonly TypeShipmentRepository $typeShipmentRepository,
+        private readonly MultistoreFeature $multistoreFeature,
+        private readonly ShopContextAdapter $shopContext
     ) {
     }
 
@@ -75,19 +78,27 @@ final class TypeShipmentFormOptionsProvider
         $carriers = (array) \Carrier::getCarriers($languageId, true);
         $choices = [];
 
+        $carrierReferenceIndex = $this->buildCarrierReferenceIndex($carriers);
+
         $assignedReferences = $this->typeShipmentRepository->findAllReferenceCarrierIds();
+        $normalizedAssigned = $this->normalizeAssignedReferences($assignedReferences, $carrierReferenceIndex);
+
         if (null !== $currentReferenceCarrierId) {
-            $assignedReferences = array_filter(
-                $assignedReferences,
-                static fn (int $referenceId): bool => $referenceId !== $currentReferenceCarrierId
-            );
+            $normalizedKey = $carrierReferenceIndex[$currentReferenceCarrierId] ?? $currentReferenceCarrierId;
+            unset($normalizedAssigned[$normalizedKey]);
         }
-        $assignedReferences = array_flip($assignedReferences);
 
         $seenReferences = [];
 
         foreach ($carriers as $carrier) {
             if (!isset($carrier['id_reference'])) {
+                continue;
+            }
+
+            $isActive = (int) ($carrier['active'] ?? 0);
+            $isDeleted = (int) ($carrier['deleted'] ?? 0);
+
+            if (1 !== $isActive || 0 !== $isDeleted) {
                 continue;
             }
 
@@ -98,7 +109,7 @@ final class TypeShipmentFormOptionsProvider
             }
             $seenReferences[$referenceId] = true;
 
-            if (isset($assignedReferences[$referenceId])) {
+            if (isset($normalizedAssigned[$referenceId])) {
                 continue;
             }
 
@@ -116,6 +127,51 @@ final class TypeShipmentFormOptionsProvider
         ksort($choices, SORT_NATURAL | SORT_FLAG_CASE);
 
         return $choices;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $carriers
+     *
+     * @return array<int, int>
+     */
+    private function buildCarrierReferenceIndex(array $carriers): array
+    {
+        $index = [];
+
+        foreach ($carriers as $carrier) {
+            $idCarrier = isset($carrier['id_carrier']) ? (int) $carrier['id_carrier'] : 0;
+            $idReference = isset($carrier['id_reference']) ? (int) $carrier['id_reference'] : 0;
+
+            if ($idCarrier > 0 && $idReference > 0) {
+                $index[$idCarrier] = $idReference;
+            }
+        }
+
+        return $index;
+    }
+
+    /**
+     * @param int[] $assignedValues
+     * @param array<int, int> $carrierReferenceIndex
+     *
+     * @return array<int, bool>
+     */
+    private function normalizeAssignedReferences(array $assignedValues, array $carrierReferenceIndex): array
+    {
+        $normalized = [];
+
+        foreach ($assignedValues as $value) {
+            $value = (int) $value;
+
+            if ($value <= 0) {
+                continue;
+            }
+
+            $referenceId = $carrierReferenceIndex[$value] ?? $value;
+            $normalized[$referenceId] = true;
+        }
+
+        return $normalized;
     }
 
     /**
@@ -152,14 +208,14 @@ final class TypeShipmentFormOptionsProvider
      */
     private function getContextShopIds(): array
     {
-        if (!Shop::isFeatureActive()) {
+        if (!$this->multistoreFeature->isUsed()) {
             return $this->normalizeShopIds($this->resolveShopId());
         }
 
-        $shopIds = Shop::getContextListShopID();
+        $shopIds = $this->shopContext->getContextListShopID();
 
         if (empty($shopIds)) {
-            $contextShopId = Shop::getContextShopID(true);
+            $contextShopId = $this->shopContext->getContextShopID(true);
             if (null !== $contextShopId) {
                 $shopIds = [$contextShopId];
             }
@@ -170,7 +226,7 @@ final class TypeShipmentFormOptionsProvider
 
     private function resolveShopId(): int
     {
-        $shopId = Shop::getContextShopID(true);
+        $shopId = $this->shopContext->getContextShopID(true);
 
         return null !== $shopId ? (int) $shopId : 0;
     }

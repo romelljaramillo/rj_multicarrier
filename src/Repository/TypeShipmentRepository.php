@@ -108,6 +108,20 @@ class TypeShipmentRepository
             ->getOneOrNullResult();
     }
 
+    public function findOneByCarrierAndBusinessCode(Carrier $carrier, string $code): ?TypeShipment
+    {
+        return $this->createQueryBuilder('type')
+            ->andWhere('type.carrier = :carrier')
+            ->andWhere('type.businessCode = :code')
+            ->setParameters([
+                'carrier' => $carrier,
+                'code' => $code,
+            ])
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+    }
+
     public function find(int $id): ?TypeShipment
     {
         $entity = $this->entityManager->find(TypeShipment::class, $id);

@@ -1,6 +1,6 @@
-# Esquema de entidades Doctrine
+# Esquema de entidades (solo rj_*)
 
-Resumen de tablas legacy y campos relevantes para la migración a Doctrine ORM.
+Inventario actualizado de las tablas `rj_multicarrier_*` que usaremos para modelar la nueva arquitectura modular de carriers. Se excluyen por completo tablas legacy del core.
 
 ## Shipment (`rj_multicarrier_shipment`)
 - **id_shipment** (`INT`, PK, autoincrement)
@@ -36,28 +36,53 @@ Resumen de tablas legacy y campos relevantes para la migración a Doctrine ORM.
 ## Carrier (`rj_multicarrier_carrier`)
 - **id_carrier** (`INT`, PK)
 - **name**, **shortname**, **icon** (`VARCHAR`)
+- **is_active** (`TINYINT(1)`) indica si el submódulo está disponible
+- **supports_api** (`TINYINT(1)`) habilita el modo "API" para generar credenciales/campos específicos
+- **adapter_service** (`VARCHAR(191)`) FQCN del adaptador Symfony que implementa la lógica del carrier
+- **configuration_schema** (`LONGTEXT`, JSON) definición de grupos/campos dinámicos visibles en la UI
+- **default_payload** (`LONGTEXT`, JSON) plantilla base para request/response
 - **date_add**, **date_upd**
+
+### `configuration_schema` (convención)
+```json
+{
+	"tabs": [
+		{
+			"code": "general",
+			"label": "General",
+			"fields": [
+				{"name": "api_key", "type": "text", "required": true, "group": "credentials"}
+			]
+		}
+	]
+}
+```
+La UI leera esta estructura para renderizar formularios, permitir activar/desactivar campos y asociar metadatos a cada carrier sin tocar código.
 
 ## TypeShipment (`rj_multicarrier_type_shipment`)
 - **id_type_shipment** (`INT`, PK)
 - **id_carrier** (`INT`, FK a Carrier)
 - **name**, **id_bc** (`VARCHAR`)
-- **id_reference_carrier** (`INT`, FK a tabla `carrier` core)
+- **id_reference_carrier** (`INT`, FK opcional a carrier nativo para mapear tarifas)
 - **active** (`TINYINT(1)`)
+- **settings** (`JSON`) permite guardar reglas o parámetros específicos del servicio
 - **date_add**, **date_upd**
 
 ## Configuration (`rj_multicarrier_configuration`)
-- **id_carrier_configuration** (`INT`, PK)
-- Datos de remitente: **firstname**, **lastname**, **company**, **additionalname**
-- Localización: **id_country**, **state**, **city**, **street**, **number**, **postcode**, **additionaladdress**
-- Contacto: **isbusiness**, **email**, **phone**, **vatnumber**
-- **date_add**, **date_upd**
+- **id_configuration** (`INT`, PK)
+- Datos de remitente (firstname/lastname/company...) que seguirán siendo la base para etiquetas manuales
+- Campos de localización/contacto idénticos a la versión previa
+- **active**, **date_add**, **date_upd**
 
 ## CarrierConfiguration (`rj_multicarrier_carrier_configuration`)
 - **id_carrier_configuration** (`INT`, PK)
-- **id_carrier**, **id_type_shipment** (`INT`, FK a Carrier y TypeShipment)
-- **id_shop_group**, **id_shop** (`INT`, nullables)
-- **name** (`VARCHAR(254)`), **value** (`TEXT`)
+- **id_carrier**, **id_type_shipment**, **id_shop_group**, **id_shop** para delimitar el ámbito
+- **name** / **value** definen cada par clave-valor configurable
+- **is_required** controla validaciones runtime
+- **field_group**, **field_type** (por defecto `text`) describen cómo debe mostrarse el campo
+- **payload_direction** (`request`/`response`/`none`) indica hacia dónde viaja el dato
+- **payload_key** y **payload_source** ayudan a mapear el valor cuando el adaptador construye automáticamente el JSON
+- **position** y **is_dynamic** permiten ordenar y distinguir campos añadidos desde UI
 - **date_add**, **date_upd**
 
 ## Log (`rj_multicarrier_log`)
@@ -67,7 +92,7 @@ Resumen de tablas legacy y campos relevantes para la migración a Doctrine ORM.
 - **date_add**, **date_upd**
 
 ### Consideraciones
-- Las tablas con sufijo `_shop` gestionan contexto multi-tienda; inicialmente se mapearán via repositorios legacy o servicios específicos.
-- Para fechas se usará `\DateTimeImmutable` en Doctrine.
-- Los flags booleanos se mapearán como `bool` con conversión automática.
-- Los campos `request`/`response` se guardarán como `text`.
+- No se utilizarán tablas legacy: todos los datos de configuración y dinámica provienen de `rj_multicarrier_*`.
+- Las tablas con sufijo `_shop` siguen aportando alcance multi-tienda y se mapearán mediante repositorios específicos del módulo.
+- Doctrine usará `\DateTimeImmutable` para fechas y convertidores nativos para JSON/booleanos.
+- El `adapter_service` se registrará como servicio Symfony etiquetado y se resolverá dinámicamente según el carrier activo.

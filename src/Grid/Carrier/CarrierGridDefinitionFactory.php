@@ -7,6 +7,7 @@ use PrestaShop\PrestaShop\Core\Grid\Column\ColumnCollection;
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\DataColumn;
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\ActionColumn;
 use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\BulkActionColumn;
+use PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\ToggleColumn;
 use PrestaShop\PrestaShop\Core\Grid\Action\Row\RowActionCollection;
 use PrestaShop\PrestaShop\Core\Grid\Action\Row\Type\LinkRowAction;
 use PrestaShop\PrestaShop\Core\Grid\Definition\Factory\BulkDeleteActionTrait;
@@ -20,6 +21,7 @@ use PrestaShop\PrestaShop\Core\Grid\Action\GridActionCollectionInterface;
 use PrestaShop\PrestaShop\Core\Grid\Action\Type\SimpleGridAction;
 use PrestaShop\PrestaShop\Core\Grid\Action\Type\SubmitGridAction;
 use Roanja\Module\RjMulticarrier\Grid\AbstractModuleGridDefinitionFactory;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -60,6 +62,20 @@ final class CarrierGridDefinitionFactory extends AbstractModuleGridDefinitionFac
             ->add((new DataColumn('shortname'))
                 ->setName($this->transString('Short name'))
                 ->setOptions(['field' => 'shortname']))
+            ->add((new ToggleColumn('is_active'))
+                ->setName($this->transString('Active'))
+                ->setOptions([
+                    'field' => 'is_active',
+                    'primary_field' => 'id_carrier',
+                    'route' => 'admin_rj_multicarrier_carriers_toggle',
+                    'route_param_name' => 'id',
+                ]))
+            ->add((new DataColumn('supports_api'))
+                ->setName($this->transString('API'))
+                ->setOptions(['field' => 'supports_api']))
+            ->add((new DataColumn('adapter_service'))
+                ->setName($this->transString('Adapter service'))
+                ->setOptions(['field' => 'adapter_service']))
             ->add((new ActionColumn('actions'))
                 ->setName($this->transString('Actions', [], 'Admin.Global'))
                 ->setOptions([
@@ -96,6 +112,34 @@ final class CarrierGridDefinitionFactory extends AbstractModuleGridDefinitionFac
                     ],
                 ])
                 ->setAssociatedColumn('shortname'))
+            ->add((new Filter('is_active', ChoiceType::class))
+                ->setTypeOptions([
+                    'required' => false,
+                    'choices' => [
+                        $this->transString('All') => '',
+                        $this->transString('Enabled', [], 'Admin.Global') => '1',
+                        $this->transString('Disabled', [], 'Admin.Global') => '0',
+                    ],
+                ])
+                ->setAssociatedColumn('is_active'))
+            ->add((new Filter('supports_api', ChoiceType::class))
+                ->setTypeOptions([
+                    'required' => false,
+                    'choices' => [
+                        $this->transString('All') => '',
+                        $this->transString('Yes', [], 'Admin.Global') => '1',
+                        $this->transString('No', [], 'Admin.Global') => '0',
+                    ],
+                ])
+                ->setAssociatedColumn('supports_api'))
+            ->add((new Filter('adapter_service', TextType::class))
+                ->setTypeOptions([
+                    'required' => false,
+                    'attr' => [
+                        'placeholder' => $this->transString('Adapter service'),
+                    ],
+                ])
+                ->setAssociatedColumn('adapter_service'))
             ->add((new Filter('actions', SearchAndResetType::class))
                 ->setTypeOptions([
                     'reset_route' => 'admin_common_reset_search_by_filter_id',

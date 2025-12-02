@@ -16,6 +16,19 @@ final class DefaultCarrierAdapter implements CarrierAdapterInterface
         return 'DEF';
     }
 
+    public function getDescriptor(): CarrierAdapterDescriptor
+    {
+        return new CarrierAdapterDescriptor(
+            $this->getCode(),
+            'Carrier genérico',
+            'Genera etiquetas internas sin conectarse a APIs externas.',
+            null,
+            false,
+            null,
+            null,
+        );
+    }
+
     public function generateShipment(CarrierContext $context): CarrierGenerationResult
     {
         $payload = $context->getPayload();

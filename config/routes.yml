@@ -252,7 +252,7 @@ admin_rj_multicarrier_type_shipment_edit:
 
 admin_rj_multicarrier_type_shipment_delete:
   path: /rj-multicarrier/type-shipments/{id}/delete
-  methods: [POST]
+  methods: [POST, DELETE]
   defaults:
     _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\TypeShipmentController::deleteAction'
     _legacy_controller: "AdminRjMulticarrierTypeShipment"
@@ -691,6 +691,16 @@ admin_rj_multicarrier_carriers_index:
   options:
     expose: true
 
+admin_rj_multicarrier_carriers_install_adapter:
+  path: /rj-multicarrier/carriers/install-adapter
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CarrierController::installAdapterAction'
+    _legacy_controller: "AdminRjMulticarrierCarriers"
+    _legacy_link: "AdminRjMulticarrierCarriers:installAdapter"
+  options:
+    expose: true
+
 admin_rj_multicarrier_carriers_view:
   path: /rj-multicarrier/carriers/{id}/view
   methods: [GET]
@@ -722,6 +732,43 @@ admin_rj_multicarrier_carriers_edit:
     _legacy_link: "AdminRjMulticarrierCarriers:edit"
   requirements:
     id: '\d+'
+  options:
+    expose: true
+
+admin_rj_multicarrier_carriers_toggle:
+  path: /rj-multicarrier/carriers/{id}/toggle
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CarrierController::toggleAction'
+    _legacy_controller: "AdminRjMulticarrierCarriers"
+    _legacy_link: "AdminRjMulticarrierCarriers:toggle"
+  requirements:
+    id: '\d+'
+  options:
+    expose: true
+
+admin_rj_multicarrier_carriers_type_shipment_store:
+  path: /rj-multicarrier/carriers/{id}/type-shipment
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CarrierController::addTypeShipmentAction'
+    _legacy_controller: "AdminRjMulticarrierCarriers"
+    _legacy_link: "AdminRjMulticarrierCarriers:typeShipmentCreate"
+  requirements:
+    id: '\d+'
+  options:
+    expose: true
+
+admin_rj_multicarrier_carriers_type_shipment_delete:
+  path: /rj-multicarrier/carriers/{carrierId}/type-shipment/{typeShipmentId}/delete
+  methods: [POST, DELETE]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CarrierController::deleteTypeShipmentAction'
+    _legacy_controller: "AdminRjMulticarrierCarriers"
+    _legacy_link: "AdminRjMulticarrierCarriers:typeShipmentDelete"
+  requirements:
+    carrierId: '\d+'
+    typeShipmentId: '\d+'
   options:
     expose: true
 

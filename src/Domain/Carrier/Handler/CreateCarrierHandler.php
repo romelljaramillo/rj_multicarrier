@@ -20,7 +20,12 @@ final class CreateCarrierHandler
         $carrier = new Carrier($command->getName(), $command->getShortName());
 
         // set icon filename (controller already moved the file)
-        $carrier->setIcon($command->getIconFilename());
+        $carrier->setIcon($command->getIconFilename())
+            ->setIsActive($command->isActive())
+            ->setSupportsApi($command->supportsApi())
+            ->setAdapterService($command->getAdapterService())
+            ->setConfigurationSchema($command->getConfigurationSchema())
+            ->setDefaultPayload($command->getDefaultPayload());
 
         foreach ($command->getShopIds() as $shopId) {
             if ($shopId > 0) {

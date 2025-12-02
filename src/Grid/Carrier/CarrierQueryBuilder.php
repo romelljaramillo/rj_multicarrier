@@ -55,6 +55,27 @@ final class CarrierQueryBuilder implements DoctrineQueryBuilderInterface
                             ->setParameter('shortname', $this->buildContainsPattern($value));
                     }
                     break;
+                case 'adapter_service':
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $qb->andWhere('c.adapter_service LIKE :adapter_service')
+                            ->setParameter('adapter_service', $this->buildContainsPattern($value));
+                    }
+                    break;
+                case 'is_active':
+                    $booleanValue = $this->resolveBooleanFilterValue($filterValue);
+                    if (null !== $booleanValue) {
+                        $qb->andWhere('c.is_active = :is_active')
+                            ->setParameter('is_active', $booleanValue);
+                    }
+                    break;
+                case 'supports_api':
+                    $booleanValue = $this->resolveBooleanFilterValue($filterValue);
+                    if (null !== $booleanValue) {
+                        $qb->andWhere('c.supports_api = :supports_api')
+                            ->setParameter('supports_api', $booleanValue);
+                    }
+                    break;
             }
         }
 
@@ -65,6 +86,9 @@ final class CarrierQueryBuilder implements DoctrineQueryBuilderInterface
             'id_carrier' => 'c.id_carrier',
             'name' => 'c.name',
             'shortname' => 'c.shortname',
+            'is_active' => 'c.is_active',
+            'supports_api' => 'c.supports_api',
+            'adapter_service' => 'c.adapter_service',
         ];
 
         if (isset($allowedOrderBy[$orderBy])) {
@@ -117,6 +141,27 @@ final class CarrierQueryBuilder implements DoctrineQueryBuilderInterface
                             ->setParameter('count_shortname', $this->buildContainsPattern($value));
                     }
                     break;
+                case 'adapter_service':
+                    $value = $this->resolveScalarFilterValue($filterValue);
+                    if (null !== $value) {
+                        $qb->andWhere('c.adapter_service LIKE :count_adapter_service')
+                            ->setParameter('count_adapter_service', $this->buildContainsPattern($value));
+                    }
+                    break;
+                case 'is_active':
+                    $booleanValue = $this->resolveBooleanFilterValue($filterValue);
+                    if (null !== $booleanValue) {
+                        $qb->andWhere('c.is_active = :count_is_active')
+                            ->setParameter('count_is_active', $booleanValue);
+                    }
+                    break;
+                case 'supports_api':
+                    $booleanValue = $this->resolveBooleanFilterValue($filterValue);
+                    if (null !== $booleanValue) {
+                        $qb->andWhere('c.supports_api = :count_supports_api')
+                            ->setParameter('count_supports_api', $booleanValue);
+                    }
+                    break;
             }
         }
 
@@ -130,7 +175,10 @@ final class CarrierQueryBuilder implements DoctrineQueryBuilderInterface
                 'c.id_carrier',
                 'c.name',
                 'c.icon AS icon',
-                'c.shortname'
+                'c.shortname',
+                'c.is_active',
+                'c.supports_api',
+                'c.adapter_service'
             )
             ->from($this->dbPrefix . 'rj_multicarrier_carrier', 'c')
             ->where('c.`delete` = 0');
@@ -193,5 +241,27 @@ final class CarrierQueryBuilder implements DoctrineQueryBuilderInterface
     private function escapePercent(string $value): string
     {
         return str_replace('%', '\\%', $value);
+    }
+
+    /**
+     * @param mixed $filterValue
+     */
+    private function resolveBooleanFilterValue($filterValue): ?int
+    {
+        $value = $this->resolveScalarFilterValue($filterValue);
+        if (null === $value) {
+            return null;
+        }
+
+        $normalized = strtolower($value);
+        if (in_array($normalized, ['1', 'true', 'yes', 'on'], true)) {
+            return 1;
+        }
+
+        if (in_array($normalized, ['0', 'false', 'no', 'off'], true)) {
+            return 0;
+        }
+
+        return null;
     }
 }

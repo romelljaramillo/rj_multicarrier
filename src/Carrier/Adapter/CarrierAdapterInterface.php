@@ -10,6 +10,8 @@ interface CarrierAdapterInterface
 {
     public function getCode(): string;
 
+    public function getDescriptor(): CarrierAdapterDescriptor;
+
     public function generateShipment(CarrierContext $context): CarrierGenerationResult;
 
     /**

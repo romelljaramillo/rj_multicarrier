@@ -120,6 +120,13 @@ services:
           command: 'Roanja\Module\RjMulticarrier\Domain\Log\Query\GetLogsByIds',
         }
 
+  Roanja\Module\RjMulticarrier\Form\TypeShipment\TypeShipmentFormOptionsProvider:
+    arguments:
+      $carrierRepository: '@Roanja\Module\RjMulticarrier\Repository\CarrierRepository'
+      $typeShipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository'
+      $multistoreFeature: '@prestashop.adapter.multistore_feature'
+      $shopContext: '@prestashop.adapter.shop.context'
+
   Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\GetShipmentForViewHandler:
     arguments:
       $shipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\ShipmentRepository'
@@ -304,6 +311,13 @@ services:
       $ConfigurationRepository: '@Roanja\Module\RjMulticarrier\Repository\ConfigurationRepository'
     tags:
       - { name: "tactician.handler", command: 'Roanja\Module\RjMulticarrier\Domain\Configuration\Command\ToggleConfigurationStatusCommand' }
+
+  Roanja\Module\RjMulticarrier\Domain\Carrier\Handler\ToggleCarrierStatusHandler:
+    arguments:
+      $entityManager: '@doctrine.orm.entity_manager'
+      $carrierRepository: '@Roanja\Module\RjMulticarrier\Repository\CarrierRepository'
+    tags:
+      - { name: "tactician.handler", command: 'Roanja\Module\RjMulticarrier\Domain\Carrier\Command\ToggleCarrierStatusCommand' }
 
   Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\:
     resource: "../src/Domain/TypeShipment/Handler"
@@ -572,6 +586,8 @@ services:
     class: Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentGridDataFactoryDecorator
     arguments:
       $infoShipmentDoctrineGridDataFactory: '@Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentDoctrineGridDataFactory'
+      $cashOnDeliveryMetadataResolver: '@?Roanja\Module\RjMulticarrier\Service\Order\CashOnDeliveryMetadataResolver'
+      $orderTypeShipmentResolver: '@?Roanja\Module\RjMulticarrier\Service\Order\OrderTypeShipmentResolver'
 
   Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentGridFactory:
     arguments:
@@ -662,12 +678,17 @@ services:
 
   Roanja\Module\RjMulticarrier\Service\Configuration\DefaultCarrierConfigurationSeeder:
     arguments:
+      $schemaManager: '@Roanja\Module\RjMulticarrier\Service\Carrier\Schema\CarrierSchemaManager'
       $carrierAdapters:
         - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter'
         - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\CexCarrierAdapter'
         - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\GoiCarrierAdapter'
         - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\DhlCarrierAdapter'
         - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\GlsCarrierAdapter'
+
+  Roanja\Module\RjMulticarrier\Service\Carrier\CarrierAdapterInstaller:
+    arguments:
+      $commandBus: '@prestashop.core.command_bus'
 
   Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter:
     tags:
@@ -751,6 +772,7 @@ services:
       - '@?Roanja\Module\RjMulticarrier\Repository\ConfigurationRepository'
       - '@prestashop.core.query_bus'
       - '@?Roanja\Module\RjMulticarrier\Service\InlineEntry\InlineFieldChoicesProvider'
+      - '@?Roanja\Module\RjMulticarrier\Service\Order\OrderTypeShipmentResolver'
     public: true
 
   roanja.module.rj_multicarrier.widget.presenter:

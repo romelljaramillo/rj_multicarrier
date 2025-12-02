@@ -15,7 +15,12 @@ final class CreateCarrierCommand
         private readonly string $name,
         private readonly string $shortName,
         private readonly ?string $iconFilename,
-        private readonly array $shopIds
+        private readonly array $shopIds,
+        private readonly bool $isActive,
+        private readonly bool $supportsApi,
+        private readonly ?string $adapterService,
+        private readonly ?array $configurationSchema,
+        private readonly ?array $defaultPayload,
     ) {
     }
 
@@ -40,5 +45,30 @@ final class CreateCarrierCommand
     public function getShopIds(): array
     {
         return $this->shopIds;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->isActive;
+    }
+
+    public function supportsApi(): bool
+    {
+        return $this->supportsApi;
+    }
+
+    public function getAdapterService(): ?string
+    {
+        return $this->adapterService;
+    }
+
+    public function getConfigurationSchema(): ?array
+    {
+        return $this->configurationSchema;
+    }
+
+    public function getDefaultPayload(): ?array
+    {
+        return $this->defaultPayload;
     }
 }

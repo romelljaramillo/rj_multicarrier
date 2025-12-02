@@ -24,8 +24,18 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
 
     public function __construct(private readonly ShipmentGenerationService $shipmentGenerationService) {}
 
-    public function upsertPackageAction(Request $request, int $orderId): RedirectResponse
+    public function upsertPackageAction(Request $request, int $orderId): Response
     {
+        $isAjax = $request->isXmlHttpRequest();
+        $messages = $this->initMessageStack();
+        $responsePayload = [
+            'packageId' => null,
+            'shipmentId' => null,
+            'labelsUrl' => null,
+        ];
+        $statusCode = Response::HTTP_OK;
+        $success = false;
+
         /** @var \Context $context */
         $context = \Context::getContext();
         $shopId = (int) ($context->shop->id ?? 0);
@@ -33,15 +43,17 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
         $typeShipmentId = (int) $request->request->get('id_type_shipment', 0);
 
         if ($typeShipmentId <= 0) {
-            $this->addFlash('error', $this->translate('Please select a shipment type.'));
-            return $this->redirect($this->getRedirectUrl($request));
+            $this->pushMessage($messages, 'error', $this->translate('Please select a shipment type.'), !$isAjax);
+
+            return $this->finalizeUpsertResponse($request, $isAjax, $messages, $responsePayload, false, Response::HTTP_BAD_REQUEST);
         }
 
         $typeShipmentView = $this->getQueryBus()->handle(new GetTypeShipmentForView($typeShipmentId));
 
         if (null === $typeShipmentView) {
-            $this->addFlash('error', $this->translate('The selected shipment type does not exist.'));
-            return $this->redirect($this->getRedirectUrl($request));
+            $this->pushMessage($messages, 'error', $this->translate('The selected shipment type does not exist.'), !$isAjax);
+
+            return $this->finalizeUpsertResponse($request, $isAjax, $messages, $responsePayload, false, Response::HTTP_NOT_FOUND);
         }
 
         $typeShipmentArr = is_object($typeShipmentView) && method_exists($typeShipmentView, 'toArray')
@@ -54,8 +66,9 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
         }
 
         if ($referenceCarrierId <= 0) {
-            $this->addFlash('error', $this->translate('The selected shipment type is not linked to a carrier reference.'));
-            return $this->redirect($this->getRedirectUrl($request));
+            $this->pushMessage($messages, 'error', $this->translate('The selected shipment type is not linked to a carrier reference.'), !$isAjax);
+
+            return $this->finalizeUpsertResponse($request, $isAjax, $messages, $responsePayload, false, Response::HTTP_BAD_REQUEST);
         }
 
         $infoPackageIdRaw = $request->request->get('id_info_shipment');
@@ -127,6 +140,10 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
                 $infoPackageIdPersisted = (int) ($package['id_info_shipment'] ?? 0);
             }
 
+            if ($infoPackageIdPersisted > 0) {
+                $responsePayload['packageId'] = $infoPackageIdPersisted;
+            }
+
             if ($package) {
                 $newCarrierId = (int) ($typeShipmentArr['carrierId'] ?? ($typeShipmentArr['referenceCarrierId'] ?? 0));
                 $currentShipment = $shipmentRepository->findOneByOrderId($orderId);
@@ -134,9 +151,9 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
                 if ($currentShipment && $currentShipment->getCarrier() && $currentShipment->getCarrier()->getId() !== $newCarrierId) {
                     try {
                         $this->getCommandBus()->handle(new DeleteShipmentCommand((int) $currentShipment->getId()));
-                        $this->addFlash('info', $this->translate('Existing shipment removed because the carrier changed.'));
+                        $this->pushMessage($messages, 'info', $this->translate('Existing shipment removed because the carrier changed.'), !$isAjax);
                     } catch (\Throwable $e) {
-                        $this->addFlash('error', $this->translate('Unable to remove the previous shipment: %message%', ['%message%' => $e->getMessage()]));
+                        $this->pushMessage($messages, 'error', $this->translate('Unable to remove the previous shipment: %message%', ['%message%' => $e->getMessage()]), !$isAjax);
                     }
                 }
             }
@@ -148,25 +165,39 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
                         $reloadedPackageId = (int) ($packageRow['id_info_shipment'] ?? 0);
                         if ($reloadedPackageId > 0) {
                             $infoPackageIdPersisted = $reloadedPackageId;
+                            $responsePayload['packageId'] = $infoPackageIdPersisted;
                         }
 
-                        $this->shipmentGenerationService->generateForInfoShipment($infoPackageIdPersisted);
-                        $this->addFlash('success', $this->translate('Package information saved and shipment generated successfully.'));
+                        $shipmentEntity = $this->shipmentGenerationService->generateForInfoShipment($infoPackageIdPersisted);
+                        $shipmentId = (int) ($shipmentEntity->getId() ?? 0);
+                        if ($shipmentId > 0) {
+                            $responsePayload['shipmentId'] = $shipmentId;
+                            $responsePayload['labelsUrl'] = $this->generateUrl('admin_rj_multicarrier_shipments_print', ['id' => $shipmentId]);
+                        }
+
+                        $this->pushMessage($messages, 'success', $this->translate('Package information saved and shipment generated successfully.'), !$isAjax);
+                        $success = true;
                     } catch (\Throwable $e) {
+                        $statusCode = Response::HTTP_INTERNAL_SERVER_ERROR;
                         $this->cleanupFailedShipment($orderId, $infoPackageIdPersisted, $shipmentRepository, $previousShipment);
-                        $this->addFlash('error', $this->translate('Package information saved but shipment generation failed: %message%', ['%message%' => $e->getMessage()]));
+                        $this->pushMessage($messages, 'error', $this->translate('Package information saved but shipment generation failed: %message%', ['%message%' => $e->getMessage()]), !$isAjax);
                     }
                 } else {
-                    $this->addFlash('warning', $this->translate('Package information saved but shipment generation could not be started because the package identifier is missing.'));
+                    $statusCode = Response::HTTP_BAD_REQUEST;
+                    $this->pushMessage($messages, 'warning', $this->translate('Package information saved but shipment generation could not be started because the package identifier is missing.'), !$isAjax);
                 }
             } else {
-                $this->addFlash('success', $this->translate('Package information saved.'));
+                $this->pushMessage($messages, 'success', $this->translate('Package information saved.'), !$isAjax);
+                $success = true;
             }
         } catch (\Throwable $e) {
-            $this->addFlash('error', $this->translate('Unable to save package information: %message%', ['%message%' => $e->getMessage()]));
+            $statusCode = Response::HTTP_INTERNAL_SERVER_ERROR;
+            $this->pushMessage($messages, 'error', $this->translate('Unable to save package information: %message%', ['%message%' => $e->getMessage()]), !$isAjax);
         }
 
-        return $this->redirect($this->getRedirectUrl($request));
+        $finalSuccess = $success && empty($messages['error']);
+
+        return $this->finalizeUpsertResponse($request, $isAjax, $messages, $responsePayload, $finalSuccess, $statusCode);
     }
 
     public function generateShipmentAction(Request $request, int $orderId, int $infoPackageId): RedirectResponse
@@ -303,5 +334,54 @@ final class AdminOrderActionController extends FrameworkBundleAdminController
         } catch (\Throwable) {
             // swallow cleanup failures to avoid masking original error
         }
+    }
+
+    /**
+     * @return array{success: list<string>, error: list<string>, warning: list<string>, info: list<string>}
+     */
+    private function initMessageStack(): array
+    {
+        return [
+            'success' => [],
+            'error' => [],
+            'warning' => [],
+            'info' => [],
+        ];
+    }
+
+    /**
+     * @param array{success: list<string>, error: list<string>, warning: list<string>, info: list<string>} $stack
+     */
+    private function pushMessage(array &$stack, string $type, string $message, bool $shouldFlash): void
+    {
+        if (!isset($stack[$type])) {
+            $stack[$type] = [];
+        }
+
+        $stack[$type][] = $message;
+
+        if ($shouldFlash) {
+            $flashType = 'error' === $type ? 'error' : $type;
+            $this->addFlash($flashType, $message);
+        }
+    }
+
+    /**
+     * @param array{success: list<string>, error: list<string>, warning: list<string>, info: list<string>} $messages
+     * @param array{packageId: ?int, shipmentId: ?int, labelsUrl: ?string} $payload
+     */
+    private function finalizeUpsertResponse(Request $request, bool $isAjax, array $messages, array $payload, bool $success, int $statusCode): Response
+    {
+        if (!$isAjax) {
+            return $this->redirect($this->getRedirectUrl($request));
+        }
+
+        return $this->json([
+            'success' => $success,
+            'messages' => $messages,
+            'packageId' => $payload['packageId'],
+            'shipmentId' => $payload['shipmentId'],
+            'labelsUrl' => $payload['labelsUrl'],
+        ], $statusCode);
     }
 }

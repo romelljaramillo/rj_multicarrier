@@ -16,6 +16,14 @@ final class CarrierConfigurationView
         private readonly bool $isRequired,
         private readonly ?string $label = null,
         private readonly ?string $description = null,
+        private readonly ?string $fieldGroup = null,
+        private readonly ?string $fieldGroupLabel = null,
+        private readonly ?string $fieldType = null,
+        private readonly ?string $payloadDirection = null,
+        private readonly ?string $payloadKey = null,
+        private readonly ?string $payloadSource = null,
+        private readonly int $position = 0,
+        private readonly bool $isDynamic = false,
         private readonly ?string $createdAt = null,
         private readonly ?string $updatedAt = null
     ) {
@@ -71,6 +79,46 @@ final class CarrierConfigurationView
         return $this->updatedAt;
     }
 
+    public function getFieldGroup(): ?string
+    {
+        return $this->fieldGroup;
+    }
+
+    public function getFieldGroupLabel(): ?string
+    {
+        return $this->fieldGroupLabel;
+    }
+
+    public function getFieldType(): ?string
+    {
+        return $this->fieldType;
+    }
+
+    public function getPayloadDirection(): ?string
+    {
+        return $this->payloadDirection;
+    }
+
+    public function getPayloadKey(): ?string
+    {
+        return $this->payloadKey;
+    }
+
+    public function getPayloadSource(): ?string
+    {
+        return $this->payloadSource;
+    }
+
+    public function getPosition(): int
+    {
+        return $this->position;
+    }
+
+    public function isDynamicField(): bool
+    {
+        return $this->isDynamic;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -86,6 +134,14 @@ final class CarrierConfigurationView
             'displayName' => $this->getDisplayName(),
             'description' => $this->description,
             'isRequired' => $this->isRequired,
+            'fieldGroup' => $this->fieldGroup,
+            'fieldGroupLabel' => $this->fieldGroupLabel,
+            'fieldType' => $this->fieldType,
+            'payloadDirection' => $this->payloadDirection,
+            'payloadKey' => $this->payloadKey,
+            'payloadSource' => $this->payloadSource,
+            'position' => $this->position,
+            'isDynamic' => $this->isDynamic,
             'createdAt' => $this->createdAt,
             'updatedAt' => $this->updatedAt,
         ];

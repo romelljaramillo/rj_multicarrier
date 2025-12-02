@@ -1,6 +1,52 @@
 {% extends '@PrestaShop/Admin/layout.html.twig' %}
 
 {% block content %}
+    {% if adapterInstallCards is defined and adapterInstallCards|length > 0 %}
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+                        <div>
+                            <h3 class="card-header-title mb-1">{{ 'Conectores disponibles'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
+                            <p class="mb-0 text-muted small">{{ 'Instala cada carrier como si fuese un módulo independiente y aplica sus valores por defecto automáticamente.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                        </div>
+                        <span class="badge badge-primary mt-2 mt-md-0">{{ adapterInstallCards|length }} {{ 'disponibles'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% for card in adapterInstallCards %}
+                                <div class="col-lg-4 col-md-6 mb-4">
+                                    <div class="h-100 border rounded p-3 d-flex flex-column">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <span class="badge badge-pill badge-info text-uppercase mr-3 px-3 py-2">{{ card.code }}</span>
+                                            <div>
+                                                <strong>{{ card.name }}</strong>
+                                                <div class="text-muted small">{{ 'Instalador rápido'|trans({}, 'Modules.RjMulticarrier.Admin') }}</div>
+                                            </div>
+                                        </div>
+                                        <p class="text-muted mb-3">{{ card.description }}</p>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="badge badge-{{ card.supportsApi ? 'success' : 'secondary' }}">
+                                                {{ card.supportsApi ? 'Soporta API'|trans({}, 'Modules.RjMulticarrier.Admin') : 'Configuración manual'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                                            </span>
+                                            <form method="post" action="{{ path('admin_rj_multicarrier_carriers_install_adapter') }}" class="mb-0">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('rj_multicarrier_carrier_install') }}">
+                                                <input type="hidden" name="adapter_code" value="{{ card.code }}">
+                                                <button type="submit" class="btn btn-primary btn-sm">
+                                                    {{ 'Instalar'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
     <div class="row">
         <div class="col-12">
             {% embed '@PrestaShop/Admin/Common/Grid/grid_panel.html.twig' with { grid: carrierGrid } %}
@@ -62,6 +108,15 @@
 
                             <dt class="col-sm-4">{{ 'Short name'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
                             <dd class="col-sm-8 js-detail-field" data-detail-field="shortName">—</dd>
+
+                            <dt class="col-sm-4">{{ 'Activo'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+                            <dd class="col-sm-8 js-detail-field" data-detail-field="isActive" data-detail-render="boolean" data-detail-true="{{ 'Sí'|trans({}, 'Admin.Global') }}" data-detail-false="{{ 'No'|trans({}, 'Admin.Global') }}">—</dd>
+
+                            <dt class="col-sm-4">{{ 'Soporta API'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+                            <dd class="col-sm-8 js-detail-field" data-detail-field="supportsApi" data-detail-render="boolean" data-detail-true="{{ 'Sí'|trans({}, 'Admin.Global') }}" data-detail-false="{{ 'No'|trans({}, 'Admin.Global') }}">—</dd>
+
+                            <dt class="col-sm-4">{{ 'Adapter service'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
+                            <dd class="col-sm-8 js-detail-field" data-detail-field="adapterService">—</dd>
 
                             <dt class="col-sm-4">{{ 'Created at'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
                             <dd class="col-sm-8 js-detail-field" data-detail-field="createdAt">—</dd>

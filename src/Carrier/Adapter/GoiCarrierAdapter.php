@@ -12,6 +12,18 @@ use RuntimeException;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
 use Roanja\Module\RjMulticarrier\Support\Common;
 
+if (!class_exists('\\Order') && class_exists('\\OrderCore')) {
+    class_alias('\\OrderCore', '\\Order');
+}
+
+if (!class_exists('\\Product') && class_exists('\\ProductCore')) {
+    class_alias('\\ProductCore', '\\Product');
+}
+
+if (!class_exists('\\Validate') && class_exists('\\ValidateCore')) {
+    class_alias('\\ValidateCore', '\\Validate');
+}
+
 final class GoiCarrierAdapter implements CarrierAdapterInterface
 {
     private const CODE = 'GOI';
@@ -27,6 +39,19 @@ final class GoiCarrierAdapter implements CarrierAdapterInterface
     public function getCode(): string
     {
         return self::CODE;
+    }
+
+    public function getDescriptor(): CarrierAdapterDescriptor
+    {
+        return new CarrierAdapterDescriptor(
+            self::CODE,
+            'GOI Logistics',
+            'Conector GOI con autenticación OAuth y descarga de etiquetas bajo demanda.',
+            null,
+            true,
+            null,
+            null,
+        );
     }
 
     public function generateShipment(CarrierContext $context): CarrierGenerationResult
@@ -325,8 +350,9 @@ final class GoiCarrierAdapter implements CarrierAdapterInterface
      */
     private function buildProducts(int $orderId): array
     {
-    $order = new \Order($orderId);
-    if (!\Validate::isLoadedObject($order)) {
+        $order = new \Order($orderId);
+
+        if (!\Validate::isLoadedObject($order)) {
             throw new RuntimeException(sprintf('Unable to load order %d for GOI shipment.', $orderId));
         }
 

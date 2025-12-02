@@ -32,6 +32,19 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
         return self::CODE;
     }
 
+    public function getDescriptor(): CarrierAdapterDescriptor
+    {
+        return new CarrierAdapterDescriptor(
+            self::CODE,
+            'DHL Parcel Iberia',
+            'Integra la API oficial de DHL para generación de envíos y etiquetas.',
+            null,
+            true,
+            null,
+            null,
+        );
+    }
+
     public function generateShipment(CarrierContext $context): CarrierGenerationResult
     {
         $payload = $context->getPayload();
@@ -142,7 +155,7 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
             ],
         ];
     }
-    
+
     /*
      * @return array<string, mixed>
      */

@@ -13,6 +13,7 @@ use Roanja\Module\RjMulticarrier\Entity\Carrier;
 use Roanja\Module\RjMulticarrier\Entity\CarrierConfiguration;
 use Roanja\Module\RjMulticarrier\Repository\CarrierConfigurationRepository;
 use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
+use Roanja\Module\RjMulticarrier\Service\Carrier\Schema\CarrierSchemaManager;
 
 final class DefaultCarrierConfigurationSeeder
 {
@@ -33,6 +34,7 @@ final class DefaultCarrierConfigurationSeeder
         private readonly CarrierRepository $carrierRepository,
         private readonly CarrierConfigurationRepository $configurationRepository,
         private readonly Connection $connection,
+        private readonly CarrierSchemaManager $schemaManager,
         iterable $carrierAdapters
     ) {
         $this->defaultDefinitions = $this->buildAdapterDefaults($carrierAdapters);
@@ -70,32 +72,12 @@ final class DefaultCarrierConfigurationSeeder
             $existingByName[$configuration->getName()] = $configuration;
         }
 
-        $legacyValues = $this->fetchLegacyValues($carrier);
         $now = new DateTimeImmutable();
 
         foreach ($defaults as $definition) {
             $name = $definition['name'];
             $required = (bool) ($definition['required'] ?? true);
-
-            $value = $legacyValues[$name] ?? null;
-
-            if (null === $value && !empty($definition['legacy']) && is_array($definition['legacy'])) {
-                foreach ($definition['legacy'] as $legacyName) {
-                    $legacyKey = trim((string) $legacyName);
-                    if ('' === $legacyKey) {
-                        continue;
-                    }
-
-                    if (array_key_exists($legacyKey, $legacyValues)) {
-                        $value = $legacyValues[$legacyKey];
-                        break;
-                    }
-                }
-            }
-
-            if (null === $value && array_key_exists('value', $definition)) {
-                $value = $definition['value'];
-            }
+            $value = $definition['value'] ?? null;
 
             if (isset($existingByName[$name])) {
                 $configuration = $existingByName[$name];
@@ -105,6 +87,8 @@ final class DefaultCarrierConfigurationSeeder
                     $configuration->setIsRequired($required);
                     $hasChanges = true;
                 }
+
+                $hasChanges = $this->syncMetadata($configuration, $definition) || $hasChanges;
 
                 if (null === $configuration->getValue() && null !== $value) {
                     $configuration->setValue($value);
@@ -125,72 +109,14 @@ final class DefaultCarrierConfigurationSeeder
                 ->setName($name)
                 ->setValue($value)
                 ->setIsRequired($required)
+                ->setIsDynamic(false)
                 ->setCreatedAt($now)
                 ->setUpdatedAt($now);
 
+            $this->syncMetadata($configuration, $definition);
+
             $this->configurationRepository->save($configuration);
         }
-    }
-
-    /**
-     * @return array<string, ?string>
-     */
-    private function fetchLegacyValues(Carrier $carrier): array
-    {
-        $tableCarrierCompany = _DB_PREFIX_ . 'rj_carrier_company';
-        $tableConfiguration = _DB_PREFIX_ . 'rj_carrier_configuration';
-
-        if (!$this->tableExists($tableCarrierCompany) || !$this->tableExists($tableConfiguration)) {
-            return [];
-        }
-
-        if (!class_exists('\\Db')) {
-            return [];
-        }
-
-        $db = \Db::getInstance();
-        $shortName = $carrier->getShortName();
-        $escape = function ($value) {
-            if (function_exists('pSQL')) {
-                return \pSQL((string) $value);
-            }
-
-            return addslashes((string) $value);
-        };
-
-        $legacyCarrierId = (int) $db->getValue(
-            sprintf(
-                "SELECT cc.id_carrier_company FROM `%s` cc WHERE cc.shortname = '%s'",
-                $tableCarrierCompany,
-                $escape($shortName)
-            )
-        );
-
-        if ($legacyCarrierId <= 0) {
-            return [];
-        }
-
-        $rows = (array) $db->executeS(
-            sprintf(
-                'SELECT cfg.name, cfg.value FROM `%s` cfg WHERE cfg.id_carrier_company = %d',
-                $tableConfiguration,
-                $legacyCarrierId
-            )
-        );
-
-        $values = [];
-
-        foreach ($rows as $row) {
-            $name = (string) ($row['name'] ?? '');
-
-            if ('' === $name || isset($values[$name])) {
-                continue;
-            }
-
-            $values[$name] = $row['value'] ?? null;
-        }
-
-        return $values;
     }
 
     /**
@@ -264,6 +190,12 @@ final class DefaultCarrierConfigurationSeeder
                     'required' => isset($definition['required']) ? (bool) $definition['required'] : true,
                     'description' => $description,
                     'legacy' => $legacyKeys,
+                    'field_group' => $definition['field_group'] ?? null,
+                    'field_type' => $definition['field_type'] ?? ($definition['type'] ?? 'text'),
+                    'payload_direction' => $definition['payload_direction'] ?? null,
+                    'payload_key' => $definition['payload_key'] ?? null,
+                    'payload_source' => $definition['payload_source'] ?? null,
+                    'position' => isset($definition['position']) ? (int) $definition['position'] : null,
                 ];
             }
 
@@ -290,6 +222,11 @@ final class DefaultCarrierConfigurationSeeder
     private function getDefaultsForCarrier(Carrier $carrier): array
     {
         $code = strtoupper($carrier->getShortName());
+        $schemaDefinitions = $this->schemaManager->extractFieldDefinitionsFromCarrier($carrier);
+
+        if (!empty($schemaDefinitions)) {
+            return $schemaDefinitions;
+        }
 
         return $this->defaultDefinitions[$code] ?? [];
     }
@@ -324,6 +261,7 @@ final class DefaultCarrierConfigurationSeeder
             $label = $definition['label'] ?? null;
             $definitions[$index]['label'] = (string) ($label ?: $name);
             $definitions[$index]['required'] = isset($definition['required']) ? (bool) $definition['required'] : true;
+            $definitions[$index]['field_type'] = $definition['field_type'] ?? ($definition['type'] ?? 'text');
             if (isset($definition['description'])) {
                 $description = trim((string) $definition['description']);
                 $definitions[$index]['description'] = '' === $description ? null : $description;
@@ -331,6 +269,54 @@ final class DefaultCarrierConfigurationSeeder
         }
 
         return $definitions;
+    }
+
+    private function syncMetadata(CarrierConfiguration $configuration, array $definition): bool
+    {
+        $hasChanges = false;
+
+        $fieldGroup = $definition['field_group'] ?? null;
+        if ($configuration->getFieldGroup() !== $fieldGroup) {
+            $configuration->setFieldGroup($fieldGroup);
+            $hasChanges = true;
+        }
+
+        $fieldType = $definition['field_type'] ?? ($definition['type'] ?? 'text');
+        if ($configuration->getFieldType() !== $fieldType) {
+            $configuration->setFieldType($fieldType);
+            $hasChanges = true;
+        }
+
+        $payloadDirection = $definition['payload_direction'] ?? null;
+        if ($configuration->getPayloadDirection() !== $payloadDirection) {
+            $configuration->setPayloadDirection($payloadDirection);
+            $hasChanges = true;
+        }
+
+        $payloadKey = $definition['payload_key'] ?? null;
+        if ($configuration->getPayloadKey() !== $payloadKey) {
+            $configuration->setPayloadKey($payloadKey);
+            $hasChanges = true;
+        }
+
+        $payloadSource = $definition['payload_source'] ?? null;
+        if ($configuration->getPayloadSource() !== $payloadSource) {
+            $configuration->setPayloadSource($payloadSource);
+            $hasChanges = true;
+        }
+
+        $position = isset($definition['position']) ? (int) $definition['position'] : $configuration->getPosition();
+        if ($configuration->getPosition() !== $position) {
+            $configuration->setPosition($position);
+            $hasChanges = true;
+        }
+
+        if ($configuration->isDynamic()) {
+            $configuration->setIsDynamic(false);
+            $hasChanges = true;
+        }
+
+        return $hasChanges;
     }
 
     /**
@@ -342,18 +328,6 @@ final class DefaultCarrierConfigurationSeeder
             static fn (array $definition): string => (string) $definition['name'],
             $this->getDefaultsForCarrier($carrier)
         );
-    }
-
-    private function tableExists(string $table): bool
-    {
-        try {
-            $method = method_exists($this->connection, 'createSchemaManager') ? 'createSchemaManager' : 'getSchemaManager';
-            $schemaManager = $this->connection->{$method}();
-
-            return $schemaManager->tablesExist([$table]);
-        } catch (\Throwable $exception) {
-            return false;
-        }
     }
 
     private function ensureSchema(): void

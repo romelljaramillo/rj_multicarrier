@@ -46,6 +46,27 @@ class CarrierConfiguration
     #[ORM\Column(name: 'is_required', type: 'boolean', options: ['default' => false])]
     private bool $isRequired = false;
 
+    #[ORM\Column(name: 'field_group', type: 'string', length: 64, nullable: true)]
+    private ?string $fieldGroup = null;
+
+    #[ORM\Column(name: 'field_type', type: 'string', length: 32, nullable: true, options: ['default' => 'text'])]
+    private ?string $fieldType = 'text';
+
+    #[ORM\Column(name: 'payload_direction', type: 'string', length: 16, nullable: true)]
+    private ?string $payloadDirection = null;
+
+    #[ORM\Column(name: 'payload_key', type: 'string', length: 191, nullable: true)]
+    private ?string $payloadKey = null;
+
+    #[ORM\Column(name: 'payload_source', type: 'string', length: 191, nullable: true)]
+    private ?string $payloadSource = null;
+
+    #[ORM\Column(name: 'position', type: 'integer', options: ['default' => 0])]
+    private int $position = 0;
+
+    #[ORM\Column(name: 'is_dynamic', type: 'boolean', options: ['default' => false])]
+    private bool $isDynamic = false;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -131,6 +152,90 @@ class CarrierConfiguration
     public function setIsRequired(bool $isRequired): self
     {
         $this->isRequired = $isRequired;
+
+        return $this;
+    }
+
+    public function getFieldGroup(): ?string
+    {
+        return $this->fieldGroup;
+    }
+
+    public function setFieldGroup(?string $fieldGroup): self
+    {
+        $this->fieldGroup = $fieldGroup ? substr($fieldGroup, 0, 64) : null;
+
+        return $this;
+    }
+
+    public function getFieldType(): string
+    {
+        return $this->fieldType ?? 'text';
+    }
+
+    public function setFieldType(?string $fieldType): self
+    {
+        $this->fieldType = $fieldType ? substr($fieldType, 0, 32) : 'text';
+
+        return $this;
+    }
+
+    public function getPayloadDirection(): ?string
+    {
+        return $this->payloadDirection;
+    }
+
+    public function setPayloadDirection(?string $payloadDirection): self
+    {
+        $this->payloadDirection = $payloadDirection ? substr($payloadDirection, 0, 16) : null;
+
+        return $this;
+    }
+
+    public function getPayloadKey(): ?string
+    {
+        return $this->payloadKey;
+    }
+
+    public function setPayloadKey(?string $payloadKey): self
+    {
+        $this->payloadKey = $payloadKey ? substr($payloadKey, 0, 191) : null;
+
+        return $this;
+    }
+
+    public function getPayloadSource(): ?string
+    {
+        return $this->payloadSource;
+    }
+
+    public function setPayloadSource(?string $payloadSource): self
+    {
+        $this->payloadSource = $payloadSource ? substr($payloadSource, 0, 191) : null;
+
+        return $this;
+    }
+
+    public function getPosition(): int
+    {
+        return $this->position;
+    }
+
+    public function setPosition(int $position): self
+    {
+        $this->position = $position;
+
+        return $this;
+    }
+
+    public function isDynamic(): bool
+    {
+        return $this->isDynamic;
+    }
+
+    public function setIsDynamic(bool $isDynamic): self
+    {
+        $this->isDynamic = $isDynamic;
 
         return $this;
     }

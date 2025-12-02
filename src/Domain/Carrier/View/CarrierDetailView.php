@@ -11,6 +11,11 @@ final class CarrierDetailView
         private string $shortName,
         private ?string $icon,
         private array $shops,
+        private bool $isActive,
+        private bool $supportsApi,
+        private ?string $adapterService,
+        private ?array $configurationSchema,
+        private ?array $defaultPayload,
         private ?string $createdAt,
         private ?string $updatedAt
     ) {
@@ -24,6 +29,11 @@ final class CarrierDetailView
             'shortName' => $this->shortName,
             'icon' => $this->icon,
             'shops' => $this->shops,
+            'isActive' => $this->isActive,
+            'supportsApi' => $this->supportsApi,
+            'adapterService' => $this->adapterService,
+            'configurationSchema' => $this->configurationSchema,
+            'defaultPayload' => $this->defaultPayload,
             'createdAt' => $this->createdAt,
             'updatedAt' => $this->updatedAt,
         ];

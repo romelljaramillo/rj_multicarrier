@@ -76,6 +76,26 @@ class CarrierRepository
     }
 
     /**
+     * @return string[]
+     */
+    public function getInstalledShortNames(): array
+    {
+        $rows = $this->createQueryBuilder('carrier')
+            ->select('carrier.shortName AS shortName')
+            ->andWhere('carrier.deleted = false')
+            ->getQuery()
+            ->getScalarResult();
+
+        $codes = array_map(static function (array $row): string {
+            return strtoupper(trim((string) ($row['shortName'] ?? '')));
+        }, $rows);
+
+        $codes = array_filter($codes, static fn (string $code): bool => '' !== $code);
+
+        return array_values(array_unique($codes));
+    }
+
+    /**
      * @return array<int, array{id_reference: int, name: string}>
      */
     public function getActiveReferenceCarriers(?int $languageId = null): array

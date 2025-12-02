@@ -1,16 +1,25 @@
 {% set orderId = record.id_order|default(0) %}
 {% set infoId = record.id_info_shipment_raw|default(0) %}
+{% set upsertAction = orderId ? path('admin_rj_multicarrier_order_upsert_package', {'orderId': orderId}) : null %}
 <div class="btn-group" role="group">
+  <input type="hidden"
+         class="js-inline-input"
+         data-field="id_info_shipment"
+         value="{{ infoId > 0 ? infoId : '' }}">
   <button type="button"
           class="btn btn-outline-secondary btn-sm js-inline-save"
           data-order-id="{{ orderId }}"
-          data-info-id="{{ infoId }}">
+          data-info-id="{{ infoId }}"
+          data-form-action="{{ upsertAction }}"
+          {% if not upsertAction %}disabled{% endif %}>
     {{ 'Guardar'|trans({}, 'Modules.RjMulticarrier.Admin') }}
   </button>
   <button type="button"
           class="btn btn-primary btn-sm js-inline-generate"
           data-order-id="{{ orderId }}"
-          data-info-id="{{ infoId }}">
+          data-info-id="{{ infoId }}"
+          data-form-action="{{ upsertAction }}"
+          {% if not upsertAction %}disabled{% endif %}>
     {{ 'Generar envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
   </button>
 </div>

@@ -63,6 +63,14 @@ final class GetCarrierConfigurationsForCarrierHandler
                 (bool) $isRequired,
                 $definition['label'] ?? null,
                 $definition['description'] ?? null,
+                $entry->getFieldGroup() ?? ($definition['field_group'] ?? null),
+                $definition['field_group_label'] ?? null,
+                $entry->getFieldType() ?? ($definition['field_type'] ?? null),
+                $entry->getPayloadDirection() ?? ($definition['payload_direction'] ?? null),
+                $entry->getPayloadKey() ?? ($definition['payload_key'] ?? null),
+                $entry->getPayloadSource() ?? ($definition['payload_source'] ?? null),
+                $entry->getPosition(),
+                $entry->isDynamic(),
                 $entry->getCreatedAt()?->format('Y-m-d H:i:s'),
                 $entry->getUpdatedAt()?->format('Y-m-d H:i:s')
             );

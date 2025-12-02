@@ -37,15 +37,8 @@ final class DeleteCarrierHandler
             throw new \RuntimeException('Hay envíos asociados a esta compañía.');
         }
 
-        $typeCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM `' . _DB_PREFIX_ . 'rj_multicarrier_type_shipment` WHERE id_carrier = ?', [$carrierId]);
-        if ($typeCount > 0) {
-            throw new \RuntimeException('Hay tipos de envío asociados a esta compañía.');
-        }
-
-        $configCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM `' . _DB_PREFIX_ . 'rj_multicarrier_configuration` WHERE id_carrier = ?', [$carrierId]);
-        if ($configCount > 0) {
-            throw new \RuntimeException('Hay configuraciones asociadas a esta compañía.');
-        }
+        $this->purgeCarrierConfigurations($carrierId);
+        $this->purgeTypeShipments($carrierId);
 
         try {
             $carrier->markDeleted();
@@ -88,5 +81,21 @@ final class DeleteCarrierHandler
         if (is_file($thumb)) {
             @unlink($thumb);
         }
+    }
+
+    private function purgeCarrierConfigurations(int $carrierId): void
+    {
+        $this->em->getConnection()->executeStatement(
+            'DELETE FROM `' . _DB_PREFIX_ . 'rj_multicarrier_carrier_configuration` WHERE id_carrier = ?',
+            [$carrierId]
+        );
+    }
+
+    private function purgeTypeShipments(int $carrierId): void
+    {
+        $this->em->getConnection()->executeStatement(
+            'DELETE FROM `' . _DB_PREFIX_ . 'rj_multicarrier_type_shipment` WHERE id_carrier = ?',
+            [$carrierId]
+        );
     }
 }

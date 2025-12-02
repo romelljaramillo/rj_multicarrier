@@ -109,6 +109,7 @@ ready(() => {
   initPanelModals();
   initInlinePanelRows();
   initInlineEmployeeSelects();
+  initInlineGridActions();
 
   const containers = document.querySelectorAll('.js-grid');
 
@@ -296,6 +297,385 @@ function initInlineEmployeeSelects() {
     const option = select.options && select.selectedIndex >= 0 ? select.options[select.selectedIndex] : null;
     hidden.value = option ? (option.textContent || '').trim() : '';
   });
+}
+
+function initInlineGridActions() {
+  const grid = document.querySelector('[data-grid-id="rj_multicarrier_info_shipment"]');
+
+  if (!grid) {
+    return;
+  }
+
+  grid.addEventListener('click', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) {
+      return;
+    }
+
+    const actionButton = target.closest('.js-inline-save, .js-inline-generate');
+    if (!actionButton) {
+      return;
+    }
+
+    const formAction = actionButton.getAttribute('data-form-action') || actionButton.dataset.formAction;
+    if (!formAction) {
+      return;
+    }
+
+    const row = actionButton.closest('tr');
+    if (!row) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const extraFields = {};
+    if (actionButton.classList.contains('js-inline-generate')) {
+      extraFields.generate_shipment = '1';
+    }
+
+    submitInlineRowForm(row, formAction, extraFields, actionButton);
+  });
+
+  grid.addEventListener('change', (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) {
+      return;
+    }
+
+    const typeSelect = target.closest('.js-inline-type');
+    if (!typeSelect) {
+      return;
+    }
+
+    const referenceInputId = typeSelect.getAttribute('data-reference-input');
+    if (!referenceInputId) {
+      return;
+    }
+
+    const referenceInput = document.getElementById(referenceInputId);
+    if (!referenceInput) {
+      return;
+    }
+
+    const selectedOption = typeSelect.options && typeSelect.selectedIndex >= 0
+      ? typeSelect.options[typeSelect.selectedIndex]
+      : null;
+
+    if (selectedOption && selectedOption.dataset && selectedOption.dataset.referenceCarrier) {
+      referenceInput.value = selectedOption.dataset.referenceCarrier;
+    } else {
+      referenceInput.value = '';
+    }
+  });
+}
+
+function submitInlineRowForm(row, actionUrl, extraFields, actionButton) {
+  const supportsAjax = typeof window.fetch === 'function' && typeof window.FormData === 'function';
+
+  if (!supportsAjax) {
+    submitInlineRowFormLegacy(row, actionUrl, extraFields);
+    return;
+  }
+
+  const formData = buildInlineRowFormData(row, extraFields);
+  if (!formData) {
+    return;
+  }
+
+  toggleInlineActionButtonState(actionButton, true);
+
+  fetch(actionUrl, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      Accept: 'application/json',
+    },
+    body: formData,
+  })
+    .then((response) => parseInlineResponse(response))
+    .then((payload) => {
+      if (!payload || payload.success !== true) {
+        const message = getFirstInlineMessage(payload, ['error', 'warning', 'info']);
+        throw new Error(message || getInlineGenericError());
+      }
+
+      if (payload.packageId) {
+        updateInlineRowPackageId(row, payload.packageId);
+      }
+
+      if (extraFields && extraFields.generate_shipment && payload.labelsUrl) {
+        openLabelsInNewTab(payload.labelsUrl);
+      }
+
+      if (extraFields && extraFields.generate_shipment) {
+        reloadInlineGrid(row);
+      }
+    })
+    .catch((error) => {
+      const message = error && error.message ? error.message : getInlineGenericError();
+      showInlineError(message);
+    })
+    .finally(() => {
+      toggleInlineActionButtonState(actionButton, false);
+    });
+}
+
+function parseInlineResponse(response) {
+  return response.text().then((text) => {
+    let payload = null;
+
+    if (text) {
+      try {
+        payload = JSON.parse(text);
+      } catch (error) {
+        if (window.console && typeof window.console.warn === 'function') {
+          window.console.warn('[rj_multicarrier] Unable to parse inline response JSON', error);
+        }
+      }
+    }
+
+    if (payload && payload.messages) {
+      dispatchInlineMessages(payload.messages);
+    }
+
+    if (!response.ok) {
+      const message = getFirstInlineMessage(payload, ['error', 'warning', 'info']);
+      const error = new Error(message || getInlineGenericError(response.status));
+      error.payload = payload;
+      throw error;
+    }
+
+    return payload;
+  });
+}
+
+function dispatchInlineMessages(messageStack) {
+  if (!messageStack || typeof messageStack !== 'object') {
+    return;
+  }
+
+  const order = ['error', 'warning', 'info', 'success'];
+  order.forEach((type) => {
+    const messages = Array.isArray(messageStack[type]) ? messageStack[type] : [];
+    messages.forEach((message) => {
+      if (!message) {
+        return;
+      }
+
+      showInlineMessage(type, message);
+    });
+  });
+}
+
+function showInlineMessage(type, message) {
+  if (!message) {
+    return;
+  }
+
+  const noop = () => {};
+  const successFn = typeof window.showSuccessMessage === 'function' ? window.showSuccessMessage : noop;
+  const errorFn = typeof window.showErrorMessage === 'function' ? window.showErrorMessage : noop;
+  const noticeFn = typeof window.showNoticeMessage === 'function' ? window.showNoticeMessage : noop;
+
+  switch (type) {
+    case 'success':
+      successFn(message);
+      break;
+    case 'error':
+      errorFn(message);
+      break;
+    default:
+      noticeFn(message);
+      break;
+  }
+}
+
+function showInlineError(message) {
+  if (typeof window.showErrorMessage === 'function') {
+    window.showErrorMessage(message);
+    return;
+  }
+
+  window.alert(message);
+}
+
+function getFirstInlineMessage(payload, priorities) {
+  if (!payload || !payload.messages) {
+    return null;
+  }
+
+  const stack = payload.messages;
+  const types = Array.isArray(priorities) && priorities.length > 0
+    ? priorities
+    : ['error', 'warning', 'info', 'success'];
+
+  for (let i = 0; i < types.length; i += 1) {
+    const type = types[i];
+    const messages = Array.isArray(stack[type]) ? stack[type] : [];
+    if (messages.length > 0 && messages[0]) {
+      return messages[0];
+    }
+  }
+
+  return null;
+}
+
+function getInlineGenericError(statusCode) {
+  if (statusCode) {
+    return `Unexpected error (${statusCode}).`;
+  }
+
+  return 'Unexpected error while saving the shipment information.';
+}
+
+function updateInlineRowPackageId(row, packageId) {
+  if (!row || !packageId) {
+    return;
+  }
+
+  const normalizedValue = String(packageId);
+    row.querySelectorAll('.js-inline-input[data-field="id_info_shipment"]').forEach((input) => {
+    input.value = normalizedValue;
+  });
+
+  row.querySelectorAll('.js-inline-save, .js-inline-generate').forEach((button) => {
+    button.dataset.infoId = normalizedValue;
+  });
+}
+
+function openLabelsInNewTab(labelsUrl) {
+  if (!labelsUrl) {
+    return;
+  }
+
+  const newTab = window.open(labelsUrl, '_blank');
+  if (newTab) {
+    newTab.opener = null;
+  }
+}
+
+function reloadInlineGrid(row) {
+  const grid = row ? row.closest('.js-grid') : document.querySelector('.js-grid');
+
+  if (grid) {
+    const searchForm = grid.querySelector('form.js-grid-search-form');
+    if (searchForm) {
+      if (typeof searchForm.requestSubmit === 'function') {
+        searchForm.requestSubmit();
+      } else {
+        searchForm.submit();
+      }
+      return;
+    }
+  }
+
+  window.location.reload();
+}
+
+function toggleInlineActionButtonState(button, isLoading) {
+  if (!button) {
+    return;
+  }
+
+  if (isLoading) {
+    button.dataset.inlineWasDisabled = button.disabled ? '1' : '0';
+    button.disabled = true;
+    button.classList.add('is-loading');
+  } else {
+    const wasDisabled = button.dataset.inlineWasDisabled === '1';
+    button.disabled = wasDisabled;
+    button.classList.remove('is-loading');
+    delete button.dataset.inlineWasDisabled;
+  }
+}
+
+function buildInlineRowFormData(row, extraFields) {
+  if (!row) {
+    return null;
+  }
+
+  const formData = new FormData();
+  const inputs = row.querySelectorAll('.js-inline-input');
+
+  inputs.forEach((input) => {
+    const fieldName = input.getAttribute('data-field');
+    if (!fieldName) {
+      return;
+    }
+
+    if (input instanceof HTMLInputElement && input.type === 'checkbox' && !input.checked) {
+      return;
+    }
+
+    if (input instanceof HTMLInputElement && input.type === 'file') {
+      return;
+    }
+
+    let value = '';
+    if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement || input instanceof HTMLSelectElement) {
+      value = input.value || '';
+    }
+
+    formData.append(fieldName, value);
+  });
+
+  Object.keys(extraFields || {}).forEach((name) => {
+    const value = extraFields[name];
+    formData.append(name, value === undefined || value === null ? '' : value);
+  });
+
+  return formData;
+}
+
+function submitInlineRowFormLegacy(row, actionUrl, extraFields) {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = actionUrl;
+  form.style.display = 'none';
+
+  const appendField = (name, value) => {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = name;
+    input.value = value;
+    form.appendChild(input);
+  };
+
+  const inputs = row.querySelectorAll('.js-inline-input');
+  inputs.forEach((input) => {
+    const fieldName = input.getAttribute('data-field');
+    if (!fieldName) {
+      return;
+    }
+
+    if (input instanceof HTMLInputElement && input.type === 'checkbox' && !input.checked) {
+      return;
+    }
+
+    let value = '';
+
+    if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement || input instanceof HTMLSelectElement) {
+      value = input.value || '';
+    }
+
+    appendField(fieldName, value);
+  });
+
+  Object.keys(extraFields || {}).forEach((name) => {
+    appendField(name, extraFields[name]);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
+
+  window.setTimeout(() => {
+    if (form.parentNode) {
+      form.parentNode.removeChild(form);
+    }
+  }, 1500);
 }
 
 function initDetailModals() {

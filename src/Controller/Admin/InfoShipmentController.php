@@ -9,9 +9,7 @@ declare(strict_types=1);
 namespace Roanja\Module\RjMulticarrier\Controller\Admin;
 
 use Context;
-use Module;
 use Order;
-use Shop;
 use Validate;
 use Roanja\Module\RjMulticarrier\Domain\InfoShipment\Query\GetInfoShipmentsForExport;
 use Roanja\Module\RjMulticarrier\Domain\InfoShipment\Query\GetInfoShipmentsByIds;
@@ -27,8 +25,9 @@ use Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentFilters;
 use Roanja\Module\RjMulticarrier\Grid\InfoShipment\InfoShipmentGridFactory;
 use Roanja\Module\RjMulticarrier\Service\Shipment\ShipmentGenerationService;
 use Roanja\Module\RjMulticarrier\Service\Presenter\OrderViewPresenter;
+use Roanja\Module\RjMulticarrier\Service\Order\CashOnDeliveryMetadataResolver;
+use Roanja\Module\RjMulticarrier\Service\Order\OrderTypeShipmentResolver;
 use Roanja\Module\RjMulticarrier\Repository\ConfigurationRepository;
-use Roanja\Module\RjMulticarrier\Entity\Configuration as SenderConfiguration;
 use Roanja\Module\RjMulticarrier\Util\EmployeeFormatter;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -68,7 +67,9 @@ final class InfoShipmentController extends FrameworkBundleAdminController
         private readonly ShipmentGenerationService $shipmentGenerationService,
         private readonly TranslatorInterface $translator,
         private readonly OrderViewPresenter $orderViewPresenter,
-        private readonly ?ConfigurationRepository $configurationRepository = null
+        private readonly ?ConfigurationRepository $configurationRepository = null,
+        private readonly ?CashOnDeliveryMetadataResolver $cashOnDeliveryMetadataResolver = null,
+        private readonly ?OrderTypeShipmentResolver $orderTypeShipmentResolver = null
     ) {}
 
     /**
@@ -136,7 +137,7 @@ final class InfoShipmentController extends FrameworkBundleAdminController
         }
 
         $autoPrefill = [];
-        $orderCodMetadata = $this->buildEmptyCashOnDeliveryMetadata();
+        $orderCodMetadata = $this->getCashOnDeliveryResolver()->buildEmptyMetadata();
 
         if (null === $packageArray) {
             $prefillPayload = $this->resolveOrderAutoPrefillValues($orderId);
@@ -785,7 +786,7 @@ final class InfoShipmentController extends FrameworkBundleAdminController
         if (null === $order) {
             return [
                 'values' => [],
-                'cod' => $this->buildEmptyCashOnDeliveryMetadata(),
+                'cod' => $this->getCashOnDeliveryResolver()->buildEmptyMetadata(),
             ];
         }
 
@@ -814,11 +815,20 @@ final class InfoShipmentController extends FrameworkBundleAdminController
             $prefill['rj_weight'] = $this->formatNumericValue($weight, 3);
         }
 
-        $codMetadata = $this->buildCashOnDeliveryMetadata($order);
+        $codMetadata = $this->getCashOnDeliveryResolver()->resolveMetadata($order);
         if (null !== $codMetadata['amount']) {
             $prefill['rj_cash_ondelivery'] = $codMetadata['amount'];
             if (!isset($prefill['rj_vsec'])) {
                 $prefill['rj_vsec'] = $codMetadata['amount'];
+            }
+        }
+
+        $typeShipmentDefaults = $this->getOrderTypeShipmentResolver()->resolveForOrder($order);
+        if (null !== $typeShipmentDefaults) {
+            $prefill['id_type_shipment'] = $typeShipmentDefaults['type_id'];
+            $prefill['carrier_id'] = $typeShipmentDefaults['carrier_id'];
+            if ($typeShipmentDefaults['reference_id'] > 0) {
+                $prefill['id_reference_carrier'] = $typeShipmentDefaults['reference_id'];
             }
         }
 
@@ -843,56 +853,10 @@ final class InfoShipmentController extends FrameworkBundleAdminController
         $order = $this->loadOrder($orderId);
 
         if (null === $order) {
-            return $this->buildEmptyCashOnDeliveryMetadata();
+            return $this->getCashOnDeliveryResolver()->buildEmptyMetadata();
         }
 
-        return $this->buildCashOnDeliveryMetadata($order);
-    }
-
-    private function buildCashOnDeliveryMetadata(Order $order): array
-    {
-        $codPaymentsAmount = $this->resolveCashOnDeliveryPaymentTotal($order);
-
-        if (null !== $codPaymentsAmount) {
-            return [
-                'amount' => $codPaymentsAmount,
-                'has_cod' => true,
-                'source' => 'payments',
-                'payment_label' => $this->resolveOrderPaymentLabel($order),
-            ];
-        }
-
-        $codAmount = $this->resolveOrderTotalAmount($order);
-
-        return [
-            'amount' => $codAmount,
-            'has_cod' => false,
-            'source' => null === $codAmount ? null : 'order_total',
-            'payment_label' => $this->resolveOrderPaymentLabel($order),
-        ];
-    }
-
-    private function buildEmptyCashOnDeliveryMetadata(): array
-    {
-        return [
-            'amount' => null,
-            'has_cod' => false,
-            'source' => null,
-            'payment_label' => null,
-        ];
-    }
-
-    private function resolveOrderPaymentLabel(Order $order): ?string
-    {
-        $label = null;
-
-        if (property_exists($order, 'payment')) {
-            $label = (string) ($order->payment ?? '');
-        }
-
-        $label = trim((string) $label);
-
-        return '' === $label ? null : $label;
+        return $this->getCashOnDeliveryResolver()->resolveMetadata($order);
     }
 
     private function loadOrder(int $orderId): ?Order
@@ -951,23 +915,6 @@ final class InfoShipmentController extends FrameworkBundleAdminController
         return $metrics;
     }
 
-    private function resolveOrderTotalAmount(Order $order): ?string
-    {
-        $candidates = [
-            (float) $order->total_paid_tax_incl,
-            (float) $order->total_paid,
-            (float) $order->total_products_wt,
-        ];
-
-        foreach ($candidates as $amount) {
-            if ($amount > 0) {
-                return $this->formatNumericValue($amount, 2);
-            }
-        }
-
-        return null;
-    }
-
     private function resolveOrderMessage(Order $order): ?string
     {
         $message = '';
@@ -987,169 +934,22 @@ final class InfoShipmentController extends FrameworkBundleAdminController
         return '' === $message ? null : $message;
     }
 
-    private function resolveCashOnDeliveryPaymentTotal(Order $order): ?string
+    private function getCashOnDeliveryResolver(): CashOnDeliveryMetadataResolver
     {
-        $matchers = $this->resolveCashOnDeliveryPaymentMatchers();
-
-        if ([] === $matchers) {
-            return null;
+        if ($this->cashOnDeliveryMetadataResolver instanceof CashOnDeliveryMetadataResolver) {
+            return $this->cashOnDeliveryMetadataResolver;
         }
 
-        try {
-            $payments = $order->getOrderPayments();
-        } catch (\Throwable) {
-            $payments = [];
-        }
-
-        if (!is_array($payments) || [] === $payments) {
-            return null;
-        }
-
-        $total = 0.0;
-
-        foreach ($payments as $payment) {
-            $method = '';
-            $amount = 0.0;
-
-            if (is_object($payment)) {
-                $methodValue = $payment->payment_method ?? ($payment->paymentMethod ?? '');
-                $amountValue = $payment->amount ?? 0;
-
-                if (is_scalar($methodValue)) {
-                    $method = (string) $methodValue;
-                }
-
-                if (is_scalar($amountValue)) {
-                    $amount = (float) $amountValue;
-                }
-            } elseif (is_array($payment)) {
-                $method = (string) ($payment['payment_method'] ?? '');
-                $amount = (float) ($payment['amount'] ?? 0);
-            } else {
-                continue;
-            }
-
-            if (!$this->isCashOnDeliveryPaymentMethod($method, $matchers)) {
-                continue;
-            }
-
-            $total += $amount;
-        }
-
-        if ($total <= 0) {
-            return null;
-        }
-
-        return $this->formatNumericValue($total, 2);
+        return new CashOnDeliveryMetadataResolver($this->configurationRepository);
     }
 
-    /**
-     * @return string[]
-     */
-    private function resolveCashOnDeliveryPaymentMatchers(): array
+    private function getOrderTypeShipmentResolver(): OrderTypeShipmentResolver
     {
-        $matchers = [];
-
-        $configuredModule = $this->resolveCashOnDeliveryModule();
-
-        if (null !== $configuredModule && '' !== trim($configuredModule)) {
-            $matchers[] = $this->normalizePaymentLabel($configuredModule);
-
-            if (class_exists(Module::class)) {
-                try {
-                    $moduleInstance = Module::getInstanceByName($configuredModule);
-                } catch (\Throwable) {
-                    $moduleInstance = null;
-                }
-
-                if (null !== $moduleInstance) {
-                    if (isset($moduleInstance->displayName)) {
-                        $matchers[] = $this->normalizePaymentLabel((string) $moduleInstance->displayName);
-                    }
-
-                    if (isset($moduleInstance->name)) {
-                        $matchers[] = $this->normalizePaymentLabel((string) $moduleInstance->name);
-                    }
-                }
-            }
+        if ($this->orderTypeShipmentResolver instanceof OrderTypeShipmentResolver) {
+            return $this->orderTypeShipmentResolver;
         }
 
-        $genericKeywords = ['contra reembolso', 'contrareembolso', 'cash on delivery', 'cashondelivery', 'cod'];
-
-        foreach ($genericKeywords as $keyword) {
-            $matchers[] = $this->normalizePaymentLabel($keyword);
-        }
-
-        $matchers = array_values(array_unique(array_filter($matchers)));
-
-        return $matchers;
-    }
-
-    private function isCashOnDeliveryPaymentMethod(string $label, array $matchers): bool
-    {
-        if ([] === $matchers) {
-            return false;
-        }
-
-        $normalized = $this->normalizePaymentLabel($label);
-
-        if ('' === $normalized) {
-            return false;
-        }
-
-        foreach ($matchers as $matcher) {
-            if ('' === $matcher) {
-                continue;
-            }
-
-            if (str_contains($normalized, $matcher)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function normalizePaymentLabel(string $value): string
-    {
-        $lower = function_exists('mb_strtolower') ? mb_strtolower(trim($value)) : strtolower(trim($value));
-
-        if ('' === $lower) {
-            return '';
-        }
-
-        $normalized = preg_replace('/[^a-z0-9]/', '', $lower);
-
-        return (string) ($normalized ?? '');
-    }
-
-    private function resolveCashOnDeliveryModule(): ?string
-    {
-        if (!$this->configurationRepository instanceof ConfigurationRepository) {
-            return null;
-        }
-
-        $shopId = Shop::getContextShopID();
-        if ($shopId <= 0) {
-            $shopId = (int) (Context::getContext()->shop->id ?? 0);
-        }
-
-        $configuration = null;
-        if ($shopId > 0) {
-            $configuration = $this->configurationRepository->findOneByShop($shopId);
-        }
-
-        if (!$configuration instanceof SenderConfiguration) {
-            $configuration = $this->configurationRepository->findFirst();
-        }
-
-        if (!$configuration instanceof SenderConfiguration) {
-            return null;
-        }
-
-        $moduleName = $configuration->getCashOnDeliveryModule();
-
-        return (null === $moduleName || '' === trim((string) $moduleName)) ? null : $moduleName;
+        return new OrderTypeShipmentResolver();
     }
 
     private function formatNumericValue(float $value, int $decimals = 2): string

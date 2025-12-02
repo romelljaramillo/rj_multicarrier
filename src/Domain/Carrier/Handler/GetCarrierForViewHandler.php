@@ -30,6 +30,11 @@ final class GetCarrierForViewHandler
             $carrier->getShortName(),
             $this->buildIconUrl($carrier->getIcon()),
             $carrier->getShopIds(),
+            $carrier->isActive(),
+            $carrier->supportsApi(),
+            $carrier->getAdapterService(),
+            $carrier->getConfigurationSchema(),
+            $carrier->getDefaultPayload(),
             $createdAt ? $createdAt->format('Y-m-d H:i:s') : null,
             $updatedAt ? $updatedAt->format('Y-m-d H:i:s') : null
         );

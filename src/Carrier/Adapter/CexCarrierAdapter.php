@@ -32,6 +32,19 @@ final class CexCarrierAdapter implements CarrierAdapterInterface
         return self::CODE;
     }
 
+    public function getDescriptor(): CarrierAdapterDescriptor
+    {
+        return new CarrierAdapterDescriptor(
+            self::CODE,
+            'Correo Express',
+            'Conector oficial para Correo Express con soporte de generación y reimpresión de etiquetas.',
+            null,
+            true,
+            null,
+            null,
+        );
+    }
+
     public function generateShipment(CarrierContext $context): CarrierGenerationResult
     {
         $payload = $context->getPayload();

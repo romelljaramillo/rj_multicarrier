@@ -284,6 +284,7 @@ final class InfoShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
                 'COALESCE(info.id_info_shipment, 0) AS id_info_shipment',
                 'orders.id_order',
                 'orders.reference AS reference_order',
+                'orders.id_carrier AS order_carrier_id',
                 'info.id_reference_carrier',
                 'info.id_type_shipment',
                 'type_shipment.id_carrier AS id_carrier',
@@ -304,7 +305,8 @@ final class InfoShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
                 $this->getEmployeeNameSqlExpression() . ' AS employee_name',
                 'COALESCE(info.date_add, orders.date_add) AS date_add',
                 'carrier.name AS carrier_name',
-                'company.shortname AS company_shortname'
+                'company.shortname AS company_shortname',
+                'order_carrier.id_reference AS order_reference_carrier_id'
             )
             ->from($this->dbPrefix . 'orders', 'orders')
             ->leftJoin('orders', $this->dbPrefix . 'rj_multicarrier_info_shipment', 'info', 'info.id_order = orders.id_order')
@@ -312,6 +314,7 @@ final class InfoShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
             ->leftJoin('info', $this->dbPrefix . 'rj_multicarrier_type_shipment', 'type_shipment', 'type_shipment.id_type_shipment = info.id_type_shipment')
             ->leftJoin('info', $this->dbPrefix . 'rj_multicarrier_carrier', 'company', 'company.id_carrier = type_shipment.id_carrier')
             ->leftJoin('info', $this->dbPrefix . 'carrier', 'carrier', 'carrier.id_reference = info.id_reference_carrier AND carrier.deleted = 0')
+            ->leftJoin('orders', $this->dbPrefix . 'carrier', 'order_carrier', 'order_carrier.id_carrier = orders.id_carrier')
             ->leftJoin('info', $this->dbPrefix . 'employee', 'employee', 'info.id_employee = employee.id_employee')
             ->andWhere('shipment.id_shipment IS NULL');
     }

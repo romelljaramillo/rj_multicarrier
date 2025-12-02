@@ -1,4 +1,14 @@
+{% set orderViewUrl = record.id_order is defined ? path('admin_orders_view', {'orderId': record.id_order}) : null %}
+
 <div class="rj-inline-order-cell">
-  <div class="fw-bold mb-1">#{{ record.id_order }}</div>
+  <div class="fw-bold mb-1">
+    {% if orderViewUrl %}
+      <a href="{{ orderViewUrl }}" class="link-primary">
+        #{{ record.id_order }}
+      </a>
+    {% else %}
+      #{{ record.id_order }}
+    {% endif %}
+  </div>
   <input type="hidden" class="js-inline-input" data-field="id_order" value="{{ record.id_order }}">
 </div>

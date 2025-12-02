@@ -25,7 +25,13 @@ final class UpdateCarrierHandler
             throw new RuntimeException(sprintf('Carrier with id %d not found', $command->getCarrierId()));
         }
 
-        $carrier->setName($command->getName())->setShortName($command->getShortName());
+        $carrier->setName($command->getName())
+            ->setShortName($command->getShortName())
+            ->setIsActive($command->isActive())
+            ->setSupportsApi($command->supportsApi())
+            ->setAdapterService($command->getAdapterService())
+            ->setConfigurationSchema($command->getConfigurationSchema())
+            ->setDefaultPayload($command->getDefaultPayload());
 
         // update icon if provided
         if (null !== $command->getIconFilename()) {

@@ -7,11 +7,11 @@ declare(strict_types=1);
 namespace Roanja\Module\RjMulticarrier\Service\Presenter;
 
 use Context;
-use \Address;
-use \Currency;
-use \Customer;
-use \Employee;
-use \Order;
+use Address;
+use Currency;
+use Customer;
+use Employee;
+use Order;
 use PrestaShop\PrestaShop\Core\CommandBus\CommandBusInterface;
 use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Query\GetCarrierConfigurationsForCarrier;
 use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\View\CarrierConfigurationView;
@@ -28,11 +28,12 @@ use Roanja\Module\RjMulticarrier\Entity\TypeShipment;
 use Roanja\Module\RjMulticarrier\Repository\ConfigurationRepository;
 use Roanja\Module\RjMulticarrier\Entity\Configuration;
 use Roanja\Module\RjMulticarrier\Service\InlineEntry\InlineFieldChoicesProvider;
+use Roanja\Module\RjMulticarrier\Service\Order\OrderTypeShipmentResolver;
 use Roanja\Module\RjMulticarrier\Util\EmployeeFormatter;
-use \Shop;
-use \State;
+use Shop;
+use State;
 use Twig\Environment;
-use \Validate;
+use Validate;
 
 final class OrderViewPresenter
 {
@@ -45,6 +46,7 @@ final class OrderViewPresenter
         private readonly ?ConfigurationRepository $configurationRepository = null,
         private readonly ?CommandBusInterface $queryBus = null,
         private readonly ?InlineFieldChoicesProvider $inlineFieldChoicesProvider = null,
+        private readonly ?OrderTypeShipmentResolver $orderTypeShipmentResolver = null,
     ) {
     }
 
@@ -194,11 +196,16 @@ final class OrderViewPresenter
                     continue;
                 }
 
+                $referenceCarrierId = $typeEntity->getReferenceCarrierId();
+                if (null === $referenceCarrierId) {
+                    continue;
+                }
+
                 $typeShipmentsData[] = [
                     'id' => $typeEntity->getId(),
                     'name' => $typeEntity->getName(),
                     'carrier_id' => $companyEntity->getId(),
-                    'reference_carrier_id' => $typeEntity->getReferenceCarrierId(),
+                    'reference_carrier_id' => $referenceCarrierId,
                     'business_code' => $typeEntity->getBusinessCode(),
                 ];
             }
@@ -218,6 +225,14 @@ final class OrderViewPresenter
         if (null === $selectedCarrierId && !empty($companiesData)) {
             $selectedCarrierId = (int) ($companiesData[0]['id'] ?? 0);
         }
+
+        [$selectedCarrierId, $selectedTypeShipmentId, $submittedValues, $infoPackage] = $this->applyOrderTypeShipmentDefaults(
+            $order,
+            $selectedCarrierId,
+            $selectedTypeShipmentId,
+            $submittedValues,
+            $infoPackage
+        );
 
         // Load companies and default type shipments for the form (modern repositories)
         $configurations = $this->buildConfigurationPayload($shipmentArray);
@@ -297,6 +312,84 @@ final class OrderViewPresenter
             'current_employee' => $currentEmployeeData,
             'order_cod' => $context['order_cod'] ?? null,
         ]);
+    }
+
+    /**
+     * @param array<string, mixed> $submittedValues
+     * @param array<string, mixed> $infoPackage
+     *
+     * @return array{0: ?int, 1: ?int, 2: array<string, mixed>, 3: array<string, mixed>}
+     */
+    private function applyOrderTypeShipmentDefaults(
+        ?Order $order,
+        ?int $selectedCarrierId,
+        ?int $selectedTypeShipmentId,
+        array $submittedValues,
+        array $infoPackage
+    ): array {
+        if (!$order instanceof Order) {
+            return [$selectedCarrierId, $selectedTypeShipmentId, $submittedValues, $infoPackage];
+        }
+
+        $hasTypeSelected = (
+            (int) ($selectedTypeShipmentId ?? 0) > 0
+            || (int) ($submittedValues['id_type_shipment'] ?? 0) > 0
+            || (int) ($infoPackage['id_type_shipment'] ?? 0) > 0
+        );
+
+        if ($hasTypeSelected) {
+            return [$selectedCarrierId, $selectedTypeShipmentId, $submittedValues, $infoPackage];
+        }
+
+        $resolver = $this->getOrderTypeShipmentResolver();
+        $defaults = $resolver->resolveForOrder($order);
+
+        if (null === $defaults) {
+            return [$selectedCarrierId, $selectedTypeShipmentId, $submittedValues, $infoPackage];
+        }
+
+        if (null === $selectedTypeShipmentId && $defaults['type_id'] > 0) {
+            $selectedTypeShipmentId = (int) $defaults['type_id'];
+        }
+
+        if (null === $selectedCarrierId && $defaults['carrier_id'] > 0) {
+            $selectedCarrierId = (int) $defaults['carrier_id'];
+        }
+
+        if (!isset($submittedValues['id_type_shipment']) && $defaults['type_id'] > 0) {
+            $submittedValues['id_type_shipment'] = (int) $defaults['type_id'];
+        }
+
+        if (!isset($submittedValues['carrier_id']) && $defaults['carrier_id'] > 0) {
+            $submittedValues['carrier_id'] = (int) $defaults['carrier_id'];
+        }
+
+        if (!isset($submittedValues['id_reference_carrier']) && $defaults['reference_id'] > 0) {
+            $submittedValues['id_reference_carrier'] = (int) $defaults['reference_id'];
+        }
+
+        if (!isset($infoPackage['id_type_shipment']) && $defaults['type_id'] > 0) {
+            $infoPackage['id_type_shipment'] = (int) $defaults['type_id'];
+        }
+
+        if (!isset($infoPackage['id_carrier']) && $defaults['carrier_id'] > 0) {
+            $infoPackage['id_carrier'] = (int) $defaults['carrier_id'];
+        }
+
+        if (!isset($infoPackage['id_reference_carrier']) && $defaults['reference_id'] > 0) {
+            $infoPackage['id_reference_carrier'] = (int) $defaults['reference_id'];
+        }
+
+        return [$selectedCarrierId, $selectedTypeShipmentId, $submittedValues, $infoPackage];
+    }
+
+    private function getOrderTypeShipmentResolver(): OrderTypeShipmentResolver
+    {
+        if ($this->orderTypeShipmentResolver instanceof OrderTypeShipmentResolver) {
+            return $this->orderTypeShipmentResolver;
+        }
+
+        return new OrderTypeShipmentResolver();
     }
 
     private function withEmployeeNames(array $package): array

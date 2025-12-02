@@ -69,6 +69,11 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_carrier
     `name` VARCHAR(50) NOT NULL,
     `shortname` VARCHAR(4) NOT NULL,
     `icon` VARCHAR(250) NULL DEFAULT NULL,
+    `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+    `supports_api` TINYINT(1) NOT NULL DEFAULT 0,
+    `adapter_service` VARCHAR(191) NULL DEFAULT NULL,
+    `configuration_schema` LONGTEXT NULL DEFAULT NULL,
+    `default_payload` LONGTEXT NULL DEFAULT NULL,
     `delete` TINYINT(1) NOT NULL DEFAULT 0,
     `date_add` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `date_upd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -203,6 +208,13 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_carrier
     `name` VARCHAR(254) NOT NULL,
     `value` TEXT NULL DEFAULT NULL,
     `is_required` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,
+    `field_group` VARCHAR(64) NULL DEFAULT NULL,
+    `field_type` VARCHAR(32) NULL DEFAULT \'text\',
+    `payload_direction` VARCHAR(16) NULL DEFAULT NULL,
+    `payload_key` VARCHAR(191) NULL DEFAULT NULL,
+    `payload_source` VARCHAR(191) NULL DEFAULT NULL,
+    `position` INT(11) NOT NULL DEFAULT 0,
+    `is_dynamic` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0,
     `date_add` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `date_upd` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`id_carrier_configuration`),
@@ -214,45 +226,6 @@ $sql[] = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . 'rj_multicarrier_carrier
     UNIQUE KEY `uniq_carrier_config_scope` (`id_carrier`, `id_type_shipment`, `id_shop_group`, `id_shop`, `name`)
 ) ENGINE=' . _MYSQL_ENGINE_ . ' DEFAULT CHARSET=utf8mb4;';
 
-$sql[] = 'INSERT INTO `' . _DB_PREFIX_ . 'rj_multicarrier_carrier` (`id_carrier`, `name`, `shortname`, `icon`) VALUES
-    (1, \'Default Carrier\', \'DEF\', NULL),
-    (2, \'DHL\', \'DHL\', NULL),
-    (3, \'Correo Express\', \'CEX\', NULL),
-    (4, \'GOI\', \'GOI\', NULL)
-ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `shortname` = VALUES(`shortname`), `icon` = VALUES(`icon`);';
-
-$sql[] = 'INSERT INTO `' . _DB_PREFIX_ . 'rj_multicarrier_carrier_shop` (`id_shop`, `id_carrier`)
-SELECT s.id_shop, c.id_carrier
-FROM `' . _DB_PREFIX_ . 'shop` s
-CROSS JOIN `' . _DB_PREFIX_ . 'rj_multicarrier_carrier` c
-WHERE NOT EXISTS (
-    SELECT 1 FROM `' . _DB_PREFIX_ . 'rj_multicarrier_carrier_shop` cs
-    WHERE cs.id_shop = s.id_shop
-      AND cs.id_carrier = c.id_carrier
-);';
-
-$sql[] = 'INSERT INTO `' . _DB_PREFIX_ . 'rj_multicarrier_type_shipment` (`id_type_shipment`, `id_carrier`, `name`, `id_bc`, `id_reference_carrier`, `active`) VALUES
-    (1, 3, \'PAQ 10\', \'61\', NULL, 0),
-    (2, 3, \'PAQ 14\', \'62\', NULL, 0),
-    (3, 3, \'PAQ 24\', \'63\', NULL, 0),
-    (4, 3, \'Baleares\', \'66\', NULL, 0),
-    (5, 3, \'Canarias Express\', \'67\', NULL, 0),
-    (6, 3, \'Canarias Aéreo\', \'68\', NULL, 0),
-    (7, 3, \'Canarias Marítimo\', \'69\', NULL, 0),
-    (8, 3, \'CEX Portugal Óptica\', \'73\', NULL, 0),
-    (9, 3, \'Paquetería Óptica\', \'76\', NULL, 0),
-    (10, 3, \'Internacional Express\', \'91\', NULL, 0),
-    (11, 3, \'Internacional Estandard\', \'90\', NULL, 0),
-    (12, 3, \'Paq Empresa 14\', \'92\', NULL, 0),
-    (13, 3, \'ePaq 24\', \'93\', NULL, 0),
-    (14, 3, \'Campaña CEX\', \'27\', NULL, 0),
-    (15, 3, \'Entrega en Oficina\', \'44\', NULL, 0),
-    (16, 3, \'Entrega + Recogida Multichrono\', \'54\', NULL, 0),
-    (17, 3, \'Entrega + recogida + Manip Multichrono\', \'55\', NULL, 0),
-    (18, 2, \'DHL PARCEL IBERIA\', \'IBERIA\', NULL, 0),
-    (19, 4, \'Goi carrier\', \'T,M\', 2, 0),
-    (20, 4, \'GOI - Montaje\', \'T,I,M\', 1, 0)
-ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `id_bc` = VALUES(`id_bc`), `id_reference_carrier` = VALUES(`id_reference_carrier`), `active` = VALUES(`active`);';
 
 foreach ($sql as $query) {
     if (false === \Db::getInstance()->execute($query)) {

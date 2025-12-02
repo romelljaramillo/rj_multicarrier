@@ -32,6 +32,19 @@ final class GlsCarrierAdapter implements CarrierAdapterInterface
         return self::CODE;
     }
 
+    public function getDescriptor(): CarrierAdapterDescriptor
+    {
+        return new CarrierAdapterDescriptor(
+            self::CODE,
+            'GLS / ASMRed',
+            'Integra el servicio SOAP de GLS (ASMRed) para etiquetas y tracking.',
+            null,
+            true,
+            null,
+            null,
+        );
+    }
+
     public function generateShipment(CarrierContext $context): CarrierGenerationResult
     {
         $payload = $context->getPayload();

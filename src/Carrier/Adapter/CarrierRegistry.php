@@ -39,4 +39,26 @@ final class CarrierRegistry
 
         throw new InvalidArgumentException(sprintf('No carrier adapter registered for code "%s"', $code));
     }
+
+    /**
+     * @return CarrierAdapterInterface[]
+     */
+    public function all(): array
+    {
+        return array_values($this->adapters);
+    }
+
+    /**
+     * @return array<string, CarrierAdapterDescriptor>
+     */
+    public function getDescriptors(): array
+    {
+        $descriptors = [];
+
+        foreach ($this->adapters as $code => $adapter) {
+            $descriptors[$code] = $adapter->getDescriptor();
+        }
+
+        return $descriptors;
+    }
 }

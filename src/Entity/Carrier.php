@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Entity;
 
+use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 use Roanja\Module\RjMulticarrier\Entity\Traits\TimestampableTrait;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -33,6 +34,21 @@ class Carrier
     #[ORM\Column(name: 'icon', type: 'string', length: 250, nullable: true)]
     private ?string $icon = null;
 
+    #[ORM\Column(name: 'is_active', type: 'boolean', options: ['default' => true])]
+    private bool $isActive = true;
+
+    #[ORM\Column(name: 'supports_api', type: 'boolean', options: ['default' => false])]
+    private bool $supportsApi = false;
+
+    #[ORM\Column(name: 'adapter_service', type: 'string', length: 191, nullable: true)]
+    private ?string $adapterService = null;
+
+    #[ORM\Column(name: 'configuration_schema', type: 'json', nullable: true)]
+    private ?array $configurationSchema = null;
+
+    #[ORM\Column(name: 'default_payload', type: 'json', nullable: true)]
+    private ?array $defaultPayload = null;
+
     #[ORM\Column(name: '`delete`', type: 'boolean')]
     private bool $deleted = false;
 
@@ -47,6 +63,9 @@ class Carrier
         $this->name = $name;
         $this->shortName = $shortName;
         $this->shops = new ArrayCollection();
+        $now = new DateTimeImmutable();
+        $this->createdAt = $now;
+        $this->updatedAt = $now;
     }
 
     public function getId(): ?int
@@ -86,6 +105,66 @@ class Carrier
     public function setIcon(?string $icon): self
     {
         $this->icon = $icon;
+
+        return $this;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->isActive;
+    }
+
+    public function setIsActive(bool $isActive): self
+    {
+        $this->isActive = $isActive;
+
+        return $this;
+    }
+
+    public function supportsApi(): bool
+    {
+        return $this->supportsApi;
+    }
+
+    public function setSupportsApi(bool $supportsApi): self
+    {
+        $this->supportsApi = $supportsApi;
+
+        return $this;
+    }
+
+    public function getAdapterService(): ?string
+    {
+        return $this->adapterService;
+    }
+
+    public function setAdapterService(?string $adapterService): self
+    {
+        $this->adapterService = $adapterService ? trim($adapterService) : null;
+
+        return $this;
+    }
+
+    public function getConfigurationSchema(): array
+    {
+        return $this->configurationSchema ?? [];
+    }
+
+    public function setConfigurationSchema(?array $configurationSchema): self
+    {
+        $this->configurationSchema = empty($configurationSchema) ? null : $configurationSchema;
+
+        return $this;
+    }
+
+    public function getDefaultPayload(): array
+    {
+        return $this->defaultPayload ?? [];
+    }
+
+    public function setDefaultPayload(?array $defaultPayload): self
+    {
+        $this->defaultPayload = empty($defaultPayload) ? null : $defaultPayload;
 
         return $this;
     }
