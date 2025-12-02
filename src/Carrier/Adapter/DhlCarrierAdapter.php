@@ -242,7 +242,7 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
         if ($cashOnDelivery > 0) {
             $options[] = [
                 'key' => 'COD_CASH',
-                'input' => $cashOnDelivery,
+                'input' => (string) $cashOnDelivery,
             ];
         }
 
