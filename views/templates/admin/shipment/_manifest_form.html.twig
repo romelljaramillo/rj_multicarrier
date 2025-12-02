@@ -1,0 +1,84 @@
+<div class="card rj-manifest-card mb-4">
+  <div class="card-body">
+    <form
+      class="js-manifest-form"
+      method="post"
+      action="{{ manifestDefaults.action ?? path('admin_rj_multicarrier_shipments_manifest_pdf') }}"
+      data-endpoint="{{ manifestDefaults.carriersEndpoint ?? path('admin_rj_multicarrier_shipments_manifest_carriers') }}"
+      target="_blank"
+      novalidate
+    >
+      <div class="rj-manifest-fields align-items-end">
+        <div class="rj-manifest-info">
+          <p class="text-uppercase text-muted small mb-1">{{ 'Manifiesto de envíos'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+          <h2 class="h5 mb-1">{{ 'Descarga el manifiesto diario'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h2>
+          <p class="text-muted mb-0">
+            {{ 'Filtra por fechas y transportista para generar un PDF listo para compartir.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+          </p>
+        </div>
+
+        <div class="form-group mb-0">
+          <label class="form-label text-muted" for="rj_manifest_date_from">
+            {{ 'Fecha desde'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+          </label>
+          <input
+            id="rj_manifest_date_from"
+            class="form-control js-manifest-date"
+            type="date"
+            name="date_from"
+            required
+            value="{{ manifestDefaults.date_from ?? '' }}"
+          >
+        </div>
+
+        <div class="form-group mb-0">
+          <label class="form-label text-muted" for="rj_manifest_date_to">
+            {{ 'Fecha hasta'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+          </label>
+          <input
+            id="rj_manifest_date_to"
+            class="form-control js-manifest-date"
+            type="date"
+            name="date_to"
+            required
+            value="{{ manifestDefaults.date_to ?? '' }}"
+          >
+        </div>
+
+        <div class="form-group mb-0 flex-fill">
+          <label class="form-label text-muted" for="rj_manifest_carrier">
+            {{ 'Transportista (opcional)'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+          </label>
+          <select
+            id="rj_manifest_carrier"
+            class="form-control js-manifest-carrier"
+            name="reference_carrier_id"
+            data-empty-label="{{ 'Sin resultados para este rango'|trans({}, 'Modules.RjMulticarrier.Admin') }}"
+          >
+            <option value="">
+              {{ 'Todos los transportistas'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+            </option>
+            {% for carrier in manifestDefaults.carriers ?? [] %}
+              <option value="{{ carrier.id }}">
+                {{ carrier.label }} ({{ carrier.shipments }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="mb-0">
+          <button type="submit" class="btn btn-primary js-manifest-submit">
+            <i class="material-icons align-middle mr-1">picture_as_pdf</i>
+            {{ 'Generar PDF'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+          </button>
+        </div>
+      </div>
+
+      <input type="hidden" name="_token" value="{{ csrf_token('rj_multicarrier_manifest') }}">
+
+      <p class="small text-muted mb-0 js-manifest-feedback">
+        {{ 'Selecciona un rango para listar únicamente los transportistas con envíos confirmados.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+      </p>
+    </form>
+  </div>
+</div>

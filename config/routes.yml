@@ -437,6 +437,26 @@ admin_rj_multicarrier_shipments_export_selected_csv:
   options:
     expose: true
 
+admin_rj_multicarrier_shipments_manifest_carriers:
+  path: /rj-multicarrier/shipments/manifest/carriers
+  methods: [GET]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ShipmentController::manifestCarriersAction'
+    _legacy_controller: "AdminRjMulticarrierShipments"
+    _legacy_link: "AdminRjMulticarrierShipments:manifestCarriers"
+  options:
+    expose: true
+
+admin_rj_multicarrier_shipments_manifest_pdf:
+  path: /rj-multicarrier/shipments/manifest/pdf
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ShipmentController::manifestPdfAction'
+    _legacy_controller: "AdminRjMulticarrierShipments"
+    _legacy_link: "AdminRjMulticarrierShipments:manifestPdf"
+  options:
+    expose: true
+
 
 ###############################################################################
 # INFO SHIPMENT CONTROLLER

@@ -6,20 +6,26 @@ declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Controller\Admin;
 
+use DateTimeImmutable;
 use PrestaShopBundle\Controller\Admin\FrameworkBundleAdminController;
 use PrestaShopBundle\Security\Annotation\AdminSecurity;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Command\BulkDeleteShipmentCommand;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Command\DeleteShipmentCommand;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Exception\ShipmentException;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Exception\ShipmentNotFoundException;
+use Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetManifestCarrierOptions;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetShipmentForView;
+use Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetShipmentManifest;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetShipmentsByIds;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetShipmentsForExport;
+use Roanja\Module\RjMulticarrier\Domain\Shipment\View\ManifestCarrierView;
+use Roanja\Module\RjMulticarrier\Domain\Shipment\View\ShipmentManifestView;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\View\ShipmentView;
 use Roanja\Module\RjMulticarrier\Grid\Shipment\ShipmentFilters;
 use Roanja\Module\RjMulticarrier\Grid\Shipment\ShipmentGridDefinitionFactory;
 use Roanja\Module\RjMulticarrier\Grid\Shipment\ShipmentGridFactory;
 use Roanja\Module\RjMulticarrier\Service\Shipment\ShipmentLabelPrinter;
+use Roanja\Module\RjMulticarrier\Service\Shipment\ShipmentManifestPdfBuilder;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -30,10 +36,12 @@ use Throwable;
 final class ShipmentController extends FrameworkBundleAdminController
 {
     private const TRANSLATION_DOMAIN = 'Modules.RjMulticarrier.Admin';
+    private const MANIFEST_CSRF_TOKEN = 'rj_multicarrier_manifest';
 
     public function __construct(
         private readonly ShipmentGridFactory $gridFactory,
-        private readonly ShipmentLabelPrinter $labelPrinter
+        private readonly ShipmentLabelPrinter $labelPrinter,
+        private readonly ShipmentManifestPdfBuilder $manifestPdfBuilder
     ) {
     }
 
@@ -44,6 +52,7 @@ final class ShipmentController extends FrameworkBundleAdminController
 
         return $this->render('@Modules/rj_multicarrier/views/templates/admin/shipment/index.html.twig', [
             'shipmentGrid' => $this->presentGrid($grid),
+            'manifestDefaults' => $this->buildManifestDefaults(),
         ]);
     }
 
@@ -200,6 +209,110 @@ final class ShipmentController extends FrameworkBundleAdminController
         $fileName = sprintf('rj_multicarrier_shipments_seleccion_%s.csv', date('Ymd_His'));
 
         return $this->createShipmentCsvResponse($shipments, $fileName);
+    }
+
+    /**
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", message="Access denied.")
+     */
+    public function manifestCarriersAction(Request $request): JsonResponse
+    {
+        $range = $this->resolveManifestDateRange($request);
+
+        try {
+            /** @var ManifestCarrierView[] $carrierViews */
+            $carrierViews = $this->getQueryBus()->handle(
+                new GetManifestCarrierOptions($range['from'], $range['to'])
+            );
+
+            $payload = array_map(static fn (ManifestCarrierView $view): array => $view->toArray(), $carrierViews);
+
+            return $this->json([
+                'carriers' => $payload,
+                'date_from' => $range['from']->format('Y-m-d'),
+                'date_to' => $range['to']->format('Y-m-d'),
+            ]);
+        } catch (Throwable $exception) {
+            if ($this->has('logger')) {
+                $this->get('logger')->error('rj_multicarrier: manifestCarriersAction failed', [
+                    'message' => $exception->getMessage(),
+                ]);
+            }
+
+            return $this->json([
+                'message' => $this->translate('No se pudieron cargar los transportistas.'),
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", message="Access denied.")
+     */
+    public function manifestPdfAction(Request $request): Response
+    {
+        $token = (string) $request->request->get('_token');
+
+        if (!$this->isCsrfTokenValid(self::MANIFEST_CSRF_TOKEN, $token)) {
+            $this->addFlash('error', $this->translate('Token de seguridad inválido.'));
+
+            return $this->redirectToShipments();
+        }
+
+        $range = $this->resolveManifestDateRange($request);
+        $referenceCarrierId = $this->resolveReferenceCarrierId($request->request->get('reference_carrier_id'));
+
+        try {
+            /** @var ShipmentManifestView $manifest */
+            $manifest = $this->getQueryBus()->handle(
+                new GetShipmentManifest($range['from'], $range['to'], $referenceCarrierId)
+            );
+        } catch (Throwable $exception) {
+            if ($this->has('logger')) {
+                $this->get('logger')->error('rj_multicarrier: manifestPdfAction query failed', [
+                    'message' => $exception->getMessage(),
+                ]);
+            }
+
+            $this->addFlash('error', $this->translate('No se pudo cargar la información del manifiesto.'));
+
+            return $this->redirectToShipments();
+        }
+
+        if ($manifest->isEmpty()) {
+            $this->addFlash('warning', $this->translate('No se encontraron envíos para el rango seleccionado.'));
+
+            return $this->redirectToShipments();
+        }
+
+        try {
+            $binary = $this->manifestPdfBuilder->build($manifest);
+        } catch (Throwable $exception) {
+            if ($this->has('logger')) {
+                $this->get('logger')->error('rj_multicarrier: manifest PDF build failed', [
+                    'message' => $exception->getMessage(),
+                ]);
+            }
+
+            $this->addFlash('error', $this->translate('No se pudo generar el PDF del manifiesto.'));
+
+            return $this->redirectToShipments();
+        }
+
+        $fileName = sprintf(
+            'manifiesto-envios-%s-%s.pdf',
+            $range['from']->format('Ymd'),
+            $range['to']->format('Ymd')
+        );
+
+        return new Response(
+            $binary,
+            Response::HTTP_OK,
+            [
+                'Content-Type' => 'application/pdf',
+                'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                'Pragma' => 'public',
+                'Content-Disposition' => sprintf('attachment; filename="%s"', $fileName),
+            ]
+        );
     }
 
     private function buildFilters(Request $request): ShipmentFilters
@@ -434,5 +547,91 @@ final class ShipmentController extends FrameworkBundleAdminController
         $response->headers->set('Content-Disposition', 'attachment; filename="' . $fileName . '"');
 
         return $response;
+    }
+
+    /**
+     * @return array{date_from: string, date_to: string, carriers: array<int, array<string, mixed>>, action: string, carriersEndpoint: string}
+     */
+    private function buildManifestDefaults(): array
+    {
+        $range = $this->getDefaultManifestRange();
+
+        try {
+            /** @var ManifestCarrierView[] $carriers */
+            $carriers = $this->getQueryBus()->handle(new GetManifestCarrierOptions($range['from'], $range['to']));
+        } catch (Throwable) {
+            $carriers = [];
+        }
+
+        return [
+            'date_from' => $range['from']->format('Y-m-d'),
+            'date_to' => $range['to']->format('Y-m-d'),
+            'carriers' => array_map(static fn (ManifestCarrierView $view): array => $view->toArray(), $carriers),
+            'action' => $this->generateUrl('admin_rj_multicarrier_shipments_manifest_pdf'),
+            'carriersEndpoint' => $this->generateUrl('admin_rj_multicarrier_shipments_manifest_carriers'),
+        ];
+    }
+
+    /**
+     * @return array{from: DateTimeImmutable, to: DateTimeImmutable}
+     */
+    private function getDefaultManifestRange(): array
+    {
+        $today = new DateTimeImmutable('today');
+
+        return [
+            'from' => $today->setTime(0, 0, 0),
+            'to' => $today->setTime(23, 59, 59),
+        ];
+    }
+
+    /**
+     * @return array{from: DateTimeImmutable, to: DateTimeImmutable}
+     */
+    private function resolveManifestDateRange(Request $request): array
+    {
+        $from = $this->normalizeDateInput($request->get('date_from'));
+        $to = $this->normalizeDateInput($request->get('date_to'));
+
+        if (null === $from || null === $to) {
+            return $this->getDefaultManifestRange();
+        }
+
+        if ($from > $to) {
+            [$from, $to] = [$to, $from];
+        }
+
+        return [
+            'from' => $from->setTime(0, 0, 0),
+            'to' => $to->setTime(23, 59, 59),
+        ];
+    }
+
+    private function normalizeDateInput($value): ?DateTimeImmutable
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+
+        if ('' === $value) {
+            return null;
+        }
+
+        $date = DateTimeImmutable::createFromFormat('Y-m-d', $value);
+
+        return $date ?: null;
+    }
+
+    private function resolveReferenceCarrierId($value): ?int
+    {
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        $intValue = (int) $value;
+
+        return $intValue > 0 ? $intValue : null;
     }
 }

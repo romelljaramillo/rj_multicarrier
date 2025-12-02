@@ -1,6 +1,10 @@
 {% extends '@PrestaShop/Admin/layout.html.twig' %}
 
 {% block content %}
+  {{ include('@Modules/rj_multicarrier/views/templates/admin/shipment/_manifest_form.html.twig', {
+    manifestDefaults: manifestDefaults|default({})
+  }) }}
+
   <div class="row">
     <div class="col-12">
       {% embed '@PrestaShop/Admin/Common/Grid/grid_panel.html.twig' with { grid: shipmentGrid } %}

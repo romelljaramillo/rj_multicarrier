@@ -137,6 +137,26 @@ services:
           command: 'Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetShipmentForView',
         }
 
+  Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\GetManifestCarrierOptionsHandler:
+    arguments:
+      $entityManager: '@doctrine.orm.entity_manager'
+      $labelResolver: '@Roanja\Module\RjMulticarrier\Service\Shipment\ManifestCarrierLabelResolver'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetManifestCarrierOptions',
+        }
+
+  Roanja\Module\RjMulticarrier\Domain\Shipment\Handler\GetShipmentManifestHandler:
+    arguments:
+      $shipmentRepository: '@Roanja\Module\RjMulticarrier\Repository\ShipmentRepository'
+      $labelResolver: '@Roanja\Module\RjMulticarrier\Service\Shipment\ManifestCarrierLabelResolver'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\Shipment\Query\GetShipmentManifest',
+        }
+
   # Note: GetTypeShipmentForViewHandler will be registered below after the automatic registration
 
   Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler\GetTypeShipmentFormOptionsHandler:

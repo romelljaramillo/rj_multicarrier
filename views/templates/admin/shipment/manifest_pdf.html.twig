@@ -1,0 +1,104 @@
+<style>
+  .manifest-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    border-bottom: 1px solid #cccccc;
+    padding-bottom: 8px;
+  }
+  .manifest-header h1 {
+    font-size: 18px;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .manifest-meta {
+    font-size: 11px;
+    text-align: right;
+    line-height: 1.4;
+  }
+  .manifest-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+  .manifest-table th {
+    text-align: left;
+    background: #f1f4fb;
+    padding: 6px;
+    border-bottom: 1px solid #dadfe8;
+  }
+  .manifest-table td {
+    padding: 6px;
+    border-bottom: 1px solid #efefef;
+  }
+  .manifest-totals {
+    margin-top: 12px;
+    padding: 8px;
+    border: 1px solid #dadfe8;
+    font-size: 11px;
+  }
+  .text-muted {
+    color: #6c6c6c;
+  }
+</style>
+
+<div class="manifest-header">
+  <div>
+    <h1>Manifiesto de envíos</h1>
+    <p class="text-muted">
+      Rango: {{ manifest.date_from }} - {{ manifest.date_to }}<br>
+      Transportista: {{ manifest.carrier.label ?? 'Todos' }}
+    </p>
+  </div>
+  <div class="manifest-meta">
+    <div><strong>Generado:</strong> {{ generated_at }}</div>
+    <div><strong>Total envíos:</strong> {{ manifest.totals.shipments }}</div>
+  </div>
+</div>
+
+<table class="manifest-table" cellpadding="0" cellspacing="0">
+  <thead>
+    <tr>
+      <th style="width: 12%"># Envío</th>
+      <th style="width: 18%">Pedido</th>
+      <th style="width: 18%">Número de envío</th>
+      <th style="width: 18%">Servicio</th>
+      <th style="width: 12%">Paquetes</th>
+      <th style="width: 12%">Peso (kg)</th>
+      <th style="width: 10%">Fecha</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in manifest.items %}
+      <tr>
+        <td>{{ item.shipment_id }}</td>
+        <td>
+          {{ item.order_reference is not empty ? item.order_reference : ('#' ~ item.order_id) }}<br>
+          <span class="text-muted">{{ item.carrier_short_name is not empty ? item.carrier_short_name : '-' }}</span>
+        </td>
+        <td>{{ item.shipment_number is not empty ? item.shipment_number : '-' }}</td>
+        <td>
+          {{ item.type_shipment_name is not empty ? item.type_shipment_name : '-' }}<br>
+          <span class="text-muted">{{ item.employee_name is not empty ? item.employee_name : '' }}</span>
+        </td>
+        <td>{{ item.quantity }}</td>
+        <td>{{ item.weight|number_format(2, '.', '') }}</td>
+        <td>{{ item.created_at is not empty ? item.created_at : '-' }}</td>
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="7" style="text-align:center; padding: 14px;">
+          No se encontraron envíos para los filtros seleccionados.
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="manifest-totals">
+  <strong>Resumen:</strong>
+  {{ manifest.totals.packages }} paquetes ·
+  {{ manifest.totals.weight|number_format(2, '.', '') }} kg ·
+  {{ manifest.totals.shipments }} envíos
+</div>

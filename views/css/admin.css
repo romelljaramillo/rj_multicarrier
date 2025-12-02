@@ -153,3 +153,45 @@
 .rj-inline-employee select {
 	min-width: 160px;
 }
+
+/* Manifest form */
+.rj-manifest-card {
+	border-left: 4px solid #556ee6;
+	box-shadow: 0 6px 15px rgba(0, 0, 0, 0.05);
+}
+
+
+.rj-manifest-fields {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.rj-manifest-info {
+	max-width: 320px;
+}
+
+@media (min-width: 768px) {
+	.rj-manifest-fields {
+		flex-direction: row;
+		align-items: flex-end;
+		gap: 1.5rem;
+	}
+
+	.rj-manifest-fields .form-group {
+		min-width: 180px;
+	}
+
+	.rj-manifest-info {
+		flex: 1 0 260px;
+	}
+}
+
+.rj-manifest-card .form-label {
+	font-weight: 600;
+	font-size: 0.85rem;
+}
+
+.rj-manifest-card .btn i {
+	font-size: 16px;
+}

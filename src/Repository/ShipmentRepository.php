@@ -88,4 +88,29 @@ class ShipmentRepository extends ServiceEntityRepository
         $this->_em->persist($shipment);
         $this->_em->flush();
     }
+
+    /**
+     * @return Shipment[]
+     */
+    public function findForManifest(\DateTimeImmutable $dateFrom, \DateTimeImmutable $dateTo, ?int $referenceCarrierId = null): array
+    {
+        $qb = $this->createQueryBuilder('shipment')
+            ->addSelect('info', 'type', 'carrier')
+            ->innerJoin('shipment.infoPackage', 'info')
+            ->innerJoin('info.typeShipment', 'type')
+            ->leftJoin('shipment.carrier', 'carrier')
+            ->andWhere('shipment.deleted = false')
+            ->andWhere('info.referenceCarrierId IS NOT NULL')
+            ->andWhere('shipment.createdAt BETWEEN :dateFrom AND :dateTo')
+            ->setParameter('dateFrom', $dateFrom)
+            ->setParameter('dateTo', $dateTo)
+            ->orderBy('shipment.createdAt', 'ASC');
+
+        if (null !== $referenceCarrierId && $referenceCarrierId > 0) {
+            $qb->andWhere('info.referenceCarrierId = :referenceCarrierId')
+                ->setParameter('referenceCarrierId', $referenceCarrierId);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }

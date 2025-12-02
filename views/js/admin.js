@@ -110,6 +110,7 @@ ready(() => {
   initInlinePanelRows();
   initInlineEmployeeSelects();
   initInlineGridActions();
+  initManifestForm();
 
   const containers = document.querySelectorAll('.js-grid');
 
@@ -296,6 +297,177 @@ function initInlineEmployeeSelects() {
 
     const option = select.options && select.selectedIndex >= 0 ? select.options[select.selectedIndex] : null;
     hidden.value = option ? (option.textContent || '').trim() : '';
+  });
+}
+
+function initManifestForm() {
+  const form = document.querySelector('.js-manifest-form');
+
+  if (!form) {
+    return;
+  }
+
+  const carrierSelect = form.querySelector('.js-manifest-carrier');
+  const feedback = form.querySelector('.js-manifest-feedback');
+  const dateFromInput = form.querySelector('input[name="date_from"]');
+  const dateToInput = form.querySelector('input[name="date_to"]');
+  const defaultFeedback = feedback ? feedback.textContent : '';
+  const defaultOptionLabel = carrierSelect && carrierSelect.options.length > 0
+    ? carrierSelect.options[0].textContent || 'Todos los transportistas'
+    : 'Todos los transportistas';
+  let abortController = null;
+
+  const updateFeedback = (message, isError) => {
+    if (!feedback) {
+      return;
+    }
+
+    feedback.textContent = message || defaultFeedback;
+    feedback.classList.toggle('text-danger', !!isError);
+  };
+
+  const buildDefaultOption = () => {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = defaultOptionLabel;
+
+    return option;
+  };
+
+  const renderOptions = (list) => {
+    if (!carrierSelect) {
+      return;
+    }
+
+    const previousValue = carrierSelect.value;
+    carrierSelect.innerHTML = '';
+    carrierSelect.appendChild(buildDefaultOption());
+
+    (list || []).forEach((item) => {
+      if (!item || typeof item !== 'object') {
+        return;
+      }
+
+      const option = document.createElement('option');
+      option.value = String(item.id);
+      const count = typeof item.shipments === 'number' ? item.shipments : null;
+      option.textContent = count === null
+        ? String(item.label)
+        : `${item.label} (${count})`;
+      carrierSelect.appendChild(option);
+    });
+
+    if (previousValue && carrierSelect.querySelector(`option[value="${previousValue}"]`)) {
+      carrierSelect.value = previousValue;
+    } else {
+      carrierSelect.value = '';
+    }
+
+    const hasOptions = carrierSelect.options.length > 1;
+    carrierSelect.disabled = false;
+
+    if (!hasOptions) {
+      updateFeedback(
+        (carrierSelect && carrierSelect.dataset.emptyLabel) || 'Sin resultados para este rango',
+        false
+      );
+    } else {
+      updateFeedback(defaultFeedback, false);
+    }
+  };
+
+  const sanitizeRange = () => {
+    if (!dateFromInput || !dateToInput) {
+      return;
+    }
+
+    if (dateFromInput.value && dateToInput.value && dateFromInput.value > dateToInput.value) {
+      dateToInput.value = dateFromInput.value;
+    }
+  };
+
+  const fetchCarriers = () => {
+    if (!carrierSelect) {
+      return;
+    }
+
+    const endpoint = form.getAttribute('data-endpoint') || '';
+    const dateFrom = dateFromInput ? dateFromInput.value : '';
+    const dateTo = dateToInput ? dateToInput.value : '';
+
+    if (!endpoint || !dateFrom || !dateTo) {
+      return;
+    }
+
+    if (abortController && typeof abortController.abort === 'function') {
+      abortController.abort();
+    }
+
+    abortController = typeof AbortController === 'function' ? new AbortController() : null;
+
+    const params = new URLSearchParams();
+    params.append('date_from', dateFrom);
+    params.append('date_to', dateTo);
+
+    updateFeedback('Actualizando transportistas...', false);
+    carrierSelect.disabled = true;
+
+    const options = {
+      method: 'GET',
+      credentials: 'same-origin',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        Accept: 'application/json',
+      },
+    };
+
+    if (abortController) {
+      options.signal = abortController.signal;
+    }
+
+    fetch(`${endpoint}?${params.toString()}`, options)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        return response.json();
+      })
+      .then((payload) => {
+        const list = payload && Array.isArray(payload.carriers) ? payload.carriers : [];
+        renderOptions(list);
+      })
+      .catch((error) => {
+        if (abortController && error && error.name === 'AbortError') {
+          return;
+        }
+
+        renderOptions([]);
+        updateFeedback('No se pudo actualizar la lista de transportistas.', true);
+
+        if (window.console && typeof window.console.error === 'function') {
+          window.console.error('[rj_multicarrier] Manifest carrier fetch failed', error);
+        }
+      })
+      .finally(() => {
+        abortController = null;
+      });
+  };
+
+  const dateInputs = form.querySelectorAll('.js-manifest-date');
+  dateInputs.forEach((input) => {
+    input.addEventListener('change', () => {
+      sanitizeRange();
+      fetchCarriers();
+    });
+  });
+
+  form.addEventListener('submit', (event) => {
+    sanitizeRange();
+
+    if (typeof form.reportValidity === 'function' && !form.reportValidity()) {
+      event.preventDefault();
+    }
   });
 }
 
