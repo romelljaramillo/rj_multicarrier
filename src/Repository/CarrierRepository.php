@@ -113,9 +113,11 @@ class CarrierRepository
             if (is_array($carrier)) {
                 $referenceId = (int) ($carrier['id_reference'] ?? 0);
                 $name = trim((string) ($carrier['name'] ?? ''));
+                $carrierId = (int) ($carrier['id_carrier'] ?? 0);
             } elseif (is_object($carrier)) {
                 $referenceId = (int) ($carrier->id_reference ?? 0);
                 $name = trim((string) ($carrier->name ?? ''));
+                $carrierId = (int) ($carrier->id ?? $carrier->id_carrier ?? 0);
             } else {
                 continue;
             }
@@ -128,12 +130,17 @@ class CarrierRepository
                 $references[$referenceId] = [
                     'id_reference' => $referenceId,
                     'name' => $name,
+                    'id_carrier' => $carrierId,
                 ];
                 continue;
             }
 
             if ('' === $references[$referenceId]['name'] && '' !== $name) {
                 $references[$referenceId]['name'] = $name;
+            }
+
+            if (empty($references[$referenceId]['id_carrier']) && $carrierId > 0) {
+                $references[$referenceId]['id_carrier'] = $carrierId;
             }
         }
 

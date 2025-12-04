@@ -7,6 +7,28 @@
 	margin-bottom: 0;
 	table-layout: fixed;
 }
+
+.rj-carrier-option {
+	display: inline-flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	gap: 0.5rem;
+}
+
+.rj-carrier-option__label {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.select2-results__option .rj-carrier-badge,
+.select2-selection__choice .rj-carrier-badge {
+	font-size: 0.75rem;
+}
+
+.select2-selection__choice .rj-carrier-option {
+	gap: 0.25rem;
+}
 .rj-inline-grid th[data-column-id],
 .rj-inline-grid td[class*='column-'] {
 	white-space: nowrap;

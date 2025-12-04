@@ -186,6 +186,26 @@ admin_rj_multicarrier_validation_rule_delete_bulk:
   options:
     expose: true
 
+admin_rj_multicarrier_validation_rule_activate_bulk:
+  path: /rj-multicarrier/validation-rules/bulk-activate
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ValidationRuleController::activateBulkAction'
+    _legacy_controller: "AdminRjMulticarrierValidationRules"
+    _legacy_link: "AdminRjMulticarrierValidationRules:bulkactivate"
+  options:
+    expose: true
+
+admin_rj_multicarrier_validation_rule_deactivate_bulk:
+  path: /rj-multicarrier/validation-rules/bulk-deactivate
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\ValidationRuleController::deactivateBulkAction'
+    _legacy_controller: "AdminRjMulticarrierValidationRules"
+    _legacy_link: "AdminRjMulticarrierValidationRules:bulkdeactivate"
+  options:
+    expose: true
+
 admin_rj_multicarrier_validation_rule_search:
   path: /rj-multicarrier/validation-rules
   methods: [POST]

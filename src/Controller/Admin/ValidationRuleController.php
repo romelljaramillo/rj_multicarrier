@@ -224,6 +224,22 @@ final class ValidationRuleController extends FrameworkBundleAdminController
 	/**
 	 * @AdminSecurity("is_granted('update', request.get('_legacy_controller'))", message="Access denied.")
 	 */
+	public function activateBulkAction(Request $request): RedirectResponse
+	{
+		return $this->handleBulkStatusAction($request, true);
+	}
+
+	/**
+	 * @AdminSecurity("is_granted('update', request.get('_legacy_controller'))", message="Access denied.")
+	 */
+	public function deactivateBulkAction(Request $request): RedirectResponse
+	{
+		return $this->handleBulkStatusAction($request, false);
+	}
+
+	/**
+	 * @AdminSecurity("is_granted('update', request.get('_legacy_controller'))", message="Access denied.")
+	 */
 	public function toggleAction(Request $request, int $id): RedirectResponse
 	{
 		if (null !== ($redirect = $this->guardSingleShopContext())) {
@@ -262,8 +278,11 @@ final class ValidationRuleController extends FrameworkBundleAdminController
 	{
 		$this->validationRuleReferenceNormalizer->normalizeAll();
 
+		$carrierChoices = $this->formOptionsProvider->getCarrierChoices();
+
 		return $this->createForm(ValidationRuleType::class, $data, [
-			'carrier_choices' => $this->formOptionsProvider->getCarrierChoices(),
+			'carrier_choices' => $carrierChoices['choices'] ?? [],
+			'carrier_choice_ids' => $carrierChoices['carrier_ids'] ?? [],
 			'product_choices' => $this->formOptionsProvider->getProductChoices(),
 			'category_choices' => $this->formOptionsProvider->getCategoryChoices(),
 			'zone_choices' => $this->formOptionsProvider->getZoneChoices(),
@@ -560,6 +579,85 @@ final class ValidationRuleController extends FrameworkBundleAdminController
 		}
 
 		return array_values(array_unique($ids));
+	}
+
+	private function handleBulkStatusAction(Request $request, bool $activate): RedirectResponse
+	{
+		if (null !== ($redirect = $this->guardSingleShopContext())) {
+			return $redirect;
+		}
+
+		$ids = $this->getBulkValidationRuleIds($request);
+
+		if (empty($ids)) {
+			$this->addFlash('warning', $this->trans('Selecciona al menos una regla para actualizar.', self::TRANSLATION_DOMAIN));
+
+			return $this->redirectToRoute('admin_rj_multicarrier_validation_rule_index');
+		}
+
+		$shopId = $this->getCurrentShopId();
+
+		if (null === $shopId) {
+			return $this->guardSingleShopContext() ?? $this->redirectToRoute('admin_rj_multicarrier_validation_rule_index');
+		}
+
+		$eligibleRules = [];
+
+		foreach ($ids as $ruleId) {
+			$rule = $this->validationRuleRepository->findOneById($ruleId);
+
+			if (!$rule instanceof ValidationRule) {
+				continue;
+			}
+
+			$ruleShopId = $rule->getShopId();
+
+			if (null === $ruleShopId || $ruleShopId === $shopId) {
+				$eligibleRules[] = $rule;
+			}
+		}
+
+		if (empty($eligibleRules)) {
+			$this->addFlash('error', $this->trans('No tienes permiso para modificar las reglas seleccionadas en este contexto.', self::TRANSLATION_DOMAIN));
+
+			return $this->redirectToRoute('admin_rj_multicarrier_validation_rule_index');
+		}
+
+		$updated = 0;
+
+		foreach ($eligibleRules as $rule) {
+			if (($activate && $rule->isActive()) || (!$activate && !$rule->isActive())) {
+				continue;
+			}
+
+			try {
+				$this->getCommandBus()->handle(new ToggleValidationRuleStatusCommand($rule->getId()));
+				++$updated;
+			} catch (\Throwable $exception) {
+				$this->addFlash(
+					'error',
+					sprintf(
+						$this->trans('No se pudo actualizar la regla "%s": %s', self::TRANSLATION_DOMAIN),
+						$rule->getName(),
+						$exception->getMessage()
+					)
+				);
+			}
+		}
+
+		if ($updated > 0) {
+			$message = $activate
+				? sprintf($this->trans('Se activaron %d reglas.', self::TRANSLATION_DOMAIN), $updated)
+				: sprintf($this->trans('Se desactivaron %d reglas.', self::TRANSLATION_DOMAIN), $updated);
+			$this->addFlash('success', $message);
+		} else {
+			$message = $activate
+				? $this->trans('Las reglas seleccionadas ya estaban activas.', self::TRANSLATION_DOMAIN)
+				: $this->trans('Las reglas seleccionadas ya estaban desactivadas.', self::TRANSLATION_DOMAIN);
+			$this->addFlash('info', $message);
+		}
+
+		return $this->redirectToRoute('admin_rj_multicarrier_validation_rule_index');
 	}
 }
 

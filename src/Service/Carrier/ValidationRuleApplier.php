@@ -147,21 +147,48 @@ final class ValidationRuleApplier
 
         [$normalizedCarriers, $referenceToCarrier] = $this->normalizeCarrierList($carrierList);
         $hadInitialCarriers = !empty($normalizedCarriers);
+        $selectedRules = [];
+        $bestPriority = null;
 
         foreach ($rules as $rule) {
             if (!$this->matchesRule($rule['conditions'], $context)) {
                 continue;
             }
 
-            $matchedRules[] = [
+            $priority = (int) ($rule['priority'] ?? 0);
+            $summary = [
                 'name' => (string) ($rule['name'] ?? ''),
                 'dimensions' => $this->extractConditionDimensions($rule['conditions'] ?? []),
             ];
 
-            $normalizedCarriers = $this->applyActions($normalizedCarriers, $rule['actions']);
+            if (null === $bestPriority || $priority > $bestPriority) {
+                $bestPriority = $priority;
+                $selectedRules = [[
+                    'rule' => $rule,
+                    'summary' => $summary,
+                ]];
+                continue;
+            }
+
+            if ($priority === $bestPriority) {
+                $selectedRules[] = [
+                    'rule' => $rule,
+                    'summary' => $summary,
+                ];
+            }
         }
 
-        $resolvedCarriers = $this->denormalizeCarrierList($normalizedCarriers, $referenceToCarrier);
+        $filteredCarriers = $normalizedCarriers;
+
+        if (!empty($selectedRules)) {
+            $matchedRules = array_map(static fn (array $item): array => $item['summary'], $selectedRules);
+
+            foreach ($selectedRules as $item) {
+                $filteredCarriers = $this->applyActions($filteredCarriers, $item['rule']['actions']);
+            }
+        }
+
+        $resolvedCarriers = $this->denormalizeCarrierList($filteredCarriers, $referenceToCarrier);
 
         // PrestaShop core expects [0 => 0] as the sentinel when no carrier is available.
         return empty($resolvedCarriers) ? [0 => 0] : $resolvedCarriers;

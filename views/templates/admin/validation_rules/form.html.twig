@@ -160,6 +160,192 @@
         });
       }
 
+      function escapeHtml(value) {
+        if (typeof value !== 'string') {
+          return value === undefined || value === null ? '' : String(value);
+        }
+
+        var ENTITY_MAP = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        };
+
+        return value.replace(/[&<>"']/g, function (char) {
+          return ENTITY_MAP[char] || char;
+        });
+      }
+
+      function buildCarrierTemplate($element) {
+        var optionCarrierMap = {};
+        var serializedCarrierMap = null;
+
+        if ($element && typeof $element.attr === 'function') {
+          serializedCarrierMap = $element.attr('data-carrier-map') || null;
+        }
+
+        if ($element && typeof $element.find === 'function') {
+          $element.find('option[data-carrier-id]').each(function () {
+            var key = typeof this.value === 'string' ? this.value : String(this.value || '');
+            if (!key) {
+              return;
+            }
+
+            optionCarrierMap[key] = this.getAttribute('data-carrier-id');
+          });
+        }
+
+        var serializedCarrierMapLookup = {};
+
+        if (serializedCarrierMap) {
+          try {
+            var parsed = JSON.parse(serializedCarrierMap);
+
+            if (parsed && typeof parsed === 'object') {
+              Object.keys(parsed).forEach(function (key) {
+                serializedCarrierMapLookup[String(key)] = parsed[key];
+              });
+            }
+          } catch (error) {
+            // ignore invalid payloads
+          }
+        }
+
+        function resolveCarrierId(data) {
+          if (!data) {
+            return null;
+          }
+
+          if (data.element && typeof data.element.getAttribute === 'function') {
+            var elementAttr = data.element.getAttribute('data-carrier-id');
+            if (elementAttr) {
+              return elementAttr;
+            }
+          }
+
+          if (typeof data.id === 'undefined' || data.id === null) {
+            return null;
+          }
+
+          var mapKey = String(data.id);
+
+          if (Object.prototype.hasOwnProperty.call(optionCarrierMap, mapKey)) {
+            return optionCarrierMap[mapKey];
+          }
+
+          if (Object.prototype.hasOwnProperty.call(serializedCarrierMapLookup, mapKey)) {
+            return serializedCarrierMapLookup[mapKey];
+          }
+
+          return null;
+        }
+
+        function formatData(data) {
+          if (!data) {
+            return '';
+          }
+
+          var labelSource = '';
+
+          if (typeof data.text === 'string' && data.text !== '') {
+            labelSource = data.text;
+          } else if (data.element && typeof data.element.textContent === 'string') {
+            labelSource = data.element.textContent;
+          } else if (data.id) {
+            labelSource = data.id;
+          }
+
+          var label = escapeHtml(String(labelSource));
+          var carrierId = resolveCarrierId(data);
+
+          if (!carrierId) {
+            return label;
+          }
+
+          var badge = '<span class="badge badge-primary rj-carrier-badge">ID ' + escapeHtml(String(carrierId)) + '</span>';
+
+          return '<span class="rj-carrier-option"><span class="rj-carrier-option__label">' + label + '</span>' + badge + '</span>';
+        }
+
+        return {
+          format: formatData,
+          resolveCarrierId: resolveCarrierId,
+        };
+      }
+
+      function updateCarrierSelections($element, formatter) {
+        var $ = window.jQuery || window.$;
+
+        if (typeof $ !== 'function' || !formatter || typeof formatter.format !== 'function' || !$element || typeof $element.data !== 'function') {
+          return;
+        }
+
+        var instance = $element.data('select2');
+
+        if (!instance || !instance.$selection) {
+          return;
+        }
+
+        var $choices = instance.$selection.find('.select2-selection__choice');
+        var $removeSelector = '.select2-selection__choice__remove';
+
+        $choices.each(function () {
+          var $choice = $(this);
+          var $remove = $choice.children($removeSelector).first();
+          var data = $choice.data('data');
+
+          if (!data) {
+            return;
+          }
+
+          var html = formatter.format(data);
+
+          if (!html) {
+            return;
+          }
+
+          if ($remove.length) {
+            var existingHtml = $remove[0].outerHTML;
+            $choice.html(existingHtml + html);
+          } else {
+            $choice.html(html);
+          }
+        });
+      }
+
+      function updateCarrierDropdown($element, formatter) {
+        var $ = window.jQuery || window.$;
+
+        if (typeof $ !== 'function' || !formatter || typeof formatter.format !== 'function' || !$element || typeof $element.data !== 'function') {
+          return;
+        }
+
+        var instance = $element.data('select2');
+
+        if (!instance || !instance.$dropdown) {
+          return;
+        }
+
+        var $options = instance.$dropdown.find('.select2-results__option');
+
+        $options.each(function () {
+          var $option = $(this);
+          var data = $option.data('data');
+
+          if (!data) {
+            return;
+          }
+
+          var html = formatter.format(data);
+
+          if (html) {
+            $option.html(html);
+          }
+        });
+      }
+
       function addContainerThemeClass($element, attempt) {
         var currentAttempt = typeof attempt === 'number' ? attempt : 0;
         if (!$element || typeof $element !== 'object' || !$element.data) {
@@ -209,26 +395,48 @@
             var width = $element.data('width') || '100%';
             var placeholder = $element.data('placeholder') || '';
             var allowClear = String($element.data('allow-clear')) !== 'false';
+            var isCarrierSelect = String($element.data('carrier-select')) === '1';
 
             if ($element.hasClass('select2-hidden-accessible')) {
               $element.select2('destroy');
             }
 
-            $element.select2({
+            var select2Config = {
               theme: 'bootstrap',
               width: width,
               placeholder: placeholder,
               allowClear: allowClear,
               closeOnSelect: false,
-            });
+            };
+
+            if (isCarrierSelect) {
+              var carrierFormatter = buildCarrierTemplate($element);
+              select2Config.escapeMarkup = function (markup) { return markup; };
+              select2Config.templateResult = carrierFormatter.format;
+              select2Config.templateSelection = carrierFormatter.format;
+            }
+
+            $element.select2(select2Config);
             addContainerThemeClass($element);
 
-            $element.off('select2:open.rjTheme select2:close.rjTheme select2:closing.rjTheme');
+            $element.off('select2:open.rjTheme select2:close.rjTheme select2:closing.rjTheme select2:select.rjCarrier select2:unselect.rjCarrier');
             $element.on('select2:open.rjTheme', function () {
               addContainerThemeClass($element);
               addDropdownThemeClass();
+
+              if (isCarrierSelect) {
+                updateCarrierDropdown($element, carrierFormatter);
+              }
             });
             $element.on('select2:close.rjTheme select2:closing.rjTheme', removeDropdownThemeClass);
+
+            if (isCarrierSelect) {
+              updateCarrierSelections($element, carrierFormatter);
+
+              $element.on('select2:select.rjCarrier select2:unselect.rjCarrier', function () {
+                updateCarrierSelections($element, carrierFormatter);
+              });
+            }
           });
         };
 

@@ -22,6 +22,45 @@ final class ValidationRuleType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $carrierChoiceAttr = static function ($choice, $key, $value) use ($options): array {
+            $carrierIds = $options['carrier_choice_ids'] ?? [];
+            $referenceId = (int) $value;
+            $carrierId = $carrierIds[$referenceId] ?? null;
+
+            if (null === $carrierId || $carrierId <= 0) {
+                return [];
+            }
+
+            return ['data-carrier-id' => (string) $carrierId];
+        };
+
+        $carrierMapJson = null;
+
+        if (!empty($options['carrier_choice_ids'])) {
+            $encoded = json_encode($options['carrier_choice_ids']);
+
+            if (false !== $encoded) {
+                $carrierMapJson = $encoded;
+            }
+        }
+
+        $carrierFieldAttr = static function (string $placeholder, ?string $carrierMapJson): array {
+            $attr = [
+                'class' => 'form-control js-validation-rule-select2',
+                'data-placeholder' => $placeholder,
+                'data-allow-clear' => 'true',
+                'data-width' => '100%',
+                'data-toggle' => 'select2',
+                'data-carrier-select' => '1',
+            ];
+
+            if (null !== $carrierMapJson) {
+                $attr['data-carrier-map'] = $carrierMapJson;
+            }
+
+            return $attr;
+        };
+
         $builder
             ->setMethod('POST')
             ->add('id', HiddenType::class, [
@@ -126,39 +165,24 @@ final class ValidationRuleType extends AbstractType
                 'choices' => $options['carrier_choices'],
                 'required' => false,
                 'multiple' => true,
-                'attr' => [
-                    'class' => 'form-control js-validation-rule-select2',
-                    'data-placeholder' => 'Selecciona transportistas permitidos',
-                    'data-allow-clear' => 'true',
-                    'data-width' => '100%',
-                    'data-toggle' => 'select2',
-                ],
+                'choice_attr' => $carrierChoiceAttr,
+                'attr' => $carrierFieldAttr('Selecciona transportistas permitidos', $carrierMapJson),
             ])
             ->add('deny_ids', ChoiceType::class, [
                 'label' => 'Transportistas bloqueados',
                 'choices' => $options['carrier_choices'],
                 'required' => false,
                 'multiple' => true,
-                'attr' => [
-                    'class' => 'form-control js-validation-rule-select2',
-                    'data-placeholder' => 'Selecciona transportistas a bloquear',
-                    'data-allow-clear' => 'true',
-                    'data-width' => '100%',
-                    'data-toggle' => 'select2',
-                ],
+                'choice_attr' => $carrierChoiceAttr,
+                'attr' => $carrierFieldAttr('Selecciona transportistas a bloquear', $carrierMapJson),
             ])
             ->add('add_ids', ChoiceType::class, [
                 'label' => 'Transportistas a añadir',
                 'choices' => $options['carrier_choices'],
                 'required' => false,
                 'multiple' => true,
-                'attr' => [
-                    'class' => 'form-control js-validation-rule-select2',
-                    'data-placeholder' => 'Selecciona transportistas adicionales',
-                    'data-allow-clear' => 'true',
-                    'data-width' => '100%',
-                    'data-toggle' => 'select2',
-                ],
+                'choice_attr' => $carrierChoiceAttr,
+                'attr' => $carrierFieldAttr('Selecciona transportistas adicionales', $carrierMapJson),
             ])
             ->add('save', SubmitType::class);
     }
@@ -169,6 +193,7 @@ final class ValidationRuleType extends AbstractType
             'data_class' => null,
             'translation_domain' => 'Modules.RjMulticarrier.Admin',
             'carrier_choices' => [],
+            'carrier_choice_ids' => [],
             'product_choices' => [],
             'category_choices' => [],
             'zone_choices' => [],
@@ -176,6 +201,7 @@ final class ValidationRuleType extends AbstractType
         ]);
 
         $resolver->setAllowedTypes('carrier_choices', 'array');
+        $resolver->setAllowedTypes('carrier_choice_ids', 'array');
         $resolver->setAllowedTypes('product_choices', 'array');
         $resolver->setAllowedTypes('category_choices', 'array');
         $resolver->setAllowedTypes('zone_choices', 'array');

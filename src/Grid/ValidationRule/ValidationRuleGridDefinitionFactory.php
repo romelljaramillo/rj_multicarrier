@@ -173,6 +173,18 @@ final class ValidationRuleGridDefinitionFactory extends AbstractModuleGridDefini
     {
         $actions = new BulkActionCollection();
 
+        $actions->add((new SubmitBulkAction('activate_selected'))
+            ->setName($this->transString('Activar seleccionadas'))
+            ->setOptions([
+                'submit_route' => 'admin_rj_multicarrier_validation_rule_activate_bulk',
+            ]));
+
+        $actions->add((new SubmitBulkAction('deactivate_selected'))
+            ->setName($this->transString('Desactivar seleccionadas'))
+            ->setOptions([
+                'submit_route' => 'admin_rj_multicarrier_validation_rule_deactivate_bulk',
+            ]));
+
         $actions->add(
             $this->buildBulkDeleteAction('admin_rj_multicarrier_validation_rule_delete_bulk')
         );

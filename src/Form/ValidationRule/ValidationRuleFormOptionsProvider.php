@@ -43,26 +43,34 @@ final class ValidationRuleFormOptionsProvider
     }
 
     /**
-     * @return array<string, int>
+     * @return array{choices: array<string, int>, carrier_ids: array<int, int>}
      */
     public function getCarrierChoices(): array
     {
         $choices = [];
+        $carrierIds = [];
         $languageId = $this->getContextLanguageId();
 
         foreach ($this->carrierRepository->getActiveReferenceCarriers($languageId) as $carrier) {
             $referenceId = (int) ($carrier['id_reference'] ?? 0);
             $name = trim((string) ($carrier['name'] ?? ''));
+            $carrierId = (int) ($carrier['id_carrier'] ?? 0);
 
             if ($referenceId <= 0) {
                 continue;
             }
 
-            $label = $name === ''
-                ? sprintf('Transportista ref. %d', $referenceId)
-                : sprintf('%s (ref. %d)', $name, $referenceId);
+            $displayId = $carrierId > 0 ? $carrierId : $referenceId;
+            $baseLabel = $name === ''
+                ? sprintf('Transportista #%d', $displayId)
+                : $name;
+            $label = sprintf('%s (ID %d)', $baseLabel, $displayId);
 
             $choices[$label] = $referenceId;
+
+            if ($carrierId > 0) {
+                $carrierIds[$referenceId] = $carrierId;
+            }
         }
 
         if (empty($choices)) {
@@ -71,14 +79,25 @@ final class ValidationRuleFormOptionsProvider
                     continue;
                 }
 
-                $label = sprintf('%s (ID %d)', $carrier->getName(), $carrier->getId());
-                $choices[$label] = (int) $carrier->getId();
+                $carrierId = (int) $carrier->getId();
+                $name = (string) $carrier->getName();
+                if ('' === $name) {
+                    $name = sprintf('Transportista #%d', $carrierId);
+                }
+
+                $choices[sprintf('%s (ID %d)', $name, $carrierId)] = $carrierId;
+                $carrierIds[$carrierId] = $carrierId;
             }
         }
 
-        ksort($choices, SORT_STRING | SORT_FLAG_CASE);
+        if (!empty($choices)) {
+            ksort($choices, SORT_STRING | SORT_FLAG_CASE);
+        }
 
-        return $choices;
+        return [
+            'choices' => $choices,
+            'carrier_ids' => $carrierIds,
+        ];
     }
 
     /**

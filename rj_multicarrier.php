@@ -165,7 +165,7 @@ class Rj_Multicarrier extends Module implements WidgetInterface
     {
     }
 
-    /* public function hookActionCarrierProcess(array $params): void
+    public function hookActionCarrierProcess(array $params): void
     {
         $cart = $params['cart'] ?? null;
 
@@ -201,9 +201,9 @@ class Rj_Multicarrier extends Module implements WidgetInterface
                 throw $exception;
             }
         }
-    } */
+    }
 
-    /* public function hookActionDeliveryOptionListModifier(array &$params): void
+    public function hookActionDeliveryOptionListModifier(array &$params): void
     {
         $cart = $params['cart'] ?? null;
 
@@ -342,7 +342,7 @@ class Rj_Multicarrier extends Module implements WidgetInterface
                 throw $exception;
             }
         }
-    } */
+    }
 
     public function hookDisplayAdminOrder(array $params)
     {
