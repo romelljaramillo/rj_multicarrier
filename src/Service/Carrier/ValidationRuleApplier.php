@@ -200,30 +200,43 @@ final class ValidationRuleApplier
      */
     private function matchesRule(array $conditions, array $context): bool
     {
-        if (!empty($conditions['product_ids'])) {
-            if (!$this->hasIntersection($conditions['product_ids'], $context['product_ids'] ?? [])) {
-                return false;
-            }
+        $hasProductCondition = !empty($conditions['product_ids']);
+        $hasCategoryCondition = !empty($conditions['category_ids']);
+        $matchesProduct = $hasProductCondition
+            && $this->hasIntersection($conditions['product_ids'], $context['product_ids'] ?? []);
+        $matchesCategory = $hasCategoryCondition
+            && $this->hasIntersection($conditions['category_ids'], $context['category_ids'] ?? []);
+
+        if ($hasProductCondition && !$hasCategoryCondition && !$matchesProduct) {
+            return false;
         }
 
-        if (!empty($conditions['category_ids'])) {
-            if (!$this->hasIntersection($conditions['category_ids'], $context['category_ids'] ?? [])) {
-                return false;
-            }
+        if ($hasCategoryCondition && !$hasProductCondition && !$matchesCategory) {
+            return false;
         }
 
-        if (!empty($conditions['zone_ids'])) {
-            $zoneId = $context['zone_id'] ?? null;
-            if (null === $zoneId || !in_array($zoneId, $conditions['zone_ids'], true)) {
-                return false;
-            }
+        if ($hasProductCondition && $hasCategoryCondition && !$matchesProduct && !$matchesCategory) {
+            return false;
         }
 
-        if (!empty($conditions['country_ids'])) {
-            $countryId = $context['country_id'] ?? null;
-            if (null === $countryId || !in_array($countryId, $conditions['country_ids'], true)) {
-                return false;
-            }
+        $zoneId = $context['zone_id'] ?? null;
+        $countryId = $context['country_id'] ?? null;
+        $hasZoneCondition = !empty($conditions['zone_ids']);
+        $hasCountryCondition = !empty($conditions['country_ids']);
+
+        $matchesZone = $hasZoneCondition && null !== $zoneId && in_array($zoneId, $conditions['zone_ids'], true);
+        $matchesCountry = $hasCountryCondition && null !== $countryId && in_array($countryId, $conditions['country_ids'], true);
+
+        if ($hasZoneCondition && !$hasCountryCondition && !$matchesZone) {
+            return false;
+        }
+
+        if ($hasCountryCondition && !$hasZoneCondition && !$matchesCountry) {
+            return false;
+        }
+
+        if ($hasZoneCondition && $hasCountryCondition && !$matchesZone && !$matchesCountry) {
+            return false;
         }
 
         if (null !== ($conditions['min_weight'] ?? null)) {
