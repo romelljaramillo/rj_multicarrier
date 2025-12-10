@@ -212,6 +212,10 @@ final class ModuleInstaller
                 }
             }
 
+            if (!$this->ensureCarrierConfigurationSchema($schemaManager)) {
+                return false;
+            }
+
             if (!$this->ensureValidationRuleSchema($schemaManager)) {
                 return false;
             }
@@ -225,6 +229,39 @@ final class ModuleInstaller
             }
         } catch (\Throwable $exception) {
             return false;
+        }
+
+        return true;
+    }
+
+    private function ensureCarrierConfigurationSchema(AbstractSchemaManager $schemaManager): bool
+    {
+        if (null === $this->connection) {
+            return true;
+        }
+
+        $tableName = _DB_PREFIX_ . 'rj_multicarrier_carrier_configuration';
+
+        if (!$schemaManager->tablesExist([$tableName])) {
+            return true;
+        }
+
+        $columns = array_change_key_case($schemaManager->listTableColumns($tableName), CASE_LOWER);
+
+        $columnDefinitions = [
+            'field_group' => "ALTER TABLE `{$tableName}` ADD `field_group` VARCHAR(64) NULL DEFAULT NULL AFTER `is_required`",
+            'field_type' => "ALTER TABLE `{$tableName}` ADD `field_type` VARCHAR(32) NULL DEFAULT 'text' AFTER `field_group`",
+            'payload_direction' => "ALTER TABLE `{$tableName}` ADD `payload_direction` VARCHAR(16) NULL DEFAULT NULL AFTER `field_type`",
+            'payload_key' => "ALTER TABLE `{$tableName}` ADD `payload_key` VARCHAR(191) NULL DEFAULT NULL AFTER `payload_direction`",
+            'payload_source' => "ALTER TABLE `{$tableName}` ADD `payload_source` VARCHAR(191) NULL DEFAULT NULL AFTER `payload_key`",
+            'position' => "ALTER TABLE `{$tableName}` ADD `position` INT(11) NOT NULL DEFAULT 0 AFTER `payload_source`",
+            'is_dynamic' => "ALTER TABLE `{$tableName}` ADD `is_dynamic` TINYINT(1) UNSIGNED NOT NULL DEFAULT 0 AFTER `position`",
+        ];
+
+        foreach ($columnDefinitions as $column => $sql) {
+            if (!isset($columns[$column])) {
+                $this->connection->executeStatement($sql);
+            }
         }
 
         return true;

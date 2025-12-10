@@ -127,6 +127,15 @@ final class ValidationRuleQueryBuilder extends AbstractDoctrineQueryBuilder
                 'vr.priority',
                 'vr.active',
                 'vr.shop_id',
+                'vr.product_ids',
+                'vr.category_ids',
+                'vr.zone_ids',
+                'vr.country_ids',
+                'vr.min_weight',
+                'vr.max_weight',
+                'vr.allow_ids',
+                'vr.deny_ids',
+                'vr.add_ids',
                 'vr.created_at',
                 'vr.updated_at',
                 's.name AS shop_name'
@@ -137,14 +146,17 @@ final class ValidationRuleQueryBuilder extends AbstractDoctrineQueryBuilder
 
     private function applyContextRestrictions(QueryBuilder $qb): void
     {
-        if (!class_exists('\Shop')) {
+        $shopClass = '\\Shop';
+
+        if (!class_exists($shopClass)) {
             return;
         }
 
-        $context = (int) \Shop::getContext();
+        $context = (int) call_user_func([$shopClass, 'getContext']);
+        $shopContextConst = defined($shopClass . '::CONTEXT_SHOP') ? constant($shopClass . '::CONTEXT_SHOP') : $context;
 
-        if ($context === \Shop::CONTEXT_SHOP) {
-            $shopId = (int) \Shop::getContextShopID();
+        if ($context === $shopContextConst) {
+            $shopId = (int) call_user_func([$shopClass, 'getContextShopID']);
 
             if ($shopId > 0) {
                 $qb->andWhere('(vr.shop_id = :context_shop_id OR vr.shop_id IS NULL)')

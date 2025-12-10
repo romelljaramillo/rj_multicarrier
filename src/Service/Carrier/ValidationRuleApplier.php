@@ -48,6 +48,9 @@ final class ValidationRuleApplier
 
         $this->lastBlockedSummaries = [];
 
+        $packageSnapshots = [];
+        $ruleSetsByAddress = [];
+
         foreach ($packagesByAddress as $addressId => $packages) {
             $zoneId = null;
             $countryId = null;
@@ -67,15 +70,58 @@ final class ValidationRuleApplier
                 }
 
                 $context = $this->buildContext($package, $zoneId, $countryId);
+
+                if (!isset($packageSnapshots[$addressId])) {
+                    $packageSnapshots[$addressId] = [];
+                }
+
+                $packageSnapshots[$addressId][$index] = [
+                    'package' => $package,
+                    'context' => $context,
+                ];
+
+                $selection = $this->selectRuleSetForContext($rules, $context);
+
+                if (empty($selection['rules'])) {
+                    continue;
+                }
+
+                if (!isset($ruleSetsByAddress[$addressId])) {
+                    $ruleSetsByAddress[$addressId] = [
+                        'priority' => null,
+                        'rules' => [],
+                    ];
+                }
+
+                $currentPriority = $ruleSetsByAddress[$addressId]['priority'];
+
+                if (null === $currentPriority || $selection['priority'] > $currentPriority) {
+                    $ruleSetsByAddress[$addressId]['priority'] = $selection['priority'];
+                    $ruleSetsByAddress[$addressId]['rules'] = $selection['rules'];
+                } elseif ($selection['priority'] === $currentPriority) {
+                    $ruleSetsByAddress[$addressId]['rules'] = $this->mergeRuleSets(
+                        $ruleSetsByAddress[$addressId]['rules'],
+                        $selection['rules']
+                    );
+                }
+            }
+        }
+
+        foreach ($packageSnapshots as $addressId => $snapshots) {
+            $forcedRules = $ruleSetsByAddress[$addressId]['rules'] ?? [];
+            $forcedRules = empty($forcedRules) ? null : $forcedRules;
+
+            foreach ($snapshots as $index => $snapshot) {
                 $matchedRules = [];
                 $hadInitialCarriers = false;
 
                 $packagesByAddress[$addressId][$index]['carrier_list'] = $this->applyRulesToCarriers(
-                    $package['carrier_list'] ?? [],
+                    $snapshot['package']['carrier_list'] ?? [],
                     $rules,
-                    $context,
+                    $snapshot['context'],
                     $matchedRules,
-                    $hadInitialCarriers
+                    $hadInitialCarriers,
+                    $forcedRules
                 );
 
                 if ($hadInitialCarriers
@@ -139,7 +185,8 @@ final class ValidationRuleApplier
         array $rules,
         array $context,
         ?array &$matchedRules = null,
-        ?bool &$hadInitialCarriers = null
+        ?bool &$hadInitialCarriers = null,
+        ?array $forcedRuleSet = null
     ): array
     {
         $matchedRules = [];
@@ -147,36 +194,11 @@ final class ValidationRuleApplier
 
         [$normalizedCarriers, $referenceToCarrier] = $this->normalizeCarrierList($carrierList);
         $hadInitialCarriers = !empty($normalizedCarriers);
-        $selectedRules = [];
-        $bestPriority = null;
+        $selection = null !== $forcedRuleSet
+            ? ['rules' => $forcedRuleSet]
+            : $this->selectRuleSetForContext($rules, $context);
 
-        foreach ($rules as $rule) {
-            if (!$this->matchesRule($rule['conditions'], $context)) {
-                continue;
-            }
-
-            $priority = (int) ($rule['priority'] ?? 0);
-            $summary = [
-                'name' => (string) ($rule['name'] ?? ''),
-                'dimensions' => $this->extractConditionDimensions($rule['conditions'] ?? []),
-            ];
-
-            if (null === $bestPriority || $priority > $bestPriority) {
-                $bestPriority = $priority;
-                $selectedRules = [[
-                    'rule' => $rule,
-                    'summary' => $summary,
-                ]];
-                continue;
-            }
-
-            if ($priority === $bestPriority) {
-                $selectedRules[] = [
-                    'rule' => $rule,
-                    'summary' => $summary,
-                ];
-            }
-        }
+        $selectedRules = $selection['rules'] ?? [];
 
         $filteredCarriers = $normalizedCarriers;
 
@@ -189,6 +211,10 @@ final class ValidationRuleApplier
         }
 
         $resolvedCarriers = $this->denormalizeCarrierList($filteredCarriers, $referenceToCarrier);
+
+        if (empty($resolvedCarriers) && !empty($normalizedCarriers)) {
+            $resolvedCarriers = $this->denormalizeCarrierList($normalizedCarriers, $referenceToCarrier);
+        }
 
         // PrestaShop core expects [0 => 0] as the sentinel when no carrier is available.
         return empty($resolvedCarriers) ? [0 => 0] : $resolvedCarriers;
@@ -276,7 +302,7 @@ final class ValidationRuleApplier
         $result = $carrierIds;
 
         if (!empty($actions['allow'])) {
-            $result = array_values(array_intersect($result, $actions['allow']));
+            $result = array_values(array_unique($actions['allow']));
         }
 
         if (!empty($actions['add'])) {
@@ -362,6 +388,93 @@ final class ValidationRuleApplier
         $resolved = array_values(array_unique(array_filter($resolved, static fn (int $id): bool => $id > 0)));
 
         return empty($resolved) ? [] : array_combine($resolved, $resolved);
+    }
+
+    /**
+     * @param array<int, array{name:string,priority:int,conditions:array<string, mixed>,actions:array<string, array<int>>}> $rules
+     * @param array<string, mixed> $context
+     *
+     * @return array{rules: array<int, array{rule: array, summary: array}>, priority: ?int}
+     */
+    private function selectRuleSetForContext(array $rules, array $context): array
+    {
+        $bestPriority = null;
+        $selectedRules = [];
+
+        foreach ($rules as $rule) {
+            if (!$this->matchesRule($rule['conditions'], $context)) {
+                continue;
+            }
+
+            $priority = (int) ($rule['priority'] ?? 0);
+            $summary = [
+                'name' => (string) ($rule['name'] ?? ''),
+                'dimensions' => $this->extractConditionDimensions($rule['conditions'] ?? []),
+            ];
+
+            if (null === $bestPriority || $priority > $bestPriority) {
+                $bestPriority = $priority;
+                $selectedRules = [[
+                    'rule' => $rule,
+                    'summary' => $summary,
+                ]];
+                continue;
+            }
+
+            if ($priority === $bestPriority) {
+                $selectedRules[] = [
+                    'rule' => $rule,
+                    'summary' => $summary,
+                ];
+            }
+        }
+
+        return [
+            'rules' => $selectedRules,
+            'priority' => $bestPriority,
+        ];
+    }
+
+    /**
+     * @param array<int, array{rule: array, summary: array}> $base
+     * @param array<int, array{rule: array, summary: array}> $extra
+     *
+     * @return array<int, array{rule: array, summary: array}>
+     */
+    private function mergeRuleSets(array $base, array $extra): array
+    {
+        if (empty($base)) {
+            return $extra;
+        }
+
+        if (empty($extra)) {
+            return $base;
+        }
+
+        $merged = $base;
+        $hashes = [];
+
+        foreach ($base as $item) {
+            $hashes[$this->hashRule($item['rule'] ?? [])] = true;
+        }
+
+        foreach ($extra as $item) {
+            $hash = $this->hashRule($item['rule'] ?? []);
+
+            if (isset($hashes[$hash])) {
+                continue;
+            }
+
+            $hashes[$hash] = true;
+            $merged[] = $item;
+        }
+
+        return $merged;
+    }
+
+    private function hashRule(array $rule): string
+    {
+        return md5(serialize($rule));
     }
 
     private function registerBlockedSummary(string $addressId, array $matchedRules): void

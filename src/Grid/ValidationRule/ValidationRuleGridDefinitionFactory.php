@@ -76,6 +76,16 @@ final class ValidationRuleGridDefinitionFactory extends AbstractModuleGridDefini
                 ->setOptions([
                     'field' => 'priority',
                 ]))
+            ->add((new DataColumn('conditions_summary'))
+                ->setName($this->transString('Condiciones aplicadas'))
+                ->setOptions([
+                    'field' => 'conditions_summary',
+                ]))
+            ->add((new DataColumn('actions_summary'))
+                ->setName($this->transString('Acciones: transportistas afectados'))
+                ->setOptions([
+                    'field' => 'actions_summary',
+                ]))
             ->add((new DataColumn('shop_label'))
                 ->setName($this->transString('Tienda'))
                 ->setOptions([
