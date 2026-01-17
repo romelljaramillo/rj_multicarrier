@@ -88,6 +88,7 @@ final class GlsCarrierAdapter implements CarrierAdapterInterface
                 'label' => 'Modo producción',
                 'value' => '0',
                 'required' => true,
+                'field_type' => 'boolean',
                 'legacy' => ['RJ_GLS_ENV'],
             ],
             [
@@ -114,6 +115,7 @@ final class GlsCarrierAdapter implements CarrierAdapterInterface
                 'label' => 'Peso por defecto',
                 'value' => null,
                 'required' => true,
+                'field_type' => 'number',
                 'legacy' => ['RJ_GLS_WEIGHT'],
             ],
             [
@@ -121,6 +123,7 @@ final class GlsCarrierAdapter implements CarrierAdapterInterface
                 'label' => 'Bultos por defecto',
                 'value' => '1',
                 'required' => true,
+                'field_type' => 'number',
                 'legacy' => ['RJ_GLS_QUANTITY'],
             ],
             [
@@ -135,6 +138,7 @@ final class GlsCarrierAdapter implements CarrierAdapterInterface
                 'label' => 'POD por defecto',
                 'value' => '0',
                 'required' => true,
+                'field_type' => 'boolean',
                 'legacy' => ['RJ_GLS_RCS'],
             ],
             [
@@ -149,6 +153,7 @@ final class GlsCarrierAdapter implements CarrierAdapterInterface
                 'label' => 'Valor asegurado por defecto',
                 'value' => '0',
                 'required' => true,
+                'field_type' => 'number',
                 'legacy' => ['RJ_GLS_VSEC'],
             ],
             [

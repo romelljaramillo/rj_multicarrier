@@ -2,49 +2,59 @@
 
 {% block content %}
     {% if adapterInstallCards is defined and adapterInstallCards|length > 0 %}
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card shadow-sm">
-                    <div class="card-header d-flex flex-column flex-md-row justify-content-between align-items-md-center">
-                        <div>
-                            <h3 class="card-header-title mb-1">{{ 'Conectores disponibles'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
-                            <p class="mb-0 text-muted small">{{ 'Instala cada carrier como si fuese un módulo independiente y aplica sus valores por defecto automáticamente.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
-                        </div>
-                        <span class="badge badge-primary mt-2 mt-md-0">{{ adapterInstallCards|length }} {{ 'disponibles'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            {% for card in adapterInstallCards %}
-                                <div class="col-lg-4 col-md-6 mb-4">
-                                    <div class="h-100 border rounded p-3 d-flex flex-column">
-                                        <div class="d-flex align-items-center mb-3">
-                                            <span class="badge badge-pill badge-info text-uppercase mr-3 px-3 py-2">{{ card.code }}</span>
-                                            <div>
-                                                <strong>{{ card.name }}</strong>
-                                                <div class="text-muted small">{{ 'Instalador rápido'|trans({}, 'Modules.RjMulticarrier.Admin') }}</div>
-                                            </div>
-                                        </div>
-                                        <p class="text-muted mb-3">{{ card.description }}</p>
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span class="badge badge-{{ card.supportsApi ? 'success' : 'secondary' }}">
-                                                {{ card.supportsApi ? 'Soporta API'|trans({}, 'Modules.RjMulticarrier.Admin') : 'Configuración manual'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-                                            </span>
-                                            <form method="post" action="{{ path('admin_rj_multicarrier_carriers_install_adapter') }}" class="mb-0">
-                                                <input type="hidden" name="_token" value="{{ csrf_token('rj_multicarrier_carrier_install') }}">
-                                                <input type="hidden" name="adapter_code" value="{{ card.code }}">
-                                                <button type="submit" class="btn btn-primary btn-sm">
-                                                    {{ 'Instalar'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-                                                </button>
-                                            </form>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="card-header-title mb-0" style="letter-spacing: 0.5px;">
+                    <i class="material-icons text-primary mr-2" style="font-size: 18px; vertical-align: text-bottom;">extension</i>
+                    {{ 'Conectores disponibles'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                    <span class="badge badge-pill badge-primary border ml-2">{{ adapterInstallCards|length }}</span>
+                </h3>
+            </div>
+            
+            <div class="card-body">
+                <div class="row">
+                    {% for card in adapterInstallCards %}
+                        <div class="col-xl-3 col-lg-4 col-md-6 mb-3">
+                            <div class="card border shadow-sm connector-card">
+                                <div class="card-body p-2 d-flex align-items-center">
+                                    <div class="d-flex align-items-center justify-content-center bg-dark text-white rounded mr-3" style="min-width: 45px; width: 45px; height: 45px; font-weight: bold; font-size: 0.75rem;">
+                                        {{ card.code }}
+                                    </div>
+                                    
+                                    <div class="flex-grow-1 overflow-hidden mr-3">
+                                        <h6 class="mb-0 text-truncate font-weight-bold text-dark" title="{{ card.name }}">
+                                            {{ card.name }}
+                                        </h6>
+                                        <div class="small text-muted text-truncate" title="{{ card.description }}">
+                                            {{ card.description }}
                                         </div>
                                     </div>
+
+                                    <form method="post" action="{{ path('admin_rj_multicarrier_carriers_install_adapter') }}" class="mb-0">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('rj_multicarrier_carrier_install') }}">
+                                        <input type="hidden" name="adapter_code" value="{{ card.code }}">
+                                        <button type="submit" class="btn btn-outline-primary btn-sm font-weight-bold text-nowrap d-flex align-items-center" style="border-width: 1.5px; border-radius: 6px;">
+                                            <i class="material-icons mr-1" style="font-size: 16px;">add</i>
+                                            {{ 'Instalar'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                                        </button>
+                                    </form>
                                 </div>
-                            {% endfor %}
+                            </div>
                         </div>
-                    </div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
+
+        <style>
+            .connector-card {
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+            }
+            .connector-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.08) !important;
+            }
+        </style>
     {% endif %}
 
     <div class="row">

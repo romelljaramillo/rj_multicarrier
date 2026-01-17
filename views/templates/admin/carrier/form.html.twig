@@ -13,312 +13,284 @@
     {% endif %}
     {% set payloadSectionVisible = payloadValue is not empty %}
 
-    <div class="row g-4">
-        <div class="col-xl-9">
-            <div class="d-flex flex-column gap-4">
-                <form method="post" enctype="multipart/form-data">
-                    <div class="card rj-carrier-form-card">
-                    <h3 class="card-header d-flex align-items-center gap-2">
-                        <i class="material-icons">local_shipping</i>
-                        <span>{{ action == 'create' ? 'Create carrier'|trans({}, 'Modules.RjMulticarrier.Admin') : 'Edit carrier'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
-                    </h3>
-                    <div class="card-body">
-                        {% set isActiveChecked = carrier is defined and carrier ? carrier.isActive|default(true) : true %}
-                        {% set supportsApiChecked = carrier is defined and carrier ? carrier.supportsApi|default(false) : false %}
-                        <div class="mb-3">
-                            <label class="form-label">{{ 'Name'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-                            <input type="text" name="name" value="{{ carrier is defined and carrier ? carrier.name : '' }}" class="form-control" />
-                        </div>
+    <div class="row">
+        <div class="col-12">
+            
+            <ul class="nav nav-tabs mb-4" id="carrierTabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="general-tab" data-toggle="tab" href="#general" role="tab" aria-controls="general" aria-selected="true">
+                        <i class="material-icons">settings</i>
+                        {{ 'General'|trans({}, 'Admin.Global') }}
+                    </a>
+                </li>
+                {% if hasCarrier %}
+                    <li class="nav-item">
+                        <a class="nav-link" id="configuration-tab" data-toggle="tab" href="#configuration" role="tab" aria-controls="configuration" aria-selected="false">
+                            <i class="material-icons">tune</i>
+                            {{ 'Configuración'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="typeshipment-tab" data-toggle="tab" href="#typeshipment" role="tab" aria-controls="typeshipment" aria-selected="false">
+                            <i class="material-icons">local_shipping</i>
+                            {{ 'Tipos de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
 
-                        <div class="mb-3">
-                            <label class="form-label">{{ 'Short name'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-                            <input type="text" name="shortName" value="{{ carrier is defined and carrier ? carrier.shortName : '' }}" class="form-control" />
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">{{ 'Icon'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-                            {% set icon_preview = iconUrl is defined ? iconUrl : (carrier is defined and carrier ? carrier.icon : null) %}
-                            {% if icon_preview %}
-                                <div class="mb-2">
-                                    <img src="{{ icon_preview }}" alt="{{ carrier is defined and carrier ? carrier.name : '' }}" style="max-height:48px; max-width:120px; object-fit:contain;" />
+            <div class="tab-content" id="carrierTabsContent">
+                
+                {# TAB 1: GENERAL #}
+                <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="general-tab">
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="card rj-carrier-form-card">
+                            <h3 class="card-header d-flex align-items-center gap-2">
+                                <i class="material-icons">local_shipping</i>
+                                <span>{{ action == 'create' ? 'Create carrier'|trans({}, 'Modules.RjMulticarrier.Admin') : 'Edit carrier'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
+                            </h3>
+                            <div class="card-body">
+                                {% set isActiveChecked = carrier is defined and carrier ? carrier.isActive|default(true) : true %}
+                                {% set supportsApiChecked = carrier is defined and carrier ? carrier.supportsApi|default(false) : false %}
+                                <div class="mb-3">
+                                    <label class="form-label">{{ 'Name'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                                    <input type="text" name="name" value="{{ carrier is defined and carrier ? carrier.name : '' }}" class="form-control" />
                                 </div>
-                            {% endif %}
-                            <input type="file" name="icon" accept="image/*" class="form-control-file" />
+
+                                <div class="mb-3">
+                                    <label class="form-label">{{ 'Short name'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                                    <input type="text" name="shortName" value="{{ carrier is defined and carrier ? carrier.shortName : '' }}" class="form-control" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">{{ 'Icon'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                                    {% set icon_preview = iconUrl is defined ? iconUrl : (carrier is defined and carrier ? carrier.icon : null) %}
+                                    {% if icon_preview %}
+                                        <div class="mb-2">
+                                            <img src="{{ icon_preview }}" alt="{{ carrier is defined and carrier ? carrier.name : '' }}" style="max-height:48px; max-width:120px; object-fit:contain;" />
+                                        </div>
+                                    {% endif %}
+                                    <input type="file" name="icon" accept="image/*" class="form-control-file" />
+                                </div>
+
+                                <div class="mb-3 form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="carrier-is-active" name="is_active" value="1" {% if isActiveChecked %}checked{% endif %}>
+                                    <label class="form-check-label" for="carrier-is-active">{{ 'Carrier enabled'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                                    <small class="text-muted d-block">{{ 'Si se desactiva, el submódulo no aparecerá en los flujos del back-office.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
+                                </div>
+
+                                <div class="mb-3 form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="carrier-supports-api" name="supports_api" value="1" {% if supportsApiChecked %}checked{% endif %}>
+                                    <label class="form-check-label" for="carrier-supports-api">{{ 'Supports API operations'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                                    <small class="text-muted d-block">{{ 'Activa campos relacionados con credenciales y peticiones automáticas.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
+                                </div>
+
+                                <input type="hidden" name="adapter_service" value="{{ carrier is defined and carrier ? carrier.adapterService : '' }}" />
+
+                                <textarea name="configuration_schema" class="d-none">{{ schemaValue }}</textarea>
+
+                                <div class="mb-3 form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="carrier-payload-toggle" name="payload_section_enabled" value="1" {% if payloadSectionVisible %}checked{% endif %}>
+                                    <label class="form-check-label" for="carrier-payload-toggle">{{ 'Configurar plantilla de payload API'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                                    <small class="text-muted d-block">{{ 'Activa este bloque solo si el carrier necesita definir una carga JSON personalizada.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
+                                </div>
+
+                                <div id="carrier-payload-card" class="mb-3 {% if not payloadSectionVisible %}d-none{% endif %}">
+                                    <label class="form-label">{{ 'Default payload (JSON)'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                                    <textarea name="default_payload" class="form-control font-monospace" rows="6" placeholder="{{ '{ "request": {}, "response": {} }'|e }}">{{ payloadValue }}</textarea>
+                                    <small class="text-muted">{{ 'Plantilla opcional que se mezclará con los datos generados por el adaptador antes de enviar la petición.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
+                                </div>
+
+                            </div>
+                            <div class="card-footer">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <a class="btn btn-secondary" href="{{ path('admin_rj_multicarrier_carriers_index') }}">
+                                        {{ 'Cancelar'|trans({}, 'Admin.Actions') }}
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">{{ 'Guardar'|trans({}, 'Admin.Actions') }}</button>
+                                </div>
+                            </div>
                         </div>
-
-                        <div class="mb-3 form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="carrier-is-active" name="is_active" value="1" {% if isActiveChecked %}checked{% endif %}>
-                            <label class="form-check-label" for="carrier-is-active">{{ 'Carrier enabled'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-                            <small class="text-muted d-block">{{ 'Si se desactiva, el submódulo no aparecerá en los flujos del back-office.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
-                        </div>
-
-                        <div class="mb-3 form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="carrier-supports-api" name="supports_api" value="1" {% if supportsApiChecked %}checked{% endif %}>
-                            <label class="form-check-label" for="carrier-supports-api">{{ 'Supports API operations'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-                            <small class="text-muted d-block">{{ 'Activa campos relacionados con credenciales y peticiones automáticas.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
-                        </div>
-
-                        <input type="hidden" name="adapter_service" value="{{ carrier is defined and carrier ? carrier.adapterService : '' }}" />
-
-                        <textarea name="configuration_schema" class="d-none">{{ schemaValue }}</textarea>
-
-                        <div class="mb-3 form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="carrier-payload-toggle" name="payload_section_enabled" value="1" {% if payloadSectionVisible %}checked{% endif %}>
-                            <label class="form-check-label" for="carrier-payload-toggle">{{ 'Configurar plantilla de payload API'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-                            <small class="text-muted d-block">{{ 'Activa este bloque solo si el carrier necesita definir una carga JSON personalizada.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
-                        </div>
-
-                        <div id="carrier-payload-card" class="mb-3 {% if not payloadSectionVisible %}d-none{% endif %}">
-                            <label class="form-label">{{ 'Default payload (JSON)'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-                            <textarea name="default_payload" class="form-control font-monospace" rows="6" placeholder="{{ '{ "request": {}, "response": {} }'|e }}">{{ payloadValue }}</textarea>
-                            <small class="text-muted">{{ 'Plantilla opcional que se mezclará con los datos generados por el adaptador antes de enviar la petición.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
-                        </div>
-
-                    </div>
-                    <div class="card-footer">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <a class="btn btn-secondary" href="{{ path('admin_rj_multicarrier_carriers_index') }}">
-                                {{ 'Cancelar'|trans({}, 'Admin.Actions') }}
-                            </a>
-                            <button type="submit" class="btn btn-primary">{{ 'Guardar'|trans({}, 'Admin.Actions') }}</button>
-                        </div>
-                    </div>
-                    </div>
-                </form>
+                    </form>
+                </div>
 
                 {% if hasCarrier %}
-                    {% set configurationFormAction = path('admin_rj_multicarrier_carriers_configuration', {'id': carrier.id}) %}
-                    {% set configurationCsrfToken = csrf_token('carrier_configurations_' ~ carrier.id) %}
+                    {# TAB 2: CONFIGURATION #}
+                    <div class="tab-pane fade" id="configuration" role="tabpanel" aria-labelledby="configuration-tab">
+                        {% set configurationFormAction = path('admin_rj_multicarrier_carriers_configuration', {'id': carrier.id}) %}
+                        {% set configurationCsrfToken = csrf_token('carrier_configurations_' ~ carrier.id) %}
 
-                    {% include '@Modules/rj_multicarrier/views/templates/admin/carrier/_configuration_form.html.twig' with {
-                        configurationFormAction: configurationFormAction,
-                        configurationCsrfToken: configurationCsrfToken,
-                        defaultConfigurations: defaultConfigurations|default([]),
-                        extraConfigurations: extraConfigurations|default([]),
-                        redirectAfterSubmit: path('admin_rj_multicarrier_carriers_edit', {'id': carrier.id}),
-                        backUrl: path('admin_rj_multicarrier_carriers_index')
-                    } %}
+                        {% include '@Modules/rj_multicarrier/views/templates/admin/carrier/_configuration_form.html.twig' with {
+                            configurationFormAction: configurationFormAction,
+                            configurationCsrfToken: configurationCsrfToken,
+                            defaultConfigurations: defaultConfigurations|default([]),
+                            extraConfigurations: extraConfigurations|default([]),
+                            redirectAfterSubmit: path('admin_rj_multicarrier_carriers_edit', {'id': carrier.id}),
+                            backUrl: path('admin_rj_multicarrier_carriers_index')
+                        } %}
+                    </div>
 
-                    <div class="card">
-                        <div class="card-header d-flex align-items-center justify-content-between">
-                            <div>
-                                <h3 class="card-title h5 mb-0">{{ 'Tipos de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
-                                <p class="text-muted small mb-0">{{ 'Gestiona los códigos BC asociados a este carrier sin salir del formulario.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                    {# TAB 3: TYPE SHIPMENT #}
+                    <div class="tab-pane fade" id="typeshipment" role="tabpanel" aria-labelledby="typeshipment-tab">
+                        <div class="card">
+                            <div class="card-header d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h3 class="card-title h5 mb-0">{{ 'Tipos de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
+                                    <p class="text-muted small mb-0">{{ 'Gestiona los códigos BC asociados a este carrier sin salir del formulario.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                </div>
+                                <span class="badge bg-light text-dark">{{ typeShipments|length }}</span>
                             </div>
-                            <span class="badge bg-light text-dark">{{ typeShipments|length }}</span>
-                        </div>
-                        <div class="card-body" id="type-shipments-card">
-                            {% if typeShipments is not empty %}
-                                <div class="table-responsive">
-                                    <table class="table align-middle mb-0">
-                                        <thead>
-                                        <tr>
-                                            <th>{{ 'Nombre'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
-                                            <th>{{ 'Código de negocio'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
-                                            <th>{{ 'Carrier referencia'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
-                                            <th class="text-center">{{ 'Estado'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
-                                            <th class="text-end">{{ 'Acciones'|trans({}, 'Admin.Global') }}</th>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        {% for typeShipment in typeShipments %}
+                            <div class="card-body p-0" id="type-shipments-card">
+                                {% if typeShipments is not empty %}
+                                    <div class="table-responsive">
+                                        <table class="table table-striped mb-0">
+                                            <thead class="thead-default">
                                             <tr>
-                                                <td>{{ typeShipment.name }}</td>
-                                                <td><code>{{ typeShipment.businessCode }}</code></td>
-                                                <td>
-                                                    {% if typeShipment.referenceCarrierName %}
-                                                        {{ typeShipment.referenceCarrierName }}
-                                                    {% else %}
-                                                        <span class="text-muted">{{ 'Sin asignar'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
-                                                    {% endif %}
-                                                </td>
-                                                <td class="text-center">
-                                                    {% if typeShipment.active %}
-                                                        <span class="badge bg-success">{{ 'Activo'|trans({}, 'Admin.Global') }}</span>
-                                                    {% else %}
-                                                        <span class="badge bg-secondary">{{ 'Inactivo'|trans({}, 'Admin.Global') }}</span>
-                                                    {% endif %}
-                                                </td>
-                                                <td class="text-end">
-                                                    <div class="d-flex justify-content-end gap-3 flex-wrap">
-                                                        <a class="btn btn-link p-0"
-                                                           href="{{ path('admin_rj_multicarrier_carriers_edit', {id: carrier.id, typeShipmentId: typeShipment.id}) }}#type-shipment-form">
-                                                            <i class="material-icons align-middle">edit</i>
-                                                            <span class="align-middle">{{ 'Editar'|trans({}, 'Admin.Actions') }}</span>
-                                                        </a>
-                                                        <form method="post" class="d-inline"
-                                                              action="{{ path('admin_rj_multicarrier_carriers_type_shipment_delete', {
-                                                                  carrierId: carrier.id,
-                                                                  typeShipmentId: typeShipment.id
-                                                              }) }}"
-                                                              onsubmit="return confirm('{{ '¿Eliminar este tipo de envío?'|trans({}, 'Modules.RjMulticarrier.Admin') }}');">
-                                                            <input type="hidden" name="_token" value="{{ csrf_token('delete_type_shipment_' ~ typeShipment.id) }}">
-                                                            <button type="submit" class="btn btn-link text-danger p-0">
-                                                                <i class="material-icons align-middle">delete</i>
-                                                                <span class="align-middle">{{ 'Eliminar'|trans({}, 'Admin.Actions') }}</span>
-                                                            </button>
-                                                        </form>
-                                                    </div>
-                                                </td>
+                                                <th>{{ 'ID'|trans({}, 'Admin.Global') }}</th>
+                                                <th>{{ 'Nombre'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+                                                <th>{{ 'Código comercial'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+                                                <th>{{ 'Carrier referencia'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+                                                <th class="text-center">{{ 'Activo'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+                                                <th class="text-end">{{ 'Acciones'|trans({}, 'Admin.Global') }}</th>
                                             </tr>
-                                        {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% else %}
-                                <div class="text-center text-muted py-4">
-                                    <p class="mb-1">{{ 'Aún no has configurado tipos de envío para este carrier.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
-                                    <small>{{ 'Usa el formulario inferior para registrar los servicios disponibles.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
-                                </div>
-                            {% endif %}
-                        </div>
-                        {% if typeShipmentForm %}
-                            <div class="card-footer" id="type-shipment-form">
-                                <h4 class="h6 mb-3">
-                                    {% if typeShipmentEditing %}
-                                        {{ 'Editar tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-                                    {% else %}
-                                        {{ 'Añadir tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-                                    {% endif %}
-                                </h4>
-
-                                {% if typeShipmentEditing %}
-                                    <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                        <div>
-                                            <strong class="d-block">{{ 'Editando:'|trans({}, 'Modules.RjMulticarrier.Admin') }}</strong>
-                                            <span>{{ typeShipmentEditing.name }}</span>
-                                        </div>
-                                        <a class="btn btn-sm btn-outline-secondary"
-                                           href="{{ path('admin_rj_multicarrier_carriers_edit', {id: carrier.id}) }}#type-shipment-form">
-                                            {{ 'Cancelar edición'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-                                        </a>
+                                            </thead>
+                                            <tbody>
+                                            {% for typeShipment in typeShipments %}
+                                                <tr>
+                                                    <td class="align-middle">{{ typeShipment.id }}</td>
+                                                    <td class="align-middle">{{ typeShipment.name }}</td>
+                                                    <td class="align-middle"><code class="text-muted">{{ typeShipment.businessCode }}</code></td>
+                                                    <td class="align-middle">
+                                                        {% if typeShipment.referenceCarrierName %}
+                                                            {{ typeShipment.referenceCarrierName }}
+                                                        {% else %}
+                                                            <span class="text-muted font-italic">{{ 'Sin asignar'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
+                                                        {% endif %}
+                                                    </td>
+                                                    <td class="text-center align-middle">
+                                                        <a href="{{ path('admin_rj_multicarrier_carriers_type_shipment_toggle_status', {carrierId: carrier.id, typeShipmentId: typeShipment.id}) }}" class="text-decoration-none" title="{{ 'Cambiar estado'|trans({}, 'Admin.Actions') }}">
+                                                            {% if typeShipment.active %}
+                                                                <i class="material-icons text-success">check_circle</i>
+                                                            {% else %}
+                                                                <i class="material-icons text-secondary">cancel</i>
+                                                            {% endif %}
+                                                        </a>
+                                                    </td>
+                                                    <td class="text-end align-middle">
+                                                        <div class="btn-group">
+                                                            <a class="btn btn-link text-decoration-none" href="#" role="button" data-toggle="dropdown" aria-expanded="false">
+                                                                <i class="material-icons">more_vert</i>
+                                                            </a>
+                                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                                <li>
+                                                                    <a class="dropdown-item" href="{{ path('admin_rj_multicarrier_carriers_edit', {id: carrier.id, typeShipmentId: typeShipment.id}) }}#type-shipment-form">
+                                                                        <i class="material-icons align-middle me-2" style="font-size: 1.1rem;">edit</i>
+                                                                        {{ 'Editar'|trans({}, 'Admin.Actions') }}
+                                                                    </a>
+                                                                </li>
+                                                                <li>
+                                                                    <form method="post" action="{{ path('admin_rj_multicarrier_carriers_type_shipment_delete', {
+                                                                          carrierId: carrier.id,
+                                                                          typeShipmentId: typeShipment.id
+                                                                      }) }}" onsubmit="return confirm('{{ '¿Eliminar este tipo de envío?'|trans({}, 'Modules.RjMulticarrier.Admin') }}');">
+                                                                        <input type="hidden" name="_token" value="{{ csrf_token('delete_type_shipment_' ~ typeShipment.id) }}">
+                                                                        <button type="submit" class="dropdown-item text-danger">
+                                                                            <i class="material-icons align-middle me-2" style="font-size: 1.1rem;">delete</i>
+                                                                            {{ 'Eliminar'|trans({}, 'Admin.Actions') }}
+                                                                        </button>
+                                                                    </form>
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <div class="text-center text-muted py-4">
+                                        <p class="mb-1">{{ 'Aún no has configurado tipos de envío para este carrier.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+                                        <small>{{ 'Usa el formulario inferior para registrar los servicios disponibles.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
                                     </div>
                                 {% endif %}
+                            </div>
+                            {% if typeShipmentForm %}
+                                <div class="card-footer" id="type-shipment-form">
+                                    <h4 class="h6 mb-3 font-weight-bold">
+                                        {% if typeShipmentEditing %}
+                                            {{ 'Editar tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                                        {% else %}
+                                            {{ 'Añadir tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                                        {% endif %}
+                                    </h4>
 
-                                {{ form_start(typeShipmentForm, { attr: { class: 'row g-3' } }) }}
-                                    <div class="col-md-6">
-                                        {{ form_row(typeShipmentForm.name) }}
-                                    </div>
-                                    <div class="col-md-6">
-                                        {{ form_row(typeShipmentForm.business_code) }}
-                                    </div>
-                                    <div class="col-md-6">
-                                        {{ form_row(typeShipmentForm.reference_carrier_id) }}
-                                    </div>
-                                    <div class="col-md-6 d-flex align-items-center">
-                                        <div class="w-100">
-                                            {{ form_row(typeShipmentForm.active) }}
+                                    {% if typeShipmentEditing %}
+                                        <div class="alert alert-info d-flex justify-content-between align-items-center mb-4 border-0 shadow-sm">
+                                            <div class="d-flex align-items-center">
+                                                <i class="material-icons me-2">edit</i>
+                                                <div>
+                                                    <strong class="d-block">{{ 'Editando:'|trans({}, 'Modules.RjMulticarrier.Admin') }}</strong>
+                                                    <span>{{ typeShipmentEditing.name }}</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="col-12 text-end">
-                                        {% set submitLabel = typeShipmentEditing ? 'Actualizar'|trans({}, 'Admin.Actions') : 'Guardar'|trans({}, 'Admin.Actions') %}
-                                        {{ form_widget(typeShipmentForm.save, { attr: { class: 'btn btn-primary' }, label: submitLabel }) }}
-                                    </div>
-                                    {{ form_widget(typeShipmentForm.id) }}
-                                    {{ form_widget(typeShipmentForm.carrier_id) }}
-                                    {{ form_widget(typeShipmentForm._token) }}
-                                {{ form_end(typeShipmentForm, { render_rest: false }) }}
-                            </div>
-                        {% else %}
-                            <div class="card-footer text-center text-muted">
-                                {{ 'No hay transportistas de referencia disponibles para crear nuevos tipos.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-                            </div>
-                        {% endif %}
-                    </div>
-                {% else %}
-                    <div class="card h-100">
-                        <div class="card-body d-flex flex-column justify-content-center text-center text-muted">
-                            <p class="mb-2">{{ 'Configura las opciones del transportista una vez lo hayas guardado.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
-                            <small>{{ 'Primero completa los datos básicos y guarda para habilitar las configuraciones por defecto y adicionales.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</small>
+                                    {% endif %}
+
+                                    {{ form_start(typeShipmentForm, { attr: { class: 'row g-3' } }) }}
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label font-weight-bold">{{ typeShipmentForm.name.vars.label|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                                            {{ form_widget(typeShipmentForm.name, { attr: { class: 'form-control' } }) }}
+                                            {{ form_errors(typeShipmentForm.name) }}
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label font-weight-bold">{{ typeShipmentForm.business_code.vars.label|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                                            {{ form_widget(typeShipmentForm.business_code, { attr: { class: 'form-control' } }) }}
+                                            {{ form_errors(typeShipmentForm.business_code) }}
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label font-weight-bold">{{ typeShipmentForm.reference_carrier_id.vars.label|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
+                                            {{ form_widget(typeShipmentForm.reference_carrier_id, { attr: { class: 'form-control form-select' } }) }}
+                                            {{ form_errors(typeShipmentForm.reference_carrier_id) }}
+                                        </div>
+                                        <div class="col-md-6 d-flex align-items-center mb-3 pt-4">
+                                            <div class="form-check form-switch">
+                                                {{ form_widget(typeShipmentForm.active, { attr: { class: 'form-check-input' } }) }}
+                                                <label class="form-check-label" for="{{ typeShipmentForm.active.vars.id }}">
+                                                    {{ typeShipmentForm.active.vars.label|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 text-end">
+                                            {% set submitLabel = typeShipmentEditing ? 'Actualizar'|trans({}, 'Admin.Actions') : 'Añadir'|trans({}, 'Admin.Actions') %}
+                                            {% if typeShipmentEditing %}
+                                                <a href="{{ path('admin_rj_multicarrier_carriers_edit', {id: carrier.id}) }}" class="btn btn-outline-secondary me-2">
+                                                    {{ 'Cancelar'|trans({}, 'Admin.Actions') }}
+                                                </a>
+                                            {% endif %}
+                                            <button type="submit" class="btn btn-primary">
+                                                {% if typeShipmentEditing %}
+                                                    <i class="material-icons align-middle">save</i>
+                                                {% else %}
+                                                    <i class="material-icons align-middle">add</i>
+                                                {% endif %}
+                                                {{ submitLabel }}
+                                            </button>
+                                        </div>
+                                        {{ form_widget(typeShipmentForm.id) }}
+                                        {{ form_widget(typeShipmentForm.carrier_id) }}
+                                        {{ form_widget(typeShipmentForm._token) }}
+                                    {{ form_end(typeShipmentForm, { render_rest: false }) }}
+                                </div>
+                            {% else %}
+                                <div class="card-footer text-center text-muted">
+                                    {{ 'No hay transportistas de referencia disponibles para crear nuevos tipos.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 {% endif %}
             </div>
-        </div>
-
-        <div class="col-xl-3">
-            {% if payloadVariableGroups is defined and payloadVariableGroups|length > 0 %}
-                <div class="card" data-role="payload-variable-panel">
-                    <div class="card-header d-flex align-items-center gap-2">
-                        <i class="material-icons text-secondary">content_copy</i>
-                        <div>
-                            <h3 class="h6 mb-0">{{ 'Variables disponibles'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
-                            <p class="text-muted small mb-0">{{ 'Haz clic para copiar el token y pégalo en tus cabeceras o cuerpo para construir la solicitud.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        {% for group in payloadVariableGroups %}
-                            {% if group.groups is defined and group.groups is not empty %}
-                                {% for subgroup in group.groups %}
-                                    <div class="mb-4">
-                                        <div class="d-flex align-items-center justify-content-between mb-1">
-                                            <span class="fw-semibold">{{ subgroup.label }}</span>
-                                            <span class="badge bg-light text-dark">{{ subgroup.items|length }}</span>
-                                        </div>
-                                        {% if subgroup.description %}
-                                            <p class="text-muted small mb-2">{{ subgroup.description }}</p>
-                                        {% endif %}
-                                        <div class="row g-2">
-                                            {% for variable, label in subgroup.items %}
-                                                {% set placeholder = '{{ ' ~ variable ~ ' }}' %}
-                                                <div class="col-12">
-                                                    <button
-                                                        type="button"
-                                                        class="btn btn-outline-secondary w-100 text-start js-copy-payload-variable"
-                                                        data-variable="{{ placeholder }}"
-                                                    >
-                                                        <div class="d-flex justify-content-between align-items-start gap-3">
-                                                            <div>
-                                                                <span class="d-block fw-semibold font-monospace">{{ placeholder }}</span>
-                                                                <small class="text-muted">{{ label }}</small>
-                                                            </div>
-                                                            <i class="material-icons text-secondary">content_copy</i>
-                                                        </div>
-                                                    </button>
-                                                </div>
-                                            {% endfor %}
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            {% elseif group.items is defined and group.items is not empty %}
-                                <div class="mb-4">
-                                    <div class="d-flex align-items-center justify-content-between mb-1">
-                                        <span class="fw-semibold">{{ group.label }}</span>
-                                        <span class="badge bg-light text-dark">{{ group.items|length }}</span>
-                                    </div>
-                                    {% if group.description %}
-                                        <p class="text-muted small mb-2">{{ group.description }}</p>
-                                    {% endif %}
-                                    <div class="row g-2">
-                                        {% for variable, label in group.items %}
-                                            {% set placeholder = '{{ ' ~ variable ~ ' }}' %}
-                                            <div class="col-12">
-                                                <button
-                                                    type="button"
-                                                    class="btn btn-outline-secondary w-100 text-start js-copy-payload-variable"
-                                                    data-variable="{{ placeholder }}"
-                                                >
-                                                    <div class="d-flex justify-content-between align-items-start gap-3">
-                                                        <div>
-                                                            <span class="d-block fw-semibold font-monospace">{{ placeholder }}</span>
-                                                            <small class="text-muted">{{ label }}</small>
-                                                        </div>
-                                                        <i class="material-icons text-secondary">content_copy</i>
-                                                    </div>
-                                                </button>
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            {% endif %}
-                        {% endfor %}
-
-                        <div class="alert alert-info small mb-0">
-                            {{ 'Estas variables se reemplazarán en tiempo real con los datos del pedido, cliente o paquete antes de llamar a la API del transportista.'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-                        </div>
-                    </div>
-                </div>
-            {% endif %}
         </div>
     </div>
 {% endblock %}

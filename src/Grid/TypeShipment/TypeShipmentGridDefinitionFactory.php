@@ -123,14 +123,6 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                     ],
                 ])
                 ->setAssociatedColumn('id_type_shipment'))
-            ->add((new Filter('company_name', TextType::class))
-                ->setTypeOptions([
-                    'required' => false,
-                    'attr' => [
-                        'placeholder' => $this->transString('Carrier'),
-                    ],
-                ])
-                ->setAssociatedColumn('company_name'))
             ->add((new Filter('name', TextType::class))
                 ->setTypeOptions([
                     'required' => false,
@@ -244,14 +236,6 @@ final class TypeShipmentGridDefinitionFactory extends AbstractModuleGridDefiniti
                     'attr' => [
                         'class' => 'js-type-shipment-view-row-action',
                     ],
-                ]))
-            ->add((new LinkRowAction('configure'))
-                ->setName($this->transString('Settings', [], 'Admin.Actions'))
-                ->setIcon('settings')
-                ->setOptions([
-                    'route' => 'admin_rj_multicarrier_type_shipment_configuration',
-                    'route_param_name' => 'id',
-                    'route_param_field' => 'id_type_shipment',
                 ]))
             ->add((new LinkRowAction('edit'))
                 ->setName($this->transString('Edit', [], 'Admin.Actions'))

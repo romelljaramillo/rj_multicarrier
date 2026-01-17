@@ -22,6 +22,7 @@ use PrestaShop\PrestaShop\Adapter\Configuration as LegacyConfiguration;
 use PrestaShop\PrestaShop\Core\Domain\Shop\ValueObject\ShopConstraint;
 use Roanja\Module\RjMulticarrier\Repository\InfoShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\ConfigurationRepository;
+use Roanja\Module\RjMulticarrier\Repository\CarrierConfigurationRepository;
 use Roanja\Module\RjMulticarrier\Repository\ShipmentRepository;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
 use Roanja\Module\RjMulticarrier\Support\Common;
@@ -35,6 +36,7 @@ final class ShipmentGenerationService
         private readonly ShipmentRepository $shipmentRepository,
         private readonly TypeShipmentRepository $typeShipmentRepository,
         private readonly ConfigurationRepository $ConfigurationRepository,
+        private readonly CarrierConfigurationRepository $carrierConfigurationRepository,
         private readonly LegacyConfiguration $legacyConfiguration,
         private readonly GenerateShipmentHandler $generateShipmentHandler
     ) {}
@@ -95,6 +97,16 @@ final class ShipmentGenerationService
 
         $carrierCode = (string) ($companyData['shortname'] ?? '');
 
+        $carrierSettings = [];
+        $typeShipmentForConfig = $this->typeShipmentRepository->findActiveByReferenceCarrier($referenceCarrierId);
+        if ($typeShipmentForConfig instanceof TypeShipment) {
+            $carrierEntity = $typeShipmentForConfig->getCarrier();
+            $configs = $this->carrierConfigurationRepository->findByCarrier($carrierEntity);
+            foreach ($configs as $cfg) {
+                $carrierSettings[$cfg->getName()] = $cfg->getValue();
+            }
+        }
+
         $ConfigurationPayload = $this->mapConfiguration($languageId);
         $carrierDisplayName = $this->resolveCarrierName($referenceCarrierId, $languageId);
         if ('' === $carrierDisplayName) {
@@ -102,6 +114,7 @@ final class ShipmentGenerationService
         }
         $payload = [
             'id_order' => $orderId,
+            'carrier_settings' => $carrierSettings,
             'reference' => (string) $order->reference,
             'info_package' => $this->mapInfoShipment($infoPackage, $referenceCarrierId),
             'info_customer' => $this->mapCustomer($order, $languageId),

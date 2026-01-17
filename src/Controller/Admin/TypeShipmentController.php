@@ -80,11 +80,17 @@ final class TypeShipmentController extends FrameworkBundleAdminController
 
         $grid = $this->gridFactory->getGrid($filters);
 
+        $langId = \Context::getContext()->language->id;
+        $allReferenceCarriers = \Carrier::getCarriers($langId, true, false, false, null, \Carrier::ALL_CARRIERS);
+        $assignedReferenceCarriers = $this->typeShipmentRepository->findAllReferenceCarrierIds();
+
         return $this->render('@Modules/rj_multicarrier/views/templates/admin/type_shipment/index.html.twig', [
             'typeShipmentGrid' => $this->presentGrid($grid),
             'layoutTitle' => $this->l('Shipment types'),
             'companies' => $this->buildCompanyView($companies, $companyId),
             'currentCompanyId' => $companyId,
+            'allReferenceCarriers' => $allReferenceCarriers,
+            'assignedReferenceCarriers' => $assignedReferenceCarriers,
         ]);
     }
 
@@ -290,6 +296,40 @@ final class TypeShipmentController extends FrameworkBundleAdminController
         return $this->redirectToRoute('admin_rj_multicarrier_type_shipment_index', [
             'company' => (int) $request->get('company', 0),
         ]);
+    }
+
+    /**
+     * @AdminSecurity("is_granted('update', request.get('_legacy_controller'))", message="Access denied.")
+     */
+    public function updateReferenceCarrierAction(Request $request, int $id): JsonResponse
+    {
+        try {
+            /** @var TypeShipment|null $typeShipment */
+            $typeShipment = $this->typeShipmentRepository->findOneById($id);
+
+            if (null === $typeShipment) {
+                return $this->json(['status' => 'error', 'message' => $this->l('Type shipment not found.')], 404);
+            }
+
+            $currentCompanyId = $typeShipment->getCarrier()->getId();
+            $newReferenceId = $request->request->getInt('reference_carrier_id');
+            $referenceCarrierId = $newReferenceId > 0 ? $newReferenceId : null;
+
+            $command = new UpsertTypeShipmentCommand(
+                $id,
+                $currentCompanyId,
+                $typeShipment->getName(),
+                $typeShipment->getBusinessCode(),
+                $referenceCarrierId,
+                $typeShipment->isActive()
+            );
+
+            $this->getCommandBus()->handle($command);
+
+            return $this->json(['status' => 'success', 'message' => $this->l('Reference carrier updated successfully.')]);
+        } catch (\Exception $exception) {
+            return $this->json(['status' => 'error', 'message' => $exception->getMessage()], 500);
+        }
     }
 
     /**

@@ -1,48 +1,131 @@
 {% extends '@PrestaShop/Admin/layout.html.twig' %}
 
 {% block content %}
-  <div class="row">
-    <div class="col-12">
-      {% embed '@PrestaShop/Admin/Common/Grid/grid_panel.html.twig' with { grid: typeShipmentGrid } %}
-        {% block grid_panel_header %}
-          <div class="card-header js-grid-header d-flex align-items-center justify-content-between">
-            <div class="d-flex align-items-center">
-              <h3 class="card-header-title mb-0">{{ 'Tipos de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
-              <span class="badge badge-secondary ml-2">{{ grid.data.records_total }}</span>
-            </div>
-            <div class="d-flex align-items-center">
-              <a
-                href="{{ path('admin_rj_multicarrier_type_shipment_create') }}"
-                class="btn btn-outline-primary btn-sm mr-2"
-              >
-                {{ 'Nuevo tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-              </a>
-              {{ include('@PrestaShop/Admin/Common/Grid/Blocks/grid_actions.html.twig', { grid: grid }) }}
-            </div>
+{% set grid = typeShipmentGrid %}
+<div class="row">
+  <div class="col-12">
+    <div class="card js-grid-panel" id="{{ grid.id }}_grid_panel">
+      
+        <div class="card-header js-grid-header">
+          <div class="d-flex justify-content-between align-items-center w-100">
+              <div class="d-flex align-items-center">
+                <h3 class="card-header-title mb-0 d-inline-block">{{ 'Tipos de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h3>
+                <span class="badge bg-secondary ms-2">{{ grid.data.records_total }}</span>
+              </div>
+              <div class="d-flex align-items-center">
+                {% if companies|length > 1 %}
+                  <form method="get" action="{{ path('admin_rj_multicarrier_type_shipment_index') }}" class="mb-0 me-3">
+                      <div class="input-group input-group-sm shadow-sm  me-2">
+                          <div class="input-group-prepend">
+                              <span class="input-group-text bg-white border-end-0">
+                                  <i class="material-icons text-primary" style="font-size: 16px;">local_shipping</i>
+                              </span>
+                          </div>
+                          <select id="type_shipment_company_filter" name="company" class="custom-select border-start-0 ps-0" style="min-width: 200px; outline: none; box-shadow: none; height: 31px;" onchange="RoanjaTypeShipment.changeCompany(this)">
+                              {% for company in companies %}
+                                <option value="{{ company.id }}" {% if company.selected %}selected{% endif %}>{{ company.name }}</option>
+                              {% endfor %}
+                          </select>
+                      </div>
+                  </form>
+                {% endif %}
+                <a
+                  href="{{ path('admin_rj_multicarrier_type_shipment_create') }}"
+                  class="btn btn-primary btn-sm mx-2"
+                >
+                  <i class="material-icons">add</i>
+                  {{ 'Nuevo tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+                </a>
+                {{ include('@PrestaShop/Admin/Common/Grid/Blocks/grid_actions.html.twig', { grid: grid }) }}
+              </div>
           </div>
-        {% endblock %}
+        </div>
+      
+        <div class="card-body">
+          {% embed '@PrestaShop/Admin/Common/Grid/grid.html.twig' with { grid: grid, allReferenceCarriers: allReferenceCarriers, assignedReferenceCarriers: assignedReferenceCarriers } %}
+            {% block grid_table_row %}
+                {{ renderhook('displayAdminGridTableBefore', {
+                    'grid': grid,
+                    'legacy_controller': app.request.attributes.get('_legacy_controller'),
+                    'controller': app.request.attributes.get('_controller')
+                  })
+                }}
 
-        {% block grid_panel_body %}
-          <div class="card-body">
-            {% if companies|length > 1 %}
-              <form method="get" action="{{ path('admin_rj_multicarrier_type_shipment_index') }}" class="form-inline mb-3">
-                <div class="form-group mr-2">
-                  <label for="type_shipment_company_filter" class="mr-2">{{ 'Compañía'|trans({}, 'Modules.RjMulticarrier.Admin') }}</label>
-                  <select id="type_shipment_company_filter" name="company" class="form-control" onchange="RoanjaTypeShipment.changeCompany(this)">
-                    {% for company in companies %}
-                      <option value="{{ company.id }}" {% if company.selected %}selected{% endif %}>{{ company.name }}</option>
-                    {% endfor %}
-                  </select>
-                </div>
-              </form>
-            {% endif %}
+                {{ form_start(grid.filter_form, {'attr': {'id': grid.id ~ '_filter_form', 'class': 'table-responsive'}}) }}
 
-            {{ include('@PrestaShop/Admin/Common/Grid/grid.html.twig', { grid: grid }) }}
-          </div>
-        {% endblock %}
-      {% endembed %}
+                <table class="grid-table js-grid-table table {% if is_ordering_column(grid) %}grid-ordering-column{% endif %} {% if grid.attributes.is_empty_state %}border-0{% endif %}"
+                       id="{{ grid.id }}_grid_table"
+                       data-query="{{ grid.data.query }}"
+                       data-limit="{{ grid.pagination.limit }}"
+                       data-offset="{{ grid.pagination.offset }}"
+                       data-total="{{ grid.data.records_total }}"
+                >
+                  <thead class="thead-default">
+                    {{ include('@PrestaShop/Admin/Common/Grid/Blocks/Table/headers_row.html.twig', {'grid': grid}) }}
+                    {% if grid.actions.bulk|length > 0 or grid.filter_form|length > 1 %}
+                      {{ include('@PrestaShop/Admin/Common/Grid/Blocks/Table/filters_row.html.twig', {'grid': grid}) }}
+                    {% endif %}
+                  </thead>
+                  <tbody>
+                    {% if grid.data.records is not empty %}
+                      {% for record in grid.data.records %}
+                        <tr>
+                          {% for column in grid.columns %}
+                            <td
+                              {% if column.type == 'identifier' %}data-identifier="{{ record[column.id] }}"{% endif %}
+                              class="{{ column.type }}-type column-{{ column.id }}{% if column.options.clickable is defined and column.options.clickable %} clickable{% endif %}{% if column.options.alignment is defined and column.options.alignment %} text-{{ column.options.alignment }}{% endif %}"
+                            >
+                              {% if column.id == 'reference_carrier_name' %}
+                                  <select 
+                                    class="custom-select custom-select-sm js-reference-carrier-select" 
+                                    data-url="{{ path('admin_rj_multicarrier_type_shipment_update_reference_carrier', {'id': record.id_type_shipment}) }}"
+                                    style="width: 100%; min-width: 150px;"
+                                  >
+                                    <option value="0">-- {{ 'Ninguno'|trans({}, 'Admin.Global') }} --</option>
+                                    {% for carrier in allReferenceCarriers %}
+                                        {# Show option if: 
+                                           1. Carrier is not assigned to any type shipment
+                                           2. OR Carrier is assigned to THIS type shipment (the one in the current record)
+                                        #}
+                                        {% set isAssigned = carrier.id_reference in assignedReferenceCarriers %}
+                                        {% set isCurrent = (record.id_reference_carrier is defined and record.id_reference_carrier == carrier.id_reference) %}
+                                        
+                                        {% if not isAssigned or isCurrent %}
+                                          <option value="{{ carrier.id_reference }}" {% if isCurrent %}selected{% endif %}>
+                                            {{ carrier.name }}
+                                          </option>
+                                        {% endif %}
+                                    {% endfor %}
+                                  </select>
+                              {% else %}
+                                  {{ column_content(record, column, grid) }}
+                              {% endif %}
+                            </td>
+                          {% endfor %}
+                        </tr>
+                      {% endfor %}
+                    {% else %}
+                      {{ include('@PrestaShop/Admin/Common/Grid/Blocks/Table/empty_row.html.twig', {'grid': grid}) }}
+                    {% endif %}
+                  </tbody>
+                  <tfoot></tfoot>
+                </table>
+
+                {{ form_end(grid.filter_form) }}
+
+                {{ renderhook('displayAdminGridTableAfter', {
+                      'grid': grid,
+                      'legacy_controller': app.request.attributes.get('_legacy_controller'),
+                      'controller': app.request.attributes.get('_controller')
+                    })
+                }}
+            {% endblock %}
+          {% endembed %}
+        </div>
+      
     </div>
   </div>
+</div>
 
   <div
     class="modal fade js-detail-modal"
@@ -55,15 +138,15 @@
     data-error-not-found="{{ 'El tipo de envío solicitado ya no existe.'|trans({}, 'Modules.RjMulticarrier.Admin') }}"
     data-trigger=".js-type-shipment-view-row-action"
   >
-    <div class="modal-dialog modal-lg" role="document">
-      <div class="modal-content">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+      <div class="modal-content shadow">
         <div class="modal-header">
-          <h5 class="modal-title mb-0">{{ 'Detalle del tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h5>
+          <h5 class="modal-title mb-0 h4">{{ 'Detalle del tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="{{ 'Cerrar'|trans({}, 'Admin.Actions') }}">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body p-4">
           <div class="alert alert-danger d-none js-detail-error" role="alert"></div>
 
           <div class="text-center my-4 d-none js-detail-spinner">
@@ -136,6 +219,36 @@
           }
         }
       };
+
+      ns.initGridListeners = function() {
+          $(document).on('change', '.js-reference-carrier-select', function() {
+            var $select = $(this);
+            var url = $select.data('url');
+            var value = $select.val();
+            
+            $select.addClass('disabled').prop('disabled', true);
+            
+            $.ajax({
+                url: url,
+                method: 'POST',
+                data: { reference_carrier_id: value },
+                success: function(response) {
+                    $.growl.notice({ title: "Éxito", message: response.message });
+                },
+                error: function(xhr) {
+                    var msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Error desconocido';
+                    $.growl.error({ title: "Error", message: msg });
+                },
+                complete: function() {
+                    $select.removeClass('disabled').prop('disabled', false);
+                }
+            });
+          });
+      };
+      
+      $(function() {
+        ns.initGridListeners();
+      });
     })(window.RoanjaTypeShipment);
   </script>
 {% endblock %}

@@ -355,6 +355,7 @@ final class CexCarrierAdapter implements CarrierAdapterInterface
                 'name' => 'CEX_PASS',
                 'label' => 'Password',
                 'required' => true,
+                'field_type' => 'password',
                 'legacy' => ['RJ_CEX_PASS'],
             ],
             [

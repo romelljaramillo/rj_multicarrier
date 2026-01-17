@@ -90,6 +90,7 @@ final class DefaultCarrierAdapter implements CarrierAdapterInterface
                 'label' => 'Password',
                 'required' => true,
                 'value' => null,
+                'field_type' => 'password',
             ],
         ];
     }

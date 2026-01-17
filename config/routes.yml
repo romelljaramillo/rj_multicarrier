@@ -298,6 +298,18 @@ admin_rj_multicarrier_type_shipment_toggle:
   options:
     expose: true
 
+admin_rj_multicarrier_type_shipment_update_reference_carrier:
+  path: /rj-multicarrier/type-shipments/{id}/update-reference-carrier
+  methods: [POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\TypeShipmentController::updateReferenceCarrierAction'
+    _legacy_controller: "AdminRjMulticarrierTypeShipment"
+    _legacy_link: "AdminRjMulticarrierTypeShipment:update"
+  requirements:
+    id: '\d+'
+  options:
+    expose: true
+
 admin_rj_multicarrier_type_shipment_search:
   path: /rj-multicarrier/type-shipments
   methods: [POST]
@@ -340,30 +352,7 @@ admin_rj_multicarrier_type_shipment_export_selected_csv:
   options:
     expose: true
 
-admin_rj_multicarrier_type_shipment_configuration:
-  path: /rj-multicarrier/type-shipments/{id}/configuration
-  methods: [GET, POST]
-  defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\TypeShipmentConfigurationController::indexAction'
-    _legacy_controller: "AdminRjMulticarrierTypeShipment"
-    _legacy_link: "AdminRjMulticarrierTypeShipment:configuration"
-  requirements:
-    id: '\d+'
-  options:
-    expose: true
 
-admin_rj_multicarrier_type_shipment_configuration_delete:
-  path: /rj-multicarrier/type-shipments/{id}/configuration/{configId}/delete
-  methods: [POST]
-  defaults:
-    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\TypeShipmentConfigurationController::deleteAction'
-    _legacy_controller: "AdminRjMulticarrierTypeShipment"
-    _legacy_link: "AdminRjMulticarrierTypeShipment:configurationDelete"
-  requirements:
-    id: '\d+'
-    configId: '\d+'
-  options:
-    expose: true
 
 
 ###############################################################################
@@ -806,6 +795,19 @@ admin_rj_multicarrier_carriers_type_shipment_delete:
     _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CarrierController::deleteTypeShipmentAction'
     _legacy_controller: "AdminRjMulticarrierCarriers"
     _legacy_link: "AdminRjMulticarrierCarriers:typeShipmentDelete"
+  requirements:
+    carrierId: '\d+'
+    typeShipmentId: '\d+'
+  options:
+    expose: true
+
+admin_rj_multicarrier_carriers_type_shipment_toggle_status:
+  path: /rj-multicarrier/carriers/{carrierId}/type-shipment/{typeShipmentId}/toggle-status
+  methods: [GET, POST]
+  defaults:
+    _controller: 'Roanja\Module\RjMulticarrier\Controller\Admin\CarrierController::toggleTypeShipmentStatusAction'
+    _legacy_controller: "AdminRjMulticarrierCarriers"
+    _legacy_link: "AdminRjMulticarrierCarriers:typeShipmentToggleStatus"
   requirements:
     carrierId: '\d+'
     typeShipmentId: '\d+'

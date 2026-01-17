@@ -47,6 +47,7 @@ use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Query\GetCarrierCon
 use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\View\CarrierConfigurationView;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\UpsertTypeShipmentCommand;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\DeleteTypeShipmentCommand;
+use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\ToggleTypeShipmentStatusCommand;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Exception\TypeShipmentException;
 
 
@@ -455,6 +456,23 @@ final class CarrierController extends FrameworkBundleAdminController
             $this->addFlash('success', $this->translate('Tipo de envío eliminado.'));
         } catch (TypeShipmentException $exception) {
             $this->addFlash('error', $exception->getMessage());
+        }
+
+        return $this->redirectToRoute('admin_rj_multicarrier_carriers_edit', ['id' => $carrierId]);
+    }
+
+    /**
+     * @AdminSecurity("is_granted('update', request.get('_legacy_controller'))", message="Access denied.")
+     */
+    public function toggleTypeShipmentStatusAction(int $carrierId, int $typeShipmentId): RedirectResponse
+    {
+        try {
+            $this->getCommandBus()->handle(new ToggleTypeShipmentStatusCommand($typeShipmentId));
+            $this->addFlash('success', $this->translate('Estado actualizado correctamente.'));
+        } catch (TypeShipmentException $exception) {
+            $this->addFlash('error', $exception->getMessage());
+        } catch (\Throwable $exception) {
+            $this->addFlash('error', $this->translate('No se pudo cambiar el estado: %s', [$exception->getMessage()]));
         }
 
         return $this->redirectToRoute('admin_rj_multicarrier_carriers_edit', ['id' => $carrierId]);

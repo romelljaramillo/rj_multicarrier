@@ -49,7 +49,8 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
     {
         $payload = $context->getPayload();
         $options = $context->getOptions();
-        $config = $this->resolveConfiguration();
+        $carrierSettings = $payload['carrier_settings'] ?? [];
+        $config = $this->resolveConfiguration($carrierSettings);
 
         $shipmentNumber = $context->getShipmentNumber() ?: Common::getUUID();
         $payload['num_shipment'] = $shipmentNumber;
@@ -90,6 +91,7 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
                 'name' => 'DHL_KEY',
                 'label' => 'Key',
                 'required' => true,
+                'field_type' => 'password',
                 'legacy' => ['RJ_DHL_KEY'],
             ],
             [
@@ -109,6 +111,7 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
                 'name' => 'DHL_KEY_DEV',
                 'label' => 'Key DEV',
                 'required' => true,
+                'field_type' => 'password',
                 'legacy' => ['RJ_DHL_KEY_DEV'],
             ],
             [
@@ -151,6 +154,7 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
                 'label' => 'Production Mode',
                 'value' => '0',
                 'required' => true,
+                'field_type' => 'boolean',
                 'legacy' => ['RJ_DHL_ENV'],
             ],
         ];
@@ -159,9 +163,9 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
     /*
      * @return array<string, mixed>
      */
-    private function resolveConfiguration(): array
+    private function resolveConfiguration(array $carrierSettings = []): array
     {
-        $envRaw = $this->fetchConfigurationValue('ENV');
+        $envRaw = $this->fetchConfigurationValue('ENV', $carrierSettings);
         $isProduction = (int) $envRaw === 1;
         $envSuffix = $isProduction ? '' : '_DEV';
 
@@ -179,7 +183,7 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
         $config = ['is_production' => $isProduction];
 
         foreach ($map as $label => $suffix) {
-            $config[$label] = $this->fetchConfigurationValue($suffix);
+            $config[$label] = $this->fetchConfigurationValue($suffix, $carrierSettings);
         }
 
         if ('' === $config['user_id'] || '' === $config['api_key']) {
@@ -193,7 +197,7 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
         return $config;
     }
 
-    private function fetchConfigurationValue(string $suffix): string
+    private function fetchConfigurationValue(string $suffix, array $carrierSettings = []): string
     {
         $keys = [
             sprintf('%s_%s', self::CODE, $suffix),
@@ -201,6 +205,10 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
         ];
 
         foreach ($keys as $key) {
+            if (isset($carrierSettings[$key]) && '' !== trim((string) $carrierSettings[$key])) {
+                return (string) $carrierSettings[$key];
+            }
+
             $value = $this->configuration->get($key);
             if (null !== $value && '' !== trim((string) $value)) {
                 return (string) $value;

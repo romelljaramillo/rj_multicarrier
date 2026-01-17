@@ -36,7 +36,7 @@ final class TypeShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
             ->select('COUNT(*)')
             ->from($this->dbPrefix . 'rj_multicarrier_type_shipment', 'ts')
             ->innerJoin('ts', $this->dbPrefix . 'rj_multicarrier_carrier', 'c', 'ts.id_carrier = c.id_carrier')
-            ->leftJoin('ts', $this->dbPrefix . 'carrier', 'pc', 'ts.id_reference_carrier = pc.id_carrier AND pc.deleted = 0');
+            ->leftJoin('ts', $this->dbPrefix . 'carrier', 'pc', 'ts.id_reference_carrier = pc.id_reference AND pc.deleted = 0');
 
         $this->applyFilters($qb, $searchCriteria->getFilters(), 'count_');
 
@@ -215,6 +215,6 @@ final class TypeShipmentQueryBuilder extends AbstractDoctrineQueryBuilder
             )
             ->from($this->dbPrefix . 'rj_multicarrier_type_shipment', 'ts')
             ->innerJoin('ts', $this->dbPrefix . 'rj_multicarrier_carrier', 'c', 'ts.id_carrier = c.id_carrier')
-            ->leftJoin('ts', $this->dbPrefix . 'carrier', 'pc', 'ts.id_reference_carrier = pc.id_carrier AND pc.deleted = 0');
+            ->leftJoin('ts', $this->dbPrefix . 'carrier', 'pc', 'ts.id_reference_carrier = pc.id_reference AND pc.deleted = 0');
     }
 }

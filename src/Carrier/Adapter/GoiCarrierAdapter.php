@@ -113,12 +113,14 @@ final class GoiCarrierAdapter implements CarrierAdapterInterface
                 'name' => 'RJ_GOI_KEY',
                 'label' => 'Key',
                 'required' => true,
+                'field_type' => 'password',
                 'legacy' => ['KEY', 'RJ_GOI_KEY'],
             ],
             [
                 'name' => 'RJ_GOI_KEY_DEV',
                 'label' => 'Key DEV',
                 'required' => true,
+                'field_type' => 'password',
                 'legacy' => ['KEY_DEV', 'RJ_GOI_KEY_DEV'],
             ],
             [
@@ -161,6 +163,7 @@ final class GoiCarrierAdapter implements CarrierAdapterInterface
                 'label' => 'Modo producción',
                 'value' => '0',
                 'required' => true,
+                'field_type' => 'boolean',
                 'legacy' => ['ENV', 'RJ_GOI_ENV'],
             ],
         ];
