@@ -107,6 +107,88 @@
         {% endif %}
       </section>
 
+      {% if extraConfigurations is not empty %}
+        <section class="mb-5">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+              <h4 class="mb-1">{{ 'Configuraciones adicionales'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h4>
+              <p class="text-muted mb-0">{{ 'Campos opcionales que puedes completar o eliminar.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+            </div>
+          </div>
+
+          <div class="row">
+            {% for configuration in extraConfigurations %}
+              <div class="col-lg-6 col-xl-6">
+                <div class="mb-4">
+                  <input type="hidden" name="extras[{{ loop.index0 }}][id]" value="{{ configuration.id }}">
+                  <input type="hidden" name="extras[{{ loop.index0 }}][name]" value="{{ configuration.name }}">
+
+                  <label class="form-label fw-bold d-flex align-items-center justify-content-between" for="input-extra-{{ configuration.id }}">
+                      <span>{{ configuration.label ?? configuration.displayName }}</span>
+                      <code class="small text-muted fw-normal">{{ configuration.name }}</code>
+                  </label>
+
+                  {% if configuration.fieldType == 'boolean' %}
+                    <div class="form-check form-switch ps-0">
+                        <input type="hidden" name="extras[{{ loop.index0 }}][value]" value="0">
+                        <input 
+                            class="form-check-input ms-0" 
+                            type="checkbox" 
+                            role="switch"
+                            name="extras[{{ loop.index0 }}][value]" 
+                            value="1" 
+                            id="input-extra-{{ configuration.id }}" 
+                            {% if configuration.value == '1' %}checked{% endif %}
+                        >
+                        <label class="form-check-label ps-2" for="input-extra-{{ configuration.id }}">
+                            {{ configuration.value == '1' ? 'Activado'|trans({}, 'Admin.Global') : 'Desactivado'|trans({}, 'Admin.Global') }}
+                        </label>
+                    </div>
+                  {% elseif configuration.fieldType == 'password' %}
+                     <div class="input-group">
+                        <input 
+                            type="password" 
+                            class="form-control" 
+                            id="input-extra-{{ configuration.id }}"
+                            name="extras[{{ loop.index0 }}][value]" 
+                            value="{{ configuration.value ?? '' }}"
+                            placeholder="••••••••"
+                        >
+                        <button class="btn btn-outline-secondary" type="button" tabindex="-1" onclick="const i=this.previousElementSibling;i.type=i.type==='password'?'text':'password'">
+                            <i class="material-icons">visibility</i>
+                        </button>
+                    </div>
+                  {% elseif configuration.fieldType == 'number' %}
+                     <input 
+                        type="number" 
+                        step="any" 
+                        class="form-control" 
+                        id="input-extra-{{ configuration.id }}"
+                        name="extras[{{ loop.index0 }}][value]" 
+                        value="{{ configuration.value ?? '' }}"
+                     >
+                  {% else %}
+                    <input 
+                        type="text" 
+                        class="form-control" 
+                        id="input-extra-{{ configuration.id }}"
+                        name="extras[{{ loop.index0 }}][value]" 
+                        value="{{ configuration.value ?? '' }}"
+                    >
+                  {% endif %}
+
+                  {% if configuration.description %}
+                    <div class="form-text text-muted mt-1 small">
+                        {{ configuration.description }}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
       <div class="d-flex justify-content-end gap-2 mt-4">
         <a class="btn btn-outline-secondary" href="{{ backUrl }}">
           {{ 'Cancelar'|trans({}, 'Admin.Actions') }}

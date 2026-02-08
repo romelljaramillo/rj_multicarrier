@@ -9,6 +9,8 @@ namespace Roanja\Module\RjMulticarrier\Carrier\Adapter;
 use Exception;
 use PrestaShop\PrestaShop\Adapter\Configuration as LegacyConfiguration;
 use PrestaShop\PrestaShop\Adapter\Country\CountryDataProvider;
+use PrestaShop\PrestaShop\Core\CommandBus\CommandBusInterface;
+use Roanja\Module\RjMulticarrier\Domain\Log\Command\CreateLogEntryCommand;
 use Roanja\Module\RjMulticarrier\Support\Common;
 use RuntimeException;
 
@@ -23,7 +25,8 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
 
     public function __construct(
         private readonly LegacyConfiguration $configuration,
-        private readonly CountryDataProvider $countryDataProvider
+        private readonly CountryDataProvider $countryDataProvider,
+        private readonly CommandBusInterface $commandBus
     ) {
     }
 
@@ -79,75 +82,64 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
                 'name' => 'DHL_ACCOUNID',
                 'label' => 'Account ID',
                 'required' => true,
-                'legacy' => ['RJ_DHL_ACCOUNID'],
             ],
             [
                 'name' => 'DHL_USERID',
                 'label' => 'User ID',
                 'required' => true,
-                'legacy' => ['RJ_DHL_USERID'],
             ],
             [
                 'name' => 'DHL_KEY',
                 'label' => 'Key',
                 'required' => true,
                 'field_type' => 'password',
-                'legacy' => ['RJ_DHL_KEY'],
             ],
             [
                 'name' => 'DHL_URL',
                 'label' => 'URL Production',
-                'description' => 'Formato http:// o https://',
+                'description' => 'Ejemplo: https://clientesparcel.dhl.es/ac.core/gateway/a/api/v1',
                 'required' => true,
-                'legacy' => ['RJ_DHL_URL'],
             ],
             [
                 'name' => 'DHL_USERID_DEV',
                 'label' => 'User ID DEV',
                 'required' => true,
-                'legacy' => ['RJ_DHL_USERID_DEV'],
             ],
             [
                 'name' => 'DHL_KEY_DEV',
                 'label' => 'Key DEV',
                 'required' => true,
                 'field_type' => 'password',
-                'legacy' => ['RJ_DHL_KEY_DEV'],
             ],
             [
                 'name' => 'DHL_URL_DEV',
                 'label' => 'URL Develop',
-                'description' => 'Formato http:// o https://',
+                'description' => 'Ejemplo: https://clientesparcel.dhl.es/ac.core/gateway/a/api/v1',
                 'required' => true,
-                'legacy' => ['RJ_DHL_URL_DEV'],
             ],
             [
                 'name' => 'DHL_ENDPOINT_LOGIN',
                 'label' => 'Endpoint login',
                 'description' => 'Ejemplo: /authenticate/api-key',
                 'required' => true,
-                'legacy' => ['RJ_DHL_ENDPOINT_LOGIN'],
             ],
             [
                 'name' => 'DHL_ENDPOINT_REFRESH_TOKEN',
                 'label' => 'Endpoint refresh token',
                 'description' => 'Ejemplo: /authenticate/refresh-token',
                 'required' => true,
-                'legacy' => ['RJ_DHL_ENDPOINT_REFRESH_TOKEN'],
             ],
             [
                 'name' => 'DHL_ENDPOINT_SHIPMENT',
                 'label' => 'Endpoint shipment',
                 'description' => 'Ejemplo: /shipments',
                 'required' => true,
-                'legacy' => ['RJ_DHL_ENDPOINT_SHIPMENT'],
             ],
             [
                 'name' => 'DHL_ENDPOINT_LABEL',
                 'label' => 'Endpoint label',
                 'description' => 'Ejemplo: /labels',
                 'required' => true,
-                'legacy' => ['RJ_DHL_ENDPOINT_LABEL'],
             ],
             [
                 'name' => 'DHL_ENV',
@@ -155,7 +147,12 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
                 'value' => '0',
                 'required' => true,
                 'field_type' => 'boolean',
-                'legacy' => ['RJ_DHL_ENV'],
+            ],
+            [
+                'name' => 'TRACKING_URL',
+                'label' => 'URL seguimiento',
+                'description' => 'Ejemplo: https://clientesparcel.dhl.es/ac.core/gateway/a/api/v1/track-trace?trackingNumber=@ (se concatena a DHL_URL y se agrega key)',
+                'required' => false,
             ],
         ];
     }
@@ -372,7 +369,12 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
 
         $response = $this->sendJsonRequest('POST', $endpoint, $body, self::LOGIN_HEADERS);
 
-        $token = isset($response['accessToken']) ? (string) $response['accessToken'] : '';
+        $token = '';
+        if (isset($response['accessToken'])) {
+            $token = (string) $response['accessToken'];
+        } elseif ($this->isList($response) && isset($response[0])) {
+            $token = (string) $response[0];
+        }
         if ('' === $token) {
             throw new RuntimeException('DHL authentication did not return an access token.');
         }
@@ -439,22 +441,32 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
     private function downloadLabel(array $config, string $token, string $labelId): string
     {
         $endpoint = $this->buildUrl($config['base_url'], rtrim((string) $config['endpoint_label'], '/') . '/' . $labelId);
-        $response = $this->sendJsonRequest('GET', $endpoint, null, [
-            'Accept: application/json',
+        $result = $this->executeRequest('GET', $endpoint, null, [
+            'Accept: application/pdf',
             'Authorization: ' . $this->buildBearer($token),
         ]);
 
-        $pdfBase64 = isset($response['pdf']) ? (string) $response['pdf'] : '';
+        $contentType = strtolower($result['content_type']);
+        if (str_contains($contentType, 'application/pdf') || str_contains($contentType, 'application/zpl') || str_contains($contentType, 'application/octet-stream')) {
+            return $result['body'];
+        }
+
+        $decoded = $this->decodeJsonResponse($result['body'], $labelId);
+        $pdfBase64 = isset($decoded['pdf']) ? (string) $decoded['pdf'] : '';
+        if ('' === $pdfBase64 && $this->isList($decoded) && isset($decoded[0])) {
+            $pdfBase64 = (string) $decoded[0];
+        }
+
         if ('' === $pdfBase64) {
-            throw new RuntimeException(sprintf('DHL label %s response does not contain PDF data.', $labelId));
+            throw new RuntimeException(sprintf('DHL label %s response does not contain label data.', $labelId));
         }
 
-        $decoded = base64_decode($pdfBase64, true);
-        if (false === $decoded) {
-            throw new RuntimeException(sprintf('Unable to decode DHL label %s PDF content.', $labelId));
+        $labelContent = base64_decode($pdfBase64, true);
+        if (false === $labelContent) {
+            throw new RuntimeException(sprintf('Unable to decode DHL label %s content.', $labelId));
         }
 
-        return $decoded;
+        return $labelContent;
     }
 
     private function buildUrl(string $baseUrl, string $endpoint): string
@@ -507,6 +519,36 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    private function decodeJsonResponse(string $body, string $labelId): array
+    {
+        try {
+            $decoded = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+        } catch (Exception $exception) {
+            throw new RuntimeException(sprintf('Unable to decode DHL label %s response payload.', $labelId), 0, $exception);
+        }
+
+        if (!is_array($decoded)) {
+            throw new RuntimeException(sprintf('Unexpected DHL label %s response structure.', $labelId));
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * @param array<string, mixed> $value
+     */
+    private function isList(array $value): bool
+    {
+        if ([] === $value) {
+            return false;
+        }
+
+        return array_keys($value) === range(0, count($value) - 1);
+    }
+
+    /**
      * @param string[] $headers
      * @return array{status:int, content_type:string, body:string}
      */
@@ -540,10 +582,24 @@ final class DhlCarrierAdapter implements CarrierAdapterInterface
         curl_close($resource);
 
         if (false === $response) {
+            $this->commandBus->handle(new CreateLogEntryCommand(
+                $url,
+                0,
+                (string) $body,
+                sprintf('DHL request failed: %s', $error ?: 'unknown error')
+            ));
+
             throw new RuntimeException(sprintf('DHL request failed: %s', $error ?: 'unknown error'));
         }
 
         if ($status < 200 || $status >= 300) {
+            $this->commandBus->handle(new CreateLogEntryCommand(
+                $url,
+                0,
+                (string) $body,
+                sprintf('HTTP %d: %s', $status, $response)
+            ));
+
             throw new RuntimeException(sprintf('DHL request returned HTTP %d: %s', $status, $response));
         }
 

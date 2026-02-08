@@ -14,6 +14,8 @@ use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Exception\CarrierCo
 use Roanja\Module\RjMulticarrier\Domain\CarrierConfiguration\Exception\CarrierConfigurationNotFoundException;
 use Roanja\Module\RjMulticarrier\Domain\Carrier\Query\GetCarrierForView;
 use Roanja\Module\RjMulticarrier\Domain\Carrier\View\CarrierDetailView;
+use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
+use Roanja\Module\RjMulticarrier\Service\Configuration\DefaultCarrierConfigurationSeeder;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,6 +23,12 @@ use Symfony\Component\HttpFoundation\Response;
 final class CarrierConfigurationController extends FrameworkBundleAdminController
 {
     private const TRANSLATION_DOMAIN = 'Modules.RjMulticarrier.Admin';
+
+    public function __construct(
+        private readonly CarrierRepository $carrierRepository,
+        private readonly DefaultCarrierConfigurationSeeder $configurationSeeder
+    ) {
+    }
 
     /**
      * @AdminSecurity("is_granted('read', request.get('_legacy_controller'))", message="Access denied.")
@@ -84,6 +92,73 @@ final class CarrierConfigurationController extends FrameworkBundleAdminControlle
             $defaults = [];
         }
 
+        $extras = $request->request->get('extras', []);
+        if (!is_array($extras)) {
+            $extras = [];
+        }
+
+        $carrier = $this->carrierRepository->find($carrierId);
+        if (null === $carrier) {
+            $this->addFlash('error', $this->l('El transportista indicado no existe.'));
+            return;
+        }
+
+        $definitions = $this->configurationSeeder->getDefaultDefinitionsForCarrier($carrier);
+        $requiredNames = [];
+        $labels = [];
+
+        foreach ($definitions as $definition) {
+            if (!is_array($definition)) {
+                continue;
+            }
+
+            $name = isset($definition['name']) ? trim((string) $definition['name']) : '';
+            if ('' === $name) {
+                continue;
+            }
+
+            $label = isset($definition['label']) ? trim((string) $definition['label']) : '';
+            $labels[$name] = '' !== $label ? $label : $name;
+
+            $isRequired = isset($definition['required']) ? (bool) $definition['required'] : true;
+            if ($isRequired) {
+                $requiredNames[$name] = true;
+            }
+        }
+
+        if ([] !== $requiredNames) {
+            $submittedValues = [];
+            foreach (array_merge($defaults, $extras) as $entry) {
+                if (!is_array($entry)) {
+                    continue;
+                }
+
+                $name = trim((string) ($entry['name'] ?? ''));
+                if ('' === $name) {
+                    continue;
+                }
+
+                $submittedValues[$name] = $this->normaliseValue($entry['value'] ?? null);
+            }
+
+            $missing = [];
+            foreach (array_keys($requiredNames) as $name) {
+                $value = $submittedValues[$name] ?? null;
+                if (null === $value || '' === trim((string) $value)) {
+                    $missing[] = $labels[$name] ?? $name;
+                }
+            }
+
+            if ([] !== $missing) {
+                $missing = array_values(array_unique($missing));
+                $this->addFlash(
+                    'error',
+                    sprintf('%s<br>%s', $this->l('Faltan configuraciones obligatorias:'), implode('<br>', $missing))
+                );
+                return;
+            }
+        }
+
         foreach ($defaults as $entry) {
             $name = trim((string) ($entry['name'] ?? ''));
             if ('' === $name) {
@@ -107,11 +182,6 @@ final class CarrierConfigurationController extends FrameworkBundleAdminControlle
             } catch (\Throwable $exception) {
                 $this->addFlash('error', $this->l('No se pudo guardar la configuración por defecto "%name%".', ['%name%' => $name]));
             }
-        }
-
-        $extras = $request->request->get('extras', []);
-        if (!is_array($extras)) {
-            $extras = [];
         }
 
         foreach ($extras as $entry) {

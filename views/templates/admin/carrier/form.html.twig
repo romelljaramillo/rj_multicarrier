@@ -12,26 +12,30 @@
         {% set payloadValue = carrier.defaultPayload|json_encode(jsonOptions) %}
     {% endif %}
     {% set payloadSectionVisible = payloadValue is not empty %}
+    {% set requestedTab = app.request.query.get('tab')|default('') %}
+    {% set activeTab = requestedTab in ['general', 'configuration', 'typeshipment']
+        ? requestedTab
+        : (typeShipmentEditing ? 'typeshipment' : 'general') %}
 
     <div class="row">
         <div class="col-12">
             
             <ul class="nav nav-tabs mb-4" id="carrierTabs" role="tablist">
                 <li class="nav-item">
-                    <a class="nav-link active" id="general-tab" data-toggle="tab" href="#general" role="tab" aria-controls="general" aria-selected="true">
+                    <a class="nav-link {{ activeTab == 'general' ? 'active' : '' }}" id="general-tab" data-toggle="tab" href="#general" role="tab" aria-controls="general" aria-selected="{{ activeTab == 'general' ? 'true' : 'false' }}">
                         <i class="material-icons">settings</i>
                         {{ 'General'|trans({}, 'Admin.Global') }}
                     </a>
                 </li>
                 {% if hasCarrier %}
                     <li class="nav-item">
-                        <a class="nav-link" id="configuration-tab" data-toggle="tab" href="#configuration" role="tab" aria-controls="configuration" aria-selected="false">
+                        <a class="nav-link {{ activeTab == 'configuration' ? 'active' : '' }}" id="configuration-tab" data-toggle="tab" href="#configuration" role="tab" aria-controls="configuration" aria-selected="{{ activeTab == 'configuration' ? 'true' : 'false' }}">
                             <i class="material-icons">tune</i>
                             {{ 'Configuración'|trans({}, 'Modules.RjMulticarrier.Admin') }}
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" id="typeshipment-tab" data-toggle="tab" href="#typeshipment" role="tab" aria-controls="typeshipment" aria-selected="false">
+                        <a class="nav-link {{ activeTab == 'typeshipment' ? 'active' : '' }}" id="typeshipment-tab" data-toggle="tab" href="#typeshipment" role="tab" aria-controls="typeshipment" aria-selected="{{ activeTab == 'typeshipment' ? 'true' : 'false' }}">
                             <i class="material-icons">local_shipping</i>
                             {{ 'Tipos de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
                         </a>
@@ -42,7 +46,7 @@
             <div class="tab-content" id="carrierTabsContent">
                 
                 {# TAB 1: GENERAL #}
-                <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="general-tab">
+                <div class="tab-pane fade {{ activeTab == 'general' ? 'show active' : '' }}" id="general" role="tabpanel" aria-labelledby="general-tab">
                     <form method="post" enctype="multipart/form-data">
                         <div class="card rj-carrier-form-card">
                             <h3 class="card-header d-flex align-items-center gap-2">
@@ -86,6 +90,9 @@
                                 </div>
 
                                 <input type="hidden" name="adapter_service" value="{{ carrier is defined and carrier ? carrier.adapterService : '' }}" />
+                                {% if hasCarrier %}
+                                    <input type="hidden" name="redirect_to" value="{{ path('admin_rj_multicarrier_carriers_edit', {'id': carrier.id, 'tab': 'general'}) }}" />
+                                {% endif %}
 
                                 <textarea name="configuration_schema" class="d-none">{{ schemaValue }}</textarea>
 
@@ -116,7 +123,7 @@
 
                 {% if hasCarrier %}
                     {# TAB 2: CONFIGURATION #}
-                    <div class="tab-pane fade" id="configuration" role="tabpanel" aria-labelledby="configuration-tab">
+                    <div class="tab-pane fade {{ activeTab == 'configuration' ? 'show active' : '' }}" id="configuration" role="tabpanel" aria-labelledby="configuration-tab">
                         {% set configurationFormAction = path('admin_rj_multicarrier_carriers_configuration', {'id': carrier.id}) %}
                         {% set configurationCsrfToken = csrf_token('carrier_configurations_' ~ carrier.id) %}
 
@@ -125,13 +132,13 @@
                             configurationCsrfToken: configurationCsrfToken,
                             defaultConfigurations: defaultConfigurations|default([]),
                             extraConfigurations: extraConfigurations|default([]),
-                            redirectAfterSubmit: path('admin_rj_multicarrier_carriers_edit', {'id': carrier.id}),
+                            redirectAfterSubmit: path('admin_rj_multicarrier_carriers_edit', {'id': carrier.id, 'tab': 'configuration'}),
                             backUrl: path('admin_rj_multicarrier_carriers_index')
                         } %}
                     </div>
 
                     {# TAB 3: TYPE SHIPMENT #}
-                    <div class="tab-pane fade" id="typeshipment" role="tabpanel" aria-labelledby="typeshipment-tab">
+                    <div class="tab-pane fade {{ activeTab == 'typeshipment' ? 'show active' : '' }}" id="typeshipment" role="tabpanel" aria-labelledby="typeshipment-tab">
                         <div class="card">
                             <div class="card-header d-flex align-items-center justify-content-between">
                                 <div>

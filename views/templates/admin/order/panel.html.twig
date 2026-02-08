@@ -54,116 +54,6 @@
 			</div>
 			{% endif %}
 			<div class="card-body">
-				{% if hasShipment and not isInlineDisplay %}
-					<div class="mb-4">
-						<dl class="row mb-0">
-							<dt class="col-sm-4">{{ 'Número de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
-							<dd class="col-sm-8">{{ shipment.shipmentNumber ?: '-' }}</dd>
-
-							<dt class="col-sm-4">{{ 'Transportista'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
-							<dd class="col-sm-8">{{ shipment.carrierShortName ?: '-' }}</dd>
-
-							<dt class="col-sm-4">{{ 'Referencia pedido'|trans({}, 'Modules.RjMulticarrier.Admin') }}</dt>
-							<dd class="col-sm-8">{{ shipment.orderReference ?: '-' }}</dd>
-						</dl>
-
-						{% if shipment.package is defined and shipment.package %}
-							<h4 class="h6 mt-3">{{ 'Información del bulto'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h4>
-							<ul class="list-unstyled mb-3">
-								<li><strong>{{ 'Cantidad'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.quantity }}</li>
-								<li><strong>{{ 'Peso total'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.weight }}</li>
-								{% if shipment.package.length is defined %}
-									<li>
-										<strong>{{ 'Dimensiones'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong>
-										{{ shipment.package.length ?: '-' }}
-										x
-										{{ shipment.package.width ?: '-' }}
-										x
-										{{ shipment.package.height ?: '-' }}
-									</li>
-								{% endif %}
-								{% if shipment.package.cash_ondelivery is defined and shipment.package.cash_ondelivery %}
-									<li><strong>{{ 'Contra reembolso'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.cash_ondelivery }}</li>
-								{% endif %}
-								{% if shipment.package.message %}
-									<li><strong>{{ 'Mensaje'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.message }}</li>
-								{% endif %}
-								{% if shipment.package.hour_from or shipment.package.hour_until %}
-									<li>
-										<strong>{{ 'Horario'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong>
-										{{ shipment.package.hour_from ?: '--:--:--' }} → {{ shipment.package.hour_until ?: '--:--:--' }}
-									</li>
-								{% endif %}
-								{% if shipment.package.retorno is not null %}
-									{% set retornoLabels = {
-										0: 'Sin retorno'|trans({}, 'Modules.RjMulticarrier.Admin'),
-										1: 'Retorno obligatorio'|trans({}, 'Modules.RjMulticarrier.Admin'),
-										2: 'Retorno opcional'|trans({}, 'Modules.RjMulticarrier.Admin')
-									} %}
-									<li><strong>{{ 'Retorno'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ retornoLabels[shipment.package.retorno]|default(shipment.package.retorno) }}</li>
-								{% endif %}
-								{% if shipment.package.rcs is not null %}
-									<li><strong>{{ 'Retorno copia sellada'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.rcs ? 'Sí'|trans({}, 'Modules.RjMulticarrier.Admin') : 'No'|trans({}, 'Modules.RjMulticarrier.Admin') }}</li>
-								{% endif %}
-								{% if shipment.package.vsec %}
-									<li><strong>{{ 'Valor asegurado'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.vsec }}</li>
-								{% endif %}
-								{% if shipment.package.dorig %}
-									<li><strong>{{ 'Documento de origen'|trans({}, 'Modules.RjMulticarrier.Admin') }}:</strong> {{ shipment.package.dorig }}</li>
-								{% endif %}
-							</ul>
-						{% endif %}
-
-						<div class="d-flex justify-content-between align-items-center mb-3">
-							<h4 class="h6 mb-0">{{ 'Etiquetas'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h4>
-							{% set deleteShipmentAction = '#' %}
-							{% if currentOrderId > 0 %}
-								{% set deleteShipmentAction = (currentOrderId is defined and currentOrderId) ? path('admin_rj_multicarrier_order_delete_shipment', {'orderId': currentOrderId, 'shipmentId': shipment.id}) : '#' %}
-							{% endif %}
-							<form method="post" class="mb-0" action="{{ deleteShipmentAction }}">
-								<input type="hidden" name="id_order" value="{{ currentOrderId }}" />
-								<input type="hidden" name="id_shipment" value="{{ shipment.id }}" />
-								<button type="submit" class="btn btn-outline-danger btn-sm">
-									{{ 'Eliminar envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
-								</button>
-							</form>
-						</div>
-
-						{% if shipment.labels is not empty %}
-							<table class="table table-sm">
-								<thead>
-									<tr>
-										<th>{{ 'ID'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
-										<th>{{ 'Paquete'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
-										<th>{{ 'Seguimiento'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
-										<th>{{ 'Tipo'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
-										<th>{{ 'Impreso'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
-									</tr>
-								</thead>
-								<tbody>
-									{% for label in shipment.labels %}
-										<tr>
-											<td>{{ label.id }}</td>
-											<td>{{ label.package_id ?: '-' }}</td>
-											<td>{{ label.tracker_code ?: '-' }}</td>
-											<td>{{ label.label_type ?: '-' }}</td>
-											<td>
-												{% if label.printed %}
-													<span class="badge bg-success">{{ 'Sí'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
-												{% else %}
-													<span class="badge bg-secondary">{{ 'No'|trans({}, 'Modules.RjMulticarrier.Admin') }}</span>
-												{% endif %}
-											</td>
-										</tr>
-									{% endfor %}
-								</tbody>
-							</table>
-						{% else %}
-							<p class="text-muted mb-0">{{ 'No se han generado etiquetas para este envío.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
-						{% endif %}
-					</div>
-				{% endif %}
-
 				{% set upsertPackageAction = '#' %}
 				{% if currentOrderId > 0 %}
 					{% set upsertPackageAction = (currentOrderId is defined and currentOrderId) ? path('admin_rj_multicarrier_order_upsert_package', {'orderId': currentOrderId}) : '#' %}
@@ -315,28 +205,6 @@
 						<textarea name="rj_message" class="form-control" rows="2">{{ request_values.rj_message|default(info_package.message|default('')) }}</textarea>
 					</div>
 
-					{% if config_extra_info.company is not empty or config_extra_info.type_shipment is not empty %}
-						<div class="mb-4">
-							<h5 class="h6">{{ 'Configuraciones guardadas'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h5>
-							{% if config_extra_info.company is not empty %}
-								<p class="text-muted mb-1">{{ 'Compañía'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
-								<ul class="list-unstyled small mb-2">
-									{% for key, value in config_extra_info.company %}
-										<li><strong>{{ key }}</strong>: {{ value is not empty ? value : '-' }}</li>
-									{% endfor %}
-								</ul>
-							{% endif %}
-							{% if config_extra_info.type_shipment is not empty %}
-								<p class="text-muted mb-1">{{ 'Tipo de envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
-								<ul class="list-unstyled small mb-0">
-									{% for key, value in config_extra_info.type_shipment %}
-										<li><strong>{{ key }}</strong>: {{ value is not empty ? value : '-' }}</li>
-									{% endfor %}
-								</ul>
-							{% endif %}
-						</div>
-					{% endif %}
-
 					<div class="d-flex flex-column flex-md-row gap-2 align-items-md-center">
 						<div class="btn-group" role="group">
 							<button type="submit" class="btn btn-secondary">
@@ -351,6 +219,65 @@
 						{% endif %}
 					</div>
 				</form>
+
+				{% if hasShipment %}
+					<div class="d-flex justify-content-between align-items-center mb-3 mt-4">
+						<h4 class="h6 mb-0">{{ 'Etiquetas'|trans({}, 'Modules.RjMulticarrier.Admin') }}</h4>
+						{% set deleteShipmentAction = '#' %}
+						{% if currentOrderId > 0 %}
+							{% set deleteShipmentAction = (currentOrderId is defined and currentOrderId) ? path('admin_rj_multicarrier_order_delete_shipment', {'orderId': currentOrderId, 'shipmentId': shipment.id}) : '#' %}
+						{% endif %}
+						<form method="post" class="mb-0" action="{{ deleteShipmentAction }}">
+							<input type="hidden" name="id_order" value="{{ currentOrderId }}" />
+							<input type="hidden" name="id_shipment" value="{{ shipment.id }}" />
+							<button type="submit" class="btn btn-outline-danger btn-sm">
+								{{ 'Eliminar envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}
+							</button>
+						</form>
+					</div>
+
+					{% if shipment.labels is not empty %}
+						<table class="table" id="rjShipmentTable">
+							<thead>
+								<tr>
+									<th>{{ 'ID'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+									<th>{{ 'ID envío'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+									<th>{{ 'ID paquete'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+									<th>{{ 'Seguimiento'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+									<th>{{ 'Impreso'|trans({}, 'Modules.RjMulticarrier.Admin') }}</th>
+									<th></th>
+								</tr>
+							</thead>
+							<tbody>
+								{% set printUrl = shipment.id is defined and shipment.id ? path('admin_rj_multicarrier_shipments_print', {'id': shipment.id}) : '' %}
+								{% for label in shipment.labels %}
+									<tr class="cellLabels">
+										<td class="cellIdLabel">{{ label.id }}</td>
+										<td class="cellIdShipmentLabel">{{ shipment.id|default('-') }}</td>
+										<td class="cell-package-id">{{ label.package_id ?: '-' }}</td>
+										<td class="cellTrackerCode">{{ label.tracker_code ?: '-' }}</td>
+										<td class="cellTrackerCode">
+											{% if label.printed %}
+												<i class="material-icons text-success" data-toggle="pstooltip" data-placement="top" data-original-title="{{ 'Impreso'|trans({}, 'Modules.RjMulticarrier.Admin') }}">print</i>
+											{% else %}
+												<i class="material-icons text-muted" data-toggle="pstooltip" data-placement="top" data-original-title="{{ 'No impreso'|trans({}, 'Modules.RjMulticarrier.Admin') }}">print_disabled</i>
+											{% endif %}
+										</td>
+										<td class="text-right cellShipmentActions">
+											{% if printUrl %}
+												<a href="{{ printUrl }}" target="_blank" class="btn btn-sm tooltip-link" data-toggle="pstooltip" data-placement="top" data-original-title="{{ 'Imprimir etiqueta'|trans({}, 'Modules.RjMulticarrier.Admin') }}">
+													<i class="material-icons">receipt</i>
+												</a>
+											{% endif %}
+										</td>
+									</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					{% else %}
+						<p class="text-muted mb-0">{{ 'No se han generado etiquetas para este envío.'|trans({}, 'Modules.RjMulticarrier.Admin') }}</p>
+					{% endif %}
+				{% endif %}
 
 				{% if hasShipment %}
 					<p class="text-muted small mt-3 mb-0">

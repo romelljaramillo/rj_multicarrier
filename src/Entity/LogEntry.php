@@ -43,6 +43,9 @@ class LogEntry
         $this->requestPayload = $requestPayload !== '' ? $requestPayload : null;
         $this->responsePayload = $responsePayload;
         $this->shopId = $shopId ?? 0;
+        $now = new \DateTimeImmutable();
+        $this->setCreatedAt($now);
+        $this->setUpdatedAt($now);
     }
 
     public function getId(): ?int

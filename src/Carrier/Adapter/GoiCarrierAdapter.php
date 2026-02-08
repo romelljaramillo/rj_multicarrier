@@ -8,6 +8,8 @@ namespace Roanja\Module\RjMulticarrier\Carrier\Adapter;
 
 use Exception;
 use PrestaShop\PrestaShop\Adapter\Configuration as LegacyConfiguration;
+use PrestaShop\PrestaShop\Core\CommandBus\CommandBusInterface;
+use Roanja\Module\RjMulticarrier\Domain\Log\Command\CreateLogEntryCommand;
 use RuntimeException;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
 use Roanja\Module\RjMulticarrier\Support\Common;
@@ -32,7 +34,8 @@ final class GoiCarrierAdapter implements CarrierAdapterInterface
 
     public function __construct(
         private readonly LegacyConfiguration $configuration,
-        private readonly TypeShipmentRepository $typeShipmentRepository
+        private readonly TypeShipmentRepository $typeShipmentRepository,
+        private readonly CommandBusInterface $commandBus
     ) {
     }
 
@@ -89,74 +92,63 @@ final class GoiCarrierAdapter implements CarrierAdapterInterface
                 'name' => 'RJ_GOI_USERID',
                 'label' => 'User Id',
                 'required' => true,
-                'legacy' => ['USERID', 'RJ_GOI_USERID'],
             ],
             [
                 'name' => 'RJ_GOI_USERID_DEV',
                 'label' => 'User Id DEV',
                 'required' => true,
-                'legacy' => ['USERID_DEV', 'RJ_GOI_USERID_DEV'],
             ],
             [
                 'name' => 'RJ_GOI_STOREID',
                 'label' => 'Store Id',
                 'required' => true,
-                'legacy' => ['STOREID', 'RJ_GOI_STOREID'],
             ],
             [
                 'name' => 'RJ_GOI_STOREID_DEV',
                 'label' => 'Store Id DEV',
                 'required' => true,
-                'legacy' => ['STOREID_DEV', 'RJ_GOI_STOREID_DEV'],
             ],
             [
                 'name' => 'RJ_GOI_KEY',
                 'label' => 'Key',
                 'required' => true,
                 'field_type' => 'password',
-                'legacy' => ['KEY', 'RJ_GOI_KEY'],
             ],
             [
                 'name' => 'RJ_GOI_KEY_DEV',
                 'label' => 'Key DEV',
                 'required' => true,
                 'field_type' => 'password',
-                'legacy' => ['KEY_DEV', 'RJ_GOI_KEY_DEV'],
             ],
             [
                 'name' => 'RJ_GOI_URL',
                 'label' => 'Url Production',
                 'description' => 'Formato http:// o https://',
                 'required' => true,
-                'legacy' => ['URL', 'RJ_GOI_URL'],
             ],
             [
                 'name' => 'RJ_GOI_URL_DEV',
                 'label' => 'Url Develop',
                 'description' => 'Ejemplo: https://test-api-jaw.letsgoi.com',
                 'required' => true,
-                'legacy' => ['URL_DEV', 'RJ_GOI_URL_DEV'],
             ],
             [
                 'name' => 'RJ_GOI_ENDPOINT_LOGIN',
                 'label' => 'Endpoint login',
                 'description' => 'Ejemplo: /oauth/token',
                 'required' => true,
-                'legacy' => ['ENDPOINT_LOGIN', 'RJ_GOI_ENDPOINT_LOGIN'],
             ],
             [
                 'name' => 'RJ_GOI_ENDPOINT_SHIPMENT',
                 'label' => 'Endpoint Shipment',
                 'description' => 'Ejemplo: /integrations/import',
                 'required' => true,
-                'legacy' => ['ENDPOINT_SHIPMENT', 'RJ_GOI_ENDPOINT_SHIPMENT'],
             ],
             [
                 'name' => 'RJ_GOI_ENDPOINT_LABEL',
                 'label' => 'Endpoint Label',
                 'description' => 'Ejemplo: /integrations/labels',
                 'required' => true,
-                'legacy' => ['ENDPOINT_LABEL', 'RJ_GOI_ENDPOINT_LABEL'],
             ],
             [
                 'name' => 'RJ_GOI_ENV',
@@ -164,7 +156,12 @@ final class GoiCarrierAdapter implements CarrierAdapterInterface
                 'value' => '0',
                 'required' => true,
                 'field_type' => 'boolean',
-                'legacy' => ['ENV', 'RJ_GOI_ENV'],
+            ],
+            [
+                'name' => 'TRACKING_URL',
+                'label' => 'URL seguimiento',
+                'description' => 'Ejemplo: http://ejemplo.com/track.php?num=@',
+                'required' => false,
             ],
         ];
     }
@@ -510,10 +507,24 @@ final class GoiCarrierAdapter implements CarrierAdapterInterface
         curl_close($resource);
 
         if (false === $response) {
+            $this->commandBus->handle(new CreateLogEntryCommand(
+                $url,
+                0,
+                (string) $body,
+                sprintf('GOI request failed: %s', $error ?: 'unknown error')
+            ));
+
             throw new RuntimeException(sprintf('GOI request failed: %s', $error ?: 'unknown error'));
         }
 
         if ($status < 200 || $status >= 300) {
+            $this->commandBus->handle(new CreateLogEntryCommand(
+                $url,
+                0,
+                (string) $body,
+                sprintf('HTTP %d: %s', $status, $response)
+            ));
+
             throw new RuntimeException(sprintf('GOI request returned HTTP %d: %s', $status, $response));
         }
 

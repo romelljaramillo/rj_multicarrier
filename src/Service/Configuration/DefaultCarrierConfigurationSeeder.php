@@ -1,6 +1,6 @@
 <?php
 /**
- * Seeds carrier configuration defaults, optionally migrating values from the legacy module.
+ * Seeds carrier configuration defaults.
  */
 declare(strict_types=1);
 
@@ -24,7 +24,6 @@ final class DefaultCarrierConfigurationSeeder
     *     label?: ?string,
     *     required?: bool,
     *     description?: ?string,
-    *     legacy?: array<int, string>
     * }>>
      */
     private array $defaultDefinitions;
@@ -73,6 +72,7 @@ final class DefaultCarrierConfigurationSeeder
         }
 
         $now = new DateTimeImmutable();
+
 
         foreach ($defaults as $definition) {
             $name = $definition['name'];
@@ -127,7 +127,6 @@ final class DefaultCarrierConfigurationSeeder
      *     label?: ?string,
      *     required?: bool,
      *     description?: ?string,
-     *     legacy?: array<int, string>
      * }>>
      */
     private function buildAdapterDefaults(iterable $carrierAdapters): array
@@ -171,25 +170,12 @@ final class DefaultCarrierConfigurationSeeder
                     }
                 }
 
-                $legacyKeys = [];
-                if (isset($definition['legacy']) && is_array($definition['legacy'])) {
-                    foreach ($definition['legacy'] as $legacyName) {
-                        $legacyKey = trim((string) $legacyName);
-                        if ('' === $legacyKey) {
-                            continue;
-                        }
-
-                        $legacyKeys[] = $legacyKey;
-                    }
-                }
-
                 $normalized[] = [
                     'name' => $name,
                     'value' => $definition['value'] ?? null,
                     'label' => $label,
                     'required' => isset($definition['required']) ? (bool) $definition['required'] : true,
                     'description' => $description,
-                    'legacy' => $legacyKeys,
                     'field_group' => $definition['field_group'] ?? null,
                     'field_type' => $definition['field_type'] ?? ($definition['type'] ?? 'text'),
                     'payload_direction' => $definition['payload_direction'] ?? null,
@@ -216,7 +202,6 @@ final class DefaultCarrierConfigurationSeeder
      *     label?: ?string,
      *     required?: bool,
      *     description?: ?string,
-     *     legacy?: array<int, string>
      * }>
      */
     private function getDefaultsForCarrier(Carrier $carrier): array
@@ -224,11 +209,33 @@ final class DefaultCarrierConfigurationSeeder
         $code = strtoupper($carrier->getShortName());
         $schemaDefinitions = $this->schemaManager->extractFieldDefinitionsFromCarrier($carrier);
 
-        if (!empty($schemaDefinitions)) {
+        $adapterDefaults = $this->defaultDefinitions[$code] ?? [];
+        if (empty($schemaDefinitions)) {
+            return $adapterDefaults;
+        }
+
+        if (empty($adapterDefaults)) {
             return $schemaDefinitions;
         }
 
-        return $this->defaultDefinitions[$code] ?? [];
+        $seen = [];
+        foreach ($schemaDefinitions as $definition) {
+            $name = isset($definition['name']) ? strtolower((string) $definition['name']) : '';
+            if ('' !== $name) {
+                $seen[$name] = true;
+            }
+        }
+
+        foreach ($adapterDefaults as $definition) {
+            $name = isset($definition['name']) ? strtolower((string) $definition['name']) : '';
+            if ('' === $name || isset($seen[$name])) {
+                continue;
+            }
+
+            $schemaDefinitions[] = $definition;
+        }
+
+        return $schemaDefinitions;
     }
 
     /**
@@ -238,7 +245,6 @@ final class DefaultCarrierConfigurationSeeder
      *     label: string,
      *     required?: bool,
      *     description?: ?string,
-     *     legacy?: array<int, string>
      * }>
      */
     public function getDefaultDefinitionsForCarrier(Carrier $carrier): array

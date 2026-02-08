@@ -49,11 +49,41 @@ final class GetCarrierConfigurationsForCarrierHandler
         }
 
         $entries = $this->configurationRepository->findByCarrier($carrier);
+        $names = [];
+        foreach ($entries as $entry) {
+            $names[$entry->getName()] = true;
+        }
+
+        $hasGenericTrackingUrl = isset($names['TRACKING_URL']);
         $views = [];
 
         foreach ($entries as $entry) {
+            $name = $entry->getName();
+            if ($hasGenericTrackingUrl) {
+                $suffix = '_TRACKING_URL';
+                $isLegacyTracking = strlen($name) >= strlen($suffix)
+                    && substr($name, -strlen($suffix)) === $suffix
+                    && $name !== 'TRACKING_URL';
+                if ($isLegacyTracking) {
+                    continue;
+                }
+            }
+
             $definition = $definitionsMap[$entry->getName()] ?? [];
             $isRequired = $definition['required'] ?? $entry->isRequired();
+            $label = $definition['label'] ?? null;
+            $description = $definition['description'] ?? null;
+            if (null === $label) {
+                $name = $entry->getName();
+                $suffix = '_TRACKING_URL';
+                $isTrackingUrl = strlen($name) >= strlen($suffix) && substr($name, -strlen($suffix)) === $suffix;
+                if ($isTrackingUrl || 'TRACKING_URL' === $name) {
+                    $label = 'URL seguimiento de envíos';
+                    if (null === $description) {
+                        $description = 'Ejemplo: http://ejemplo.com/track.php?num=@';
+                    }
+                }
+            }
 
             $views[] = new CarrierConfigurationView(
                 $entry->getId() ?? 0,
@@ -61,8 +91,8 @@ final class GetCarrierConfigurationsForCarrierHandler
                 $entry->getName(),
                 $entry->getValue(),
                 (bool) $isRequired,
-                $definition['label'] ?? null,
-                $definition['description'] ?? null,
+                $label,
+                $description,
                 $entry->getFieldGroup() ?? ($definition['field_group'] ?? null),
                 $definition['field_group_label'] ?? null,
                 $entry->getFieldType() ?? ($definition['field_type'] ?? null),

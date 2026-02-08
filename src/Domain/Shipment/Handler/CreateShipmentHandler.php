@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Domain\Shipment\Handler;
 
+use Db;
 use Doctrine\ORM\EntityManagerInterface;
 use JsonException;
 use Roanja\Module\RjMulticarrier\Domain\Shipment\Command\CreateShipmentCommand;
@@ -79,6 +80,7 @@ final class CreateShipmentHandler
         }
 
         $this->createLabels($shipment, $command->getLabels(), $shopId);
+        $this->syncOrderTrackingNumber($command->getOrderId(), $command->getLabels());
 
         return $shipment;
     }
@@ -121,6 +123,35 @@ final class CreateShipmentHandler
         }
 
         $this->entityManager->flush();
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $labels
+     */
+    private function syncOrderTrackingNumber(int $orderId, array $labels): void
+    {
+        if ($orderId <= 0) {
+            return;
+        }
+
+        $trackingNumber = '';
+        foreach ($labels as $label) {
+            $candidate = isset($label['tracker_code']) ? trim((string) $label['tracker_code']) : '';
+            if ('' !== $candidate) {
+                $trackingNumber = $candidate;
+                break;
+            }
+        }
+
+        if ('' === $trackingNumber) {
+            return;
+        }
+
+        Db::getInstance()->update(
+            'order_carrier',
+            ['tracking_number' => pSQL($trackingNumber)],
+            'id_order = ' . (int) $orderId
+        );
     }
 
     private function getInfoShipment(int $infoPackageId): InfoShipment

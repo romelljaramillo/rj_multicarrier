@@ -12,6 +12,8 @@ use DOMElement;
 use Exception;
 use PrestaShop\PrestaShop\Adapter\Configuration as LegacyConfiguration;
 use PrestaShop\PrestaShop\Adapter\Country\CountryDataProvider;
+use PrestaShop\PrestaShop\Core\CommandBus\CommandBusInterface;
+use Roanja\Module\RjMulticarrier\Domain\Log\Command\CreateLogEntryCommand;
 use Roanja\Module\RjMulticarrier\Support\Common;
 use RuntimeException;
 use SimpleXMLElement;
@@ -23,7 +25,8 @@ final class GlsCarrierAdapter implements CarrierAdapterInterface
 
     public function __construct(
         private readonly LegacyConfiguration $configuration,
-        private readonly CountryDataProvider $countryDataProvider
+        private readonly CountryDataProvider $countryDataProvider,
+        private readonly CommandBusInterface $commandBus
     ) {
     }
 
@@ -89,26 +92,22 @@ final class GlsCarrierAdapter implements CarrierAdapterInterface
                 'value' => '0',
                 'required' => true,
                 'field_type' => 'boolean',
-                'legacy' => ['RJ_GLS_ENV'],
             ],
             [
                 'name' => 'GLS_GUID',
                 'label' => 'GUID producción',
                 'required' => true,
-                'legacy' => ['RJ_GLS_GUID'],
             ],
             [
                 'name' => 'GLS_GUID_DEV',
                 'label' => 'GUID pruebas',
                 'required' => true,
-                'legacy' => ['RJ_GLS_GUID_DEV'],
             ],
             [
                 'name' => 'GLS_URL',
                 'label' => 'Endpoint SOAP',
                 'description' => 'URL base del servicio ASM/GLS.',
                 'required' => true,
-                'legacy' => ['RJ_GLS_URL'],
             ],
             [
                 'name' => 'GLS_WEIGHT',
@@ -116,7 +115,6 @@ final class GlsCarrierAdapter implements CarrierAdapterInterface
                 'value' => null,
                 'required' => true,
                 'field_type' => 'number',
-                'legacy' => ['RJ_GLS_WEIGHT'],
             ],
             [
                 'name' => 'GLS_QUANTITY',
@@ -124,14 +122,12 @@ final class GlsCarrierAdapter implements CarrierAdapterInterface
                 'value' => '1',
                 'required' => true,
                 'field_type' => 'number',
-                'legacy' => ['RJ_GLS_QUANTITY'],
             ],
             [
                 'name' => 'GLS_RETORNO',
                 'label' => 'Retorno por defecto',
                 'value' => '0',
                 'required' => true,
-                'legacy' => ['RJ_GLS_RETORNO'],
             ],
             [
                 'name' => 'GLS_RCS',
@@ -139,14 +135,12 @@ final class GlsCarrierAdapter implements CarrierAdapterInterface
                 'value' => '0',
                 'required' => true,
                 'field_type' => 'boolean',
-                'legacy' => ['RJ_GLS_RCS'],
             ],
             [
                 'name' => 'GLS_INCOTERM',
                 'label' => 'Incoterm por defecto',
                 'value' => '0',
                 'required' => true,
-                'legacy' => ['RJ_GLS_INCOTERM'],
             ],
             [
                 'name' => 'GLS_VSEC',
@@ -154,14 +148,18 @@ final class GlsCarrierAdapter implements CarrierAdapterInterface
                 'value' => '0',
                 'required' => true,
                 'field_type' => 'number',
-                'legacy' => ['RJ_GLS_VSEC'],
             ],
             [
                 'name' => 'GLS_DORIG',
                 'label' => 'Departamento origen',
                 'value' => null,
                 'required' => true,
-                'legacy' => ['RJ_GLS_DORIG'],
+            ],
+            [
+                'name' => 'TRACKING_URL',
+                'label' => 'URL seguimiento',
+                'description' => 'Ejemplo: http://ejemplo.com/track.php?num=@',
+                'required' => false,
             ],
         ];
     }
@@ -544,10 +542,24 @@ final class GlsCarrierAdapter implements CarrierAdapterInterface
         curl_close($handle);
 
         if (false === $response) {
+            $this->commandBus->handle(new CreateLogEntryCommand(
+                $endpoint,
+                0,
+                $body,
+                sprintf('GLS request failed: %s', $error ?: 'unknown error')
+            ));
+
             throw new RuntimeException(sprintf('GLS request failed: %s', $error ?: 'unknown error'));
         }
 
         if ($status < 200 || $status >= 300) {
+            $this->commandBus->handle(new CreateLogEntryCommand(
+                $endpoint,
+                0,
+                $body,
+                sprintf('HTTP %d: %s', $status, $response)
+            ));
+
             throw new RuntimeException(sprintf('GLS request returned HTTP %d: %s', $status, $response));
         }
 

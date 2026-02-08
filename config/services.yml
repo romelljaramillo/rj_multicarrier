@@ -93,6 +93,15 @@ services:
     alias: 'Roanja\Module\RjMulticarrier\Service\Carrier\ValidationRuleProvider'
     public: true
 
+  Roanja\Module\RjMulticarrier\Domain\Log\Handler\CreateLogEntryHandler:
+    arguments:
+      $entityManager: '@doctrine.orm.entity_manager'
+    tags:
+      - {
+          name: "tactician.handler",
+          command: 'Roanja\Module\RjMulticarrier\Domain\Log\Command\CreateLogEntryCommand',
+        }
+
   Roanja\Module\RjMulticarrier\Domain\Log\Handler\GetLogEntryForViewHandler:
     arguments:
       $logRepository: '@Roanja\Module\RjMulticarrier\Repository\LogEntryRepository'
@@ -702,6 +711,7 @@ services:
       $carrierAdapters:
         - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter'
         - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\CexCarrierAdapter'
+        - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\OnTimeCarrierAdapter'
         - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\GoiCarrierAdapter'
         - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\DhlCarrierAdapter'
         - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\GlsCarrierAdapter'
@@ -719,12 +729,22 @@ services:
       $configuration: "@prestashop.adapter.legacy.configuration"
       $countryDataProvider: "@prestashop.adapter.data_provider.country"
       $legacyContext: "@prestashop.adapter.legacy.context"
+      $commandBus: "@prestashop.core.command_bus"
+    tags:
+      - { name: "roanja.module.rj_multicarrier.carrier_adapter" }
+
+  Roanja\Module\RjMulticarrier\Carrier\Adapter\OnTimeCarrierAdapter:
+    arguments:
+      $configuration: "@prestashop.adapter.legacy.configuration"
+      $countryDataProvider: "@prestashop.adapter.data_provider.country"
+      $commandBus: "@prestashop.core.command_bus"
     tags:
       - { name: "roanja.module.rj_multicarrier.carrier_adapter" }
 
   Roanja\Module\RjMulticarrier\Carrier\Adapter\GoiCarrierAdapter:
     arguments:
       $configuration: "@prestashop.adapter.legacy.configuration"
+      $commandBus: "@prestashop.core.command_bus"
     tags:
       - { name: "roanja.module.rj_multicarrier.carrier_adapter" }
 
@@ -732,6 +752,7 @@ services:
     arguments:
       $configuration: "@prestashop.adapter.legacy.configuration"
       $countryDataProvider: "@prestashop.adapter.data_provider.country"
+      $commandBus: "@prestashop.core.command_bus"
     tags:
       - { name: "roanja.module.rj_multicarrier.carrier_adapter" }
 
@@ -739,6 +760,7 @@ services:
     arguments:
       $configuration: "@prestashop.adapter.legacy.configuration"
       $countryDataProvider: "@prestashop.adapter.data_provider.country"
+      $commandBus: "@prestashop.core.command_bus"
     tags:
       - { name: "roanja.module.rj_multicarrier.carrier_adapter" }
 
@@ -747,6 +769,7 @@ services:
       $adapters:
         - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\DefaultCarrierAdapter'
         - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\CexCarrierAdapter'
+        - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\OnTimeCarrierAdapter'
         - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\GoiCarrierAdapter'
         - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\DhlCarrierAdapter'
         - '@Roanja\Module\RjMulticarrier\Carrier\Adapter\GlsCarrierAdapter'

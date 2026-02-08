@@ -255,6 +255,15 @@ final class CarrierController extends FrameworkBundleAdminController
         $carrierId = $carrierData['id'];
         $carrierEntity = $this->carrierRepository->find($carrierId);
 
+        $redirectTo = trim((string) $request->request->get('redirect_to', ''));
+        $redirectAfterSave = function () use ($redirectTo, $carrierId): RedirectResponse {
+            if ('' !== $redirectTo) {
+                return $this->redirect($redirectTo);
+            }
+
+            return $this->redirectToRoute('admin_rj_multicarrier_carriers_edit', ['id' => $carrierId, 'tab' => 'general']);
+        };
+
         if (!$carrierEntity instanceof Carrier) {
             $this->addFlash('error', $this->translate('El transportista indicado no existe.'));
 
@@ -290,7 +299,7 @@ final class CarrierController extends FrameworkBundleAdminController
             } catch (InvalidArgumentException $exception) {
                 $this->addFlash('error', $this->translate('Esquema de configuración inválido: %s', [$exception->getMessage()]));
 
-                return $this->redirectToRoute('admin_rj_multicarrier_carriers_index');
+                return $redirectAfterSave();
             }
 
             try {
@@ -298,7 +307,7 @@ final class CarrierController extends FrameworkBundleAdminController
             } catch (InvalidArgumentException $exception) {
                 $this->addFlash('error', $this->translate('Payload por defecto inválido: %s', [$exception->getMessage()]));
 
-                return $this->redirectToRoute('admin_rj_multicarrier_carriers_index');
+                return $redirectAfterSave();
             }
 
             $configurationSchema = empty($configurationSchemaArray) ? null : $configurationSchemaArray;
@@ -329,10 +338,10 @@ final class CarrierController extends FrameworkBundleAdminController
 
                 $this->addFlash('success', $this->translate('Transportista actualizado correctamente.'));
 
-                return $this->redirectToRoute('admin_rj_multicarrier_carriers_index');
+                return $redirectAfterSave();
             } catch (\Throwable $e) {
                 $this->addFlash('error', $this->translate('No se pudo actualizar el transportista: %s', [$e->getMessage()]));
-                return $this->redirectToRoute('admin_rj_multicarrier_carriers_index');
+                return $redirectAfterSave();
             }
         }
 
@@ -375,7 +384,7 @@ final class CarrierController extends FrameworkBundleAdminController
         if (!$form instanceof FormInterface) {
             $this->addFlash('error', $this->translate('No se pudo preparar el formulario de tipos de envío.'));
 
-            return $this->redirectToRoute('admin_rj_multicarrier_carriers_edit', ['id' => $id]);
+            return $this->redirectToRoute('admin_rj_multicarrier_carriers_edit', ['id' => $id, 'tab' => 'typeshipment']);
         }
 
         $form->handleRequest($request);
@@ -383,7 +392,7 @@ final class CarrierController extends FrameworkBundleAdminController
         if (!$form->isSubmitted() || !$form->isValid()) {
             $this->addFlash('error', $this->translate('Revisa los datos del tipo de envío antes de guardarlo.'));
 
-            return $this->redirectToRoute('admin_rj_multicarrier_carriers_edit', ['id' => $id]);
+            return $this->redirectToRoute('admin_rj_multicarrier_carriers_edit', ['id' => $id, 'tab' => 'typeshipment']);
         }
 
         $data = $form->getData();
@@ -392,7 +401,7 @@ final class CarrierController extends FrameworkBundleAdminController
         if ($formCarrierId !== $carrier->getId()) {
             $this->addFlash('error', $this->translate('El formulario corresponde a otro transportista.'));
 
-            return $this->redirectToRoute('admin_rj_multicarrier_carriers_edit', ['id' => $id]);
+            return $this->redirectToRoute('admin_rj_multicarrier_carriers_edit', ['id' => $id, 'tab' => 'typeshipment']);
         }
 
         $referenceCarrierId = $this->normalizeReferenceCarrierId($data['reference_carrier_id'] ?? null);
@@ -429,7 +438,7 @@ final class CarrierController extends FrameworkBundleAdminController
             $this->addFlash('error', $exception->getMessage());
         }
 
-        return $this->redirectToRoute('admin_rj_multicarrier_carriers_edit', ['id' => $id]);
+        return $this->redirectToRoute('admin_rj_multicarrier_carriers_edit', ['id' => $id, 'tab' => 'typeshipment']);
     }
 
     /**
@@ -789,20 +798,11 @@ final class CarrierController extends FrameworkBundleAdminController
         }
 
         $defaultConfigurations = [];
-        $extraConfigurations = [];
-
         foreach ($views as $view) {
-            $entry = $view->toArray();
-
-            if ($view->isRequired()) {
-                $defaultConfigurations[] = $entry;
-                continue;
-            }
-
-            $extraConfigurations[] = $entry;
+            $defaultConfigurations[] = $view->toArray();
         }
 
-        return [$defaultConfigurations, $extraConfigurations];
+        return [$defaultConfigurations, []];
     }
 
     /**

@@ -18,12 +18,18 @@ final class CreateLogEntryHandler
 
     public function handle(CreateLogEntryCommand $command): LogEntry
     {
+        $shopId = $command->getShopId() ?? 0;
+        if ($shopId <= 0) {
+            $context = \Context::getContext();
+            $shopId = (int) ($context->shop->id ?? 0);
+        }
+
         $logEntry = new LogEntry(
             $command->getName(),
             $command->getOrderId(),
             $command->getRequest(),
             $command->getResponse(),
-            $command->getShopId() ?? 0
+            $shopId
         );
 
         $this->entityManager->persist($logEntry);

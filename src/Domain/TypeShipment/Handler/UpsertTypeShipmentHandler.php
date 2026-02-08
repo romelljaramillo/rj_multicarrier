@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace Roanja\Module\RjMulticarrier\Domain\TypeShipment\Handler;
 
+use Db;
 use Doctrine\ORM\EntityManagerInterface;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Command\UpsertTypeShipmentCommand;
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Exception\TypeShipmentCarrierConflictException;
@@ -13,15 +14,19 @@ use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Exception\TypeShipmentExcep
 use Roanja\Module\RjMulticarrier\Domain\TypeShipment\Exception\TypeShipmentNotFoundException;
 use Roanja\Module\RjMulticarrier\Entity\Carrier;
 use Roanja\Module\RjMulticarrier\Entity\TypeShipment;
+use Roanja\Module\RjMulticarrier\Repository\CarrierConfigurationRepository;
 use Roanja\Module\RjMulticarrier\Repository\CarrierRepository;
 use Roanja\Module\RjMulticarrier\Repository\TypeShipmentRepository;
+use Roanja\Module\RjMulticarrier\Service\Configuration\DefaultCarrierConfigurationSeeder;
 
 final class UpsertTypeShipmentHandler
 {
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly CarrierRepository $carrierRepository,
-        private readonly TypeShipmentRepository $typeShipmentRepository
+        private readonly TypeShipmentRepository $typeShipmentRepository,
+        private readonly CarrierConfigurationRepository $carrierConfigurationRepository,
+        private readonly DefaultCarrierConfigurationSeeder $configurationSeeder
     ) {
     }
 
@@ -35,6 +40,12 @@ final class UpsertTypeShipmentHandler
             $this->assertCarrierIsAvailable($referenceCarrierId, $typeShipment->getId());
         }
 
+        $isNew = null === $command->getTypeShipmentId();
+        $currentReferenceCarrierId = $typeShipment->getReferenceCarrierId();
+        if (null !== $referenceCarrierId && ($isNew || $referenceCarrierId !== $currentReferenceCarrierId)) {
+            $this->assertCarrierIsConfiguredForReference($carrier);
+        }
+
         $typeShipment
             ->setCarrier($carrier)
             ->setName($command->getName())
@@ -45,6 +56,10 @@ final class UpsertTypeShipmentHandler
 
         $this->entityManager->persist($typeShipment);
         $this->entityManager->flush();
+
+        if (null !== $referenceCarrierId) {
+            $this->syncTrackingUrl($carrier, $referenceCarrierId);
+        }
 
         return $typeShipment;
     }
@@ -96,5 +111,73 @@ final class UpsertTypeShipmentHandler
         }
 
         throw TypeShipmentCarrierConflictException::fromReference($referenceCarrierId);
+    }
+
+    private function syncTrackingUrl(Carrier $carrier, int $referenceCarrierId): void
+    {
+        $trackingUrlKey = 'TRACKING_URL';
+        $trackingConfig = $this->carrierConfigurationRepository->findOneForCarrierByName($carrier, $trackingUrlKey);
+        $trackingUrl = null === $trackingConfig ? '' : trim((string) $trackingConfig->getValue());
+
+        if ('' === $trackingUrl) {
+            return;
+        }
+
+        Db::getInstance()->update(
+            'carrier',
+            ['url' => pSQL($trackingUrl)],
+            'id_reference = ' . (int) $referenceCarrierId
+        );
+    }
+
+    private function assertCarrierIsConfiguredForReference(Carrier $carrier): void
+    {
+        $definitions = $this->configurationSeeder->getDefaultDefinitionsForCarrier($carrier);
+        $requiredNames = [];
+        $labels = [];
+
+        foreach ($definitions as $definition) {
+            if (!is_array($definition)) {
+                continue;
+            }
+
+            $name = isset($definition['name']) ? trim((string) $definition['name']) : '';
+            if ('' === $name) {
+                continue;
+            }
+
+            $label = isset($definition['label']) ? trim((string) $definition['label']) : '';
+            $labels[$name] = '' !== $label ? $label : $name;
+
+            $isRequired = isset($definition['required']) ? (bool) $definition['required'] : true;
+            if ($isRequired) {
+                $requiredNames[$name] = true;
+            }
+        }
+
+        if (!isset($requiredNames['TRACKING_URL'])) {
+            $requiredNames['TRACKING_URL'] = true;
+        }
+
+        if (!isset($labels['TRACKING_URL'])) {
+            $labels['TRACKING_URL'] = 'URL seguimiento';
+        }
+
+        $values = $this->carrierConfigurationRepository->getKeyValueForCarrier($carrier);
+        $missing = [];
+
+        foreach (array_keys($requiredNames) as $name) {
+            $value = $values[$name] ?? null;
+            if (null === $value || '' === trim((string) $value)) {
+                $missing[] = $labels[$name] ?? $name;
+            }
+        }
+
+        if ([] !== $missing) {
+            $missing = array_values(array_unique($missing));
+            throw new TypeShipmentException(
+                sprintf("Faltan configuraciones obligatorias:<br>%s", implode('<br>', $missing))
+            );
+        }
     }
 }
